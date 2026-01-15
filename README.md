@@ -20,7 +20,7 @@ This project is evolving. Depending on your interest, you may want to download a
 The core experience. Focused purely on terminal navigation and file-based puzzles. Lightweight, stable, and perfect for learning basic Linux commands.
 *   *Status: Complete & Archived*
 
-### ⚪ [Simple - Retro Linux Terminal Adventure (NO AI)](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/tree/v1-simple-withoutAI)
+### ⚪ [Simple - Retro Linux Terminal Adventure (NO AI)](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple-no-AI)
 **For those who want a pure terminal experience without any AI assistance.**
 Same exact game as the simple edition, but with the AI copilot removed entirely. Just you and the terminal.
 *   *Status: Complete*
