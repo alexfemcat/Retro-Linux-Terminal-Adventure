@@ -1,9 +1,8 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './components/Terminal';
-import { AIAssistant } from './components/AIAssistant';
 import { puzzleGenerator } from './services/puzzleGenerator';
-import type { GameState, VFSNode } from './types';
+import type { GameState } from './types';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -35,9 +34,9 @@ const App: React.FC = () => {
             'MISSION ACCOMPLISHED.',
             '----------------------------------------',
         ];
-        
+
         setGameWon(true);
-        
+
         let i = 0;
         const interval = setInterval(() => {
             if (i < lines.length) {
@@ -60,31 +59,23 @@ const App: React.FC = () => {
     return (
         <div className="w-screen h-screen p-4">
             {!gameWon ? (
-                <div className="flex w-full h-full gap-4">
-                    <div className="w-2/3 h-full">
-                         <Terminal 
-                            key={gameId} 
-                            gameState={gameState} 
-                            onWin={handleWin}
-                            currentPath={currentPath}
-                            setCurrentPath={setCurrentPath}
-                        />
-                    </div>
-                    <div className="w-1/3 h-full">
-                        <AIAssistant 
-                           gameState={gameState}
-                           currentPath={currentPath}
-                        />
-                    </div>
+                <div className="w-full h-full">
+                    <Terminal
+                        key={gameId}
+                        gameState={gameState}
+                        onWin={handleWin}
+                        currentPath={currentPath}
+                        setCurrentPath={setCurrentPath}
+                    />
                 </div>
             ) : (
                 <div className="w-full h-full flex flex-col items-center justify-center text-2xl md:text-4xl text-center space-y-4 crt-screen border-2 border-[#33ff00]/50 p-8">
                     <div className="space-y-2">
-                      {winMessage}
+                        {winMessage}
                     </div>
                     {/* FIX: Corrected typo 'startNewG ame' to 'startNewGame' in the button's onClick handler. */}
-                    <button 
-                        onClick={startNewGame} 
+                    <button
+                        onClick={startNewGame}
                         className="mt-8 px-6 py-2 border-2 border-[#33ff00] hover:bg-[#33ff00] hover:text-black transition-colors duration-300 text-2xl"
                     >
                         Play Again
