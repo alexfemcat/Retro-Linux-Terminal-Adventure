@@ -1,0 +1,5 @@
+{
+  "name": "Retro Linux Terminal Adventure",
+  "description": "A retro-themed terminal adventure game where you solve procedurally generated mysteries by navigating a virtual file system and using classic Linux commands.",
+  "requestFramePermissions": []
+}
