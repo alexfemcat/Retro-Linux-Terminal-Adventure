@@ -102,10 +102,15 @@ export const Terminal: React.FC<TerminalProps> = ({ gameState, onWin, currentPat
     const resolvePath = useCallback((pathStr: string): string[] | null => {
         if (!pathStr) return currentPath;
 
-        const parts = pathStr.split('/').filter(p => p);
+        let effectivePathStr = pathStr;
+        if (pathStr.startsWith('~')) {
+            effectivePathStr = pathStr.replace('~', '/home/user');
+        }
+
+        const parts = effectivePathStr.split('/').filter(p => p);
         let newPath: string[] = [];
 
-        if (pathStr.startsWith('/')) {
+        if (effectivePathStr.startsWith('/')) {
             newPath = [];
         } else {
             newPath = [...currentPath];

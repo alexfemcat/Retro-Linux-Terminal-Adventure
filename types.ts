@@ -15,7 +15,7 @@ export type VFSNode = File | Directory;
 
 export interface Scenario {
   theme: string;
-  welcomeMessage: string;
+  welcomeMessage: (fileName: string) => string;
   objectiveFileNameOptions: string[];
   objectiveFileContent: string;
   clueTemplate: (hint: string) => string;
@@ -32,7 +32,7 @@ export interface GameObjective {
 export interface GameState {
   vfs: Directory;
   objective: GameObjective;
-  scenario: Scenario;
+  scenario: Scenario & { welcomeMessage: string };
   clueFile: {
     name: string;
     content: string;
@@ -40,6 +40,6 @@ export interface GameState {
 }
 
 export interface ChatMessage {
-    sender: 'user' | 'ai';
-    text: string;
+  sender: 'user' | 'ai';
+  text: string;
 }

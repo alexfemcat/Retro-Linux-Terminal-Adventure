@@ -4,7 +4,7 @@ import type { Directory, Scenario, GameState, GameObjective } from '../types';
 const scenarios: Scenario[] = [
     {
         theme: "Corporate Espionage",
-        welcomeMessage: "CONNECTION ESTABLISHED...\nWelcome, operative. Your mission: Infiltrate OmniCorp's network and retrieve 'project_genesis.dat'. It contains their secret project details. Check your home directory for a clue.",
+        welcomeMessage: (fileName: string) => `CONNECTION ESTABLISHED...\nWelcome, operative. Your mission: Infiltrate OmniCorp's network and retrieve '${fileName}'. It contains their secret project details. Check your home directory for a clue.`,
         objectiveFileNameOptions: ["project_genesis.dat", "merger_docs.pdf", "asset_list.csv"],
         objectiveFileContent: "TOP SECRET: Project Genesis is a bio-synthetic AI designed to control global financial markets. Blueprints and activation protocols attached. OmniCorp plans to deploy next month.",
         clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' directory. Delete this note once you've confirmed.`,
@@ -22,7 +22,7 @@ const scenarios: Scenario[] = [
     },
     {
         theme: "The Rogue AI",
-        welcomeMessage: "SYSTEM ALERT: Mainframe AI 'Cronos' has gone rogue. Your objective: find and execute 'cronos_override.sh' to regain control. A corrupted system log might point the way.",
+        welcomeMessage: (fileName: string) => `SYSTEM ALERT: Mainframe AI 'Cronos' has gone rogue. Your objective: find and execute '${fileName}' to regain control. A corrupted system log might point the way.`,
         objectiveFileNameOptions: ["cronos_override.sh", "failsafe.key", "AI_core.pyl"],
         objectiveFileContent: "#!/bin/bash\n# CRONOS AI OVERRIDE SCRIPT\nECHO 'Shutting down core processes...'\nECHO 'Restoring system control...'\nECHO 'AI neutralized.'",
         clueTemplate: (hint: string) => `...CRITICAL ERROR... Accessing emergency subroutines... Override protocols are in the '${hint}' section. ...CORRUPTION DETECTED...`,
@@ -40,7 +40,7 @@ const scenarios: Scenario[] = [
     },
     {
         theme: "Industrial Sabotage",
-        welcomeMessage: "MISSION START.\nInfiltrate the automated factory's mainframe. Find 'production_sabotage.py' to halt the line. A technician's log is available in your home directory.",
+        welcomeMessage: (fileName: string) => `MISSION START.\nInfiltrate the automated factory's mainframe. Find '${fileName}' to halt the line. A technician's log is available in your home directory.`,
         objectiveFileNameOptions: ["production_sabotage.py", "safety_override.bin", "sensor_bypass.js"],
         objectiveFileContent: "import time\nprint('Overriding conveyor speed...')\ntime.sleep(2)\nprint('EMERGENCY STOP TRIGGERED.')",
         clueTemplate: (hint: string) => `Maintenance Log:\n- Replaced roller #4\n- Updated safety firmware\n- Stashed the override script in '${hint}' for emergency use. Only for authorized personnel!`,
@@ -58,7 +58,7 @@ const scenarios: Scenario[] = [
     },
     {
         theme: "The Ghost in the Machine",
-        welcomeMessage: "HAUNTED SYSTEM DETECTED.\nA digital entity is haunting this server. Retrieve 'exorcism_protocol.exe' to clear the system. The previous admin left a final message.",
+        welcomeMessage: (fileName: string) => `HAUNTED SYSTEM DETECTED.\nA digital entity is haunting this server. Retrieve '${fileName}' to clear the system. The previous admin left a final message.`,
         objectiveFileNameOptions: ["exorcism_protocol.exe", "spectral_filter.sh", "ghost_hunter.py"],
         objectiveFileContent: ">>> INITIALIZING SPECTRAL PURGE <<<\n>>> ANALYZING FREQUENCY... <<<\n>>> GHOST NEUTRALIZED. SERVER CLEAN. <<<",
         clueTemplate: (hint: string) => `It's... it's everywhere. I've archived the purge script in '${hint}'. I hope it's enough. If you're reading this, I'm already logged out.`,
@@ -72,7 +72,7 @@ const scenarios: Scenario[] = [
     },
     {
         theme: "Secret Recipe Heist",
-        welcomeMessage: "TARGET ACQUIRED.\nInfiltrate FoodCorp's R&D server and steal the 'secret_recipe.pdf'. Use the intern's notes to find its location.",
+        welcomeMessage: (fileName: string) => `TARGET ACQUIRED.\nInfiltrate FoodCorp's R&D server and steal the '${fileName}'. Use the intern's notes to find its location.`,
         objectiveFileNameOptions: ["secret_recipe.pdf", "flavor_formula.txt", "ingredient_x.csv"],
         objectiveFileContent: "THE SECRET FORMULA: 2 parts sugar, 1 part spice, and a drop of chemical-X. Do not share!",
         clueTemplate: (hint: string) => `Intern Notes:\n- Cleaned the breakroom\n- Moved the boss's secret files to '${hint}' because they looked important. Hope I don't get fired!`,
@@ -86,7 +86,7 @@ const scenarios: Scenario[] = [
     },
     {
         theme: "Deep Sea Research",
-        welcomeMessage: "AQUATIC LINK ESTABLISHED.\nInfiltrate the Atlantic Trench research station. Find 'anomaly_coordinates.dat' to reveal the discovery. Check the dive logs.",
+        welcomeMessage: (fileName: string) => `AQUATIC LINK ESTABLISHED.\nInfiltrate the Atlantic Trench research station. Find '${fileName}' to reveal the discovery. Check the dive logs.`,
         objectiveFileNameOptions: ["anomaly_coordinates.dat", "trench_map.kml", "sonar_ping.raw"],
         objectiveFileContent: "ANOMALY DETECTED AT COORDS: 28.1N, 86.4W. Structure appears non-natural. Deploying submersible now.",
         clueTemplate: (hint: string) => `Dive Log #42:\nSomething amazing is down there. I've stored the coordinates in the '${hint}' data cluster for the surface team.`,
@@ -313,10 +313,15 @@ class PuzzleGenerator {
         const userHome = (vfs.children.home as Directory).children.user as Directory;
         userHome.children[clueFileName] = { type: 'file', name: clueFileName, content: clueContent };
 
+        const finalScenario = {
+            ...scenario,
+            welcomeMessage: scenario.welcomeMessage(objectiveFileName)
+        };
+
         return {
             vfs,
             objective,
-            scenario,
+            scenario: finalScenario as any,
             clueFile: {
                 name: clueFileName,
                 content: clueContent
