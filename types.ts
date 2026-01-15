@@ -44,6 +44,7 @@ export interface GameState {
     path: string[];
     name: string;
   };
+  starterArchetype?: 'note' | 'alias' | 'mail' | 'history' | 'motd' | 'crash' | 'cron' | 'ssh';
   currentUser: 'user' | 'root';
   rootPassword?: string;
 }

@@ -41,6 +41,13 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState }) => {
                     </div>
                 </div>
 
+                <div>
+                    <span className="text-gray-500 uppercase">[Archetype]</span>
+                    <div className="ml-2">
+                        Type: <span className="text-white font-bold">{gameState.starterArchetype || 'default'}</span>
+                    </div>
+                </div>
+
                 <div className="text-[10px] text-red-500/50 mt-2 italic">
                     * Detach this component before public release
                 </div>

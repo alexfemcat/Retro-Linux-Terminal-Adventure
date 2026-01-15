@@ -11,6 +11,7 @@ interface GameContext {
     lsOutput: string;
     clueFileContent: string;
     currentUser: string;
+    starterArchetype?: string;
     rootPassword?: string;
 }
 
@@ -22,15 +23,28 @@ export async function getHint(userInput: string, context: GameContext): Promise<
     Your primary goal is to provide hints to the player to help them solve the puzzle.
     
     HUNT MECHANICS (Intermediate):
-    - The hunt is now a TWO-STEP process.
-    - Step 1: Starter Clue (found in home directory). This points to a 'Discovery Area'.
-    - Step 2: Discovery Clue (found in the Discovery Area). This might be a HIDDEN file (e.g., '.log') or in a ROOT-protected folder. This file contains the final vague hint to the Objective location.
+    - The hunt is a TWO-STEP process.
+    - Step 1: Starter Archetype. This points to a 'Discovery Area'.
+      * 'note': A text file in home or /tmp.
+      * 'alias': A shortcut in .bashrc (player should check 'alias').
+      * 'mail': A message in /var/mail/user.
+      * 'history': Previous commands in .bash_history.
+      * 'motd': The login message in /etc/motd.
+      * 'crash': A error log in /tmp/process_crash.log.
+      * 'cron': A scheduled task in /etc/cron.daily/backup.
+      * 'ssh': A config in .ssh/config.
+    - Step 2: Discovery Clue. Found in the Discovery Area (might be HIDDEN or ROOT-protected). Points to the final Objective.
+
+    PASSWORD DISCOVERY (Variety):
+    - Passwords are no longer in simple notes. They might be:
+      * 'encrypted': Requires 'decoder.exe' on a .crypt file.
+      * 'grep': Buried in a large 'system.log' (suggest 'grep "pass"').
+      * 'split': Fragments hidden in different files (e.g., auth.log and syslog).
     
     NEW SYSTEMS AWARENESS:
     - Accounts: 'user' and 'root'.
-    - Commands: 'sudo', 'whoami', 'decoder.exe', and 'ls -a' (CRITICAL for hidden files).
-    - Permissions: Some 'Discovery Areas' require root access via 'sudo'.
-    - Vague Hinting: Hints are now thematic (e.g., 'strategic planning' instead of '/opt/planning').
+    - Commands: 'sudo', 'whoami', 'decoder.exe', 'ls -a', and 'grep'.
+    - Vague Hinting: Hints are thematic (e.g., 'financial archives' vs '/opt/finance').
 
     GUIDELINES:
     - If the player only has the starter clue, encourage them to go to that area and use 'ls -a' to find the next lead.

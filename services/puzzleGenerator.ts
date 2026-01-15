@@ -398,15 +398,87 @@ class PuzzleGenerator {
 
         // 3. STARTER CLUE (Points to Discovery Area)
         const starterAreaHint = this.extractHintFromPath(discoveryDirInfo.path);
-        const starterClueContent = scenario.starterClueTemplate(starterAreaHint);
-        const starterClueName = "note_from_admin.txt"; // Fixed name for initial breadcrumb
+        const starterArchetypes: GameState['starterArchetype'][] = ['note', 'alias', 'mail', 'history', 'motd', 'crash', 'cron', 'ssh'];
+        const archetype = this.getRandom(starterArchetypes);
+
+        let starterClueName = "note_from_admin.txt";
+        let starterClueContent = scenario.starterClueTemplate(starterAreaHint);
 
         const userHome = (vfs.children.home as Directory).children.user as Directory;
-        userHome.children[starterClueName] = {
-            type: 'file',
-            name: starterClueName,
-            content: starterClueContent
-        };
+        const etc = vfs.children.etc as Directory;
+        const varDir = vfs.children.var as Directory;
+        const tmp = vfs.children.tmp as Directory;
+
+        switch (archetype) {
+            case 'note':
+                starterClueName = this.getRandom(["urgent_transmission.txt", "README.txt", "overdue_task.md", "note_from_admin.txt"]);
+                userHome.children[starterClueName] = { type: 'file', name: starterClueName, content: starterClueContent };
+                break;
+            case 'alias':
+                starterClueName = ".bashrc";
+                const aliasName = this.getRandom(["go_secret", "jump_start", "connect_hub", "access_vault"]);
+                const currentBashrc = (userHome.children['.bashrc'] as any)?.content || "";
+                const aliasContent = currentBashrc + `\nalias ${aliasName}='cd /${discoveryDirInfo.path.join('/')}' # ${starterAreaHint}`;
+                userHome.children['.bashrc'] = { type: 'file', name: '.bashrc', content: aliasContent };
+                starterClueContent = `Check your shell aliases in .bashrc. The previous user left a shortcut there: ${aliasName}`;
+                break;
+            case 'mail':
+                starterClueName = "/var/mail/user";
+                const mailDir = varDir.children.mail as Directory;
+                mailDir.children['user'] = {
+                    type: 'file',
+                    name: 'user',
+                    content: `From: system@retro-term\nSubject: File relocation notice\n\nAll sensitive fragments for ${scenario.theme} have been moved to: /${discoveryDirInfo.path.join('/')}\n\nPlease update your links.`
+                };
+                starterClueContent = "You have new mail in /var/mail/user.";
+                break;
+            case 'history':
+                starterClueName = ".bash_history";
+                const historyContent = `ls\ncd /${discoveryDirInfo.path.join('/')}\nls -a\ncat .hidden_lead\nexit`;
+                userHome.children['.bash_history'] = { type: 'file', name: '.bash_history', content: historyContent };
+                starterClueContent = "Check your .bash_history. It shows where the previous admin was working.";
+                break;
+            case 'motd':
+                starterClueName = "/etc/motd";
+                etc.children['motd'] = {
+                    type: 'file',
+                    name: 'motd',
+                    content: `Welcome to the Retro-Term Mainframe.\n\nNOTICE: Access to the ${starterAreaHint} sector is restricted to Level 2 clearance.\nLast login: ${this.getRandom(cities)} / VPN`
+                };
+                starterClueContent = "The system MOTD in /etc/motd contains a department notice.";
+                break;
+            case 'crash':
+                starterClueName = "/tmp/process_crash.log";
+                tmp.children['process_crash.log'] = {
+                    type: 'file',
+                    name: 'process_crash.log',
+                    content: `ERROR: Segmentation fault at 0x00FFCAFE\nProcess: worker_daemon\nWorking Directory: /${discoveryDirInfo.path.join('/')}\nStack trace dumped to /var/log/faults.dmp`
+                };
+                starterClueContent = "A process crashed recently. Check /tmp/process_crash.log for the working directory.";
+                break;
+            case 'cron':
+                starterClueName = "/etc/cron.daily/backup";
+                if (!etc.children['cron.daily']) etc.children['cron.daily'] = { type: 'directory', name: 'cron.daily', children: {} };
+                const cronDaily = etc.children['cron.daily'] as Directory;
+                cronDaily.children['backup'] = {
+                    type: 'file',
+                    name: 'backup',
+                    content: `#!/bin/bash\n# Scheduled backup for ${scenario.theme}\ntar -czf /backup/vault.tar.gz /${discoveryDirInfo.path.join('/')}`
+                };
+                starterClueContent = "Check the scheduled tasks in /etc/cron.daily/backup.";
+                break;
+            case 'ssh':
+                starterClueName = ".ssh/config";
+                if (!userHome.children['.ssh']) userHome.children['.ssh'] = { type: 'directory', name: '.ssh', children: {} };
+                const sshDir = userHome.children['.ssh'] as Directory;
+                sshDir.children['config'] = {
+                    type: 'file',
+                    name: 'config',
+                    content: `Host internal_hub\n  HostName 127.0.0.1\n  IdentityFile /${discoveryDirInfo.path.join('/')}/id_rsa`
+                };
+                starterClueContent = "The .ssh/config file mentions an internal hub path.";
+                break;
+        }
 
         // 4. PASSWORD & LOGIN HELP
         const { password, hint: passwordHint, components } = this.generatePassword();
@@ -425,12 +497,54 @@ class PuzzleGenerator {
             }
         });
 
-        const pwdHintName = this.getRandom(["password_hint.txt", "reminder.msg", "login_help.md"]);
-        userHome.children[pwdHintName] = {
-            type: 'file',
-            name: pwdHintName,
-            content: `Hint: My password is ${passwordHint}.`
-        };
+        // Dynamic Password Hint Delivery
+        const pwdDeliveryTypes = ['note', 'encrypted', 'grep', 'split'];
+        const deliveryType = this.getRandom(pwdDeliveryTypes);
+
+        switch (deliveryType) {
+            case 'note':
+                const pwdHintName = this.getRandom(["password_hint.txt", "reminder.msg", "login_help.md"]);
+                userHome.children[pwdHintName] = {
+                    type: 'file',
+                    name: pwdHintName,
+                    content: `Hint: My password is ${passwordHint}.`
+                };
+                break;
+            case 'encrypted':
+                const cryptHintName = "password_hint.crypt";
+                userHome.children[cryptHintName] = {
+                    type: 'file',
+                    name: cryptHintName,
+                    content: `Hint: My password is ${passwordHint}.`,
+                    isEncrypted: true
+                };
+                break;
+            case 'grep':
+                const logName = "system.log";
+                const logLines = Array.from({ length: 50 }, () => `Jan 15 ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}:01 retro-term systemd[1]: Running task...`);
+                logLines[Math.floor(Math.random() * 50)] = `Jan 15 12:00:00 retro-term security_admin: REMINDER: Password hint is "${passwordHint}"`;
+                userHome.children[logName] = {
+                    type: 'file',
+                    name: logName,
+                    content: logLines.join('\n')
+                };
+                break;
+            case 'split':
+                const part1 = passwordHint.substring(0, Math.floor(passwordHint.length / 2));
+                const part2 = passwordHint.substring(Math.floor(passwordHint.length / 2));
+
+                const authLog = vfs.children.var.type === 'directory' ? ((vfs.children.var as Directory).children.log as Directory) : null;
+                if (authLog) {
+                    authLog.children['auth.log'] = { type: 'file', name: 'auth.log', content: `NOTICE: Password fragment alpha: ${part1}` };
+                    authLog.children['syslog'] = { type: 'file', name: 'syslog', content: `DEBUG: Password fragment omega: ${part2}` };
+                }
+                userHome.children['security_status.txt'] = {
+                    type: 'file',
+                    name: 'security_status.txt',
+                    content: "Security audit required. Password hint fragments have been split between /var/log/auth.log and /var/log/syslog."
+                };
+                break;
+        }
 
         const finalScenario = {
             ...scenario,
@@ -449,6 +563,7 @@ class PuzzleGenerator {
                 path: discoveryDirInfo.path,
                 name: discoveryClueName
             },
+            starterArchetype: archetype,
             currentUser: 'user',
             rootPassword: password
         };

@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import type { GameState, ChatMessage, VFSNode } from '../types';
 import { getHint } from '../services/aiService';
 
@@ -58,6 +58,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
                 lsOutput,
                 clueFileContent: gameState.clueFile.content,
                 currentUser: currentUser,
+                starterArchetype: gameState.starterArchetype,
                 rootPassword: gameState.rootPassword,
             };
 
