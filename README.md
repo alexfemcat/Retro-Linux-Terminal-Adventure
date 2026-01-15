@@ -15,12 +15,12 @@ Retro Linux Terminal Adventure is an immersive, "hacking" simulation. Using a pr
 
 This project is evolving. Depending on your interest, you may want to download a specific version from our **[Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases)** page:
 
-### 🟢 [Version 1.0: Simple Edition WITH Gemini Tutor](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple)
+### 🟢 [Beginner Edition WITH AI Tutor](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple)
 **Recommended for beginners.**
 The core experience. Focused purely on terminal navigation and file-based puzzles. Lightweight, stable, and perfect for learning basic Linux commands.
 *   *Status: Complete & Archived*
 
-### ⚪ [Simple - Retro Linux Terminal Adventure (NO AI)](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple-no-AI)
+### ⚪ [Beginner Edition WITHOUT AI tutor](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple-no-AI)
 **For those who want a pure terminal experience without any AI assistance.**
 Same exact game as the simple edition, but with the AI copilot removed entirely. Just you and the terminal.
 *   *Status: Complete*
