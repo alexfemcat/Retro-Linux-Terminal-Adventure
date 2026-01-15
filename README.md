@@ -5,9 +5,9 @@
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
 
-> "The mainframe is a maze. The commands are your map. The AI is your ghost in the machine."
+> "The mainframe is a maze. The commands are your map."
 
-Retro Linux Terminal Adventure is an immersive, AI-powered hacking simulation. Using a procedurally generated Virtual File System (VFS), players must navigate complex directory structures using real Linux commands to uncover secrets, recover data, and avoid detection.
+Retro Linux Terminal Adventure is an immersive, "hacking" simulation. Using a procedurally generated Virtual File System (VFS), players must navigate complex directory structures using real Linux commands to uncover secrets, recover data, and avoid detection.
 
 ---
 
