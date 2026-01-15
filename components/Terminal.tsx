@@ -287,7 +287,11 @@ clear        clear                   Clears all text from the terminal screen.`;
     return (
         <div
             className="w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden"
-            onClick={() => inputRef.current?.focus()}
+            onClick={() => {
+                if (window.getSelection()?.toString() === '') {
+                    inputRef.current?.focus();
+                }
+            }}
         >
             <div className="flex-grow overflow-y-auto pr-2">
                 {history.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
