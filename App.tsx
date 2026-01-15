@@ -11,11 +11,13 @@ const App: React.FC = () => {
     const [gameWon, setGameWon] = useState<boolean>(false);
     const [winMessage, setWinMessage] = useState<React.ReactNode[]>([]);
     const [currentPath, setCurrentPath] = useState<string[]>(['home', 'user']);
+    const [currentUser, setCurrentUser] = useState<'user' | 'root'>('user');
 
     const startNewGame = useCallback(() => {
         const newGameState = puzzleGenerator.generateNewGame();
         setGameState(newGameState);
         setCurrentPath(['home', 'user']);
+        setCurrentUser(newGameState.currentUser || 'user');
         setGameWon(false);
         setWinMessage([]);
         setGameId(id => id + 1);
@@ -68,12 +70,15 @@ const App: React.FC = () => {
                             onWin={handleWin}
                             currentPath={currentPath}
                             setCurrentPath={setCurrentPath}
+                            currentUser={currentUser}
+                            setCurrentUser={setCurrentUser}
                         />
                     </div>
                     <div className="w-1/3 h-full">
                         <AIAssistant
                             gameState={gameState}
                             currentPath={currentPath}
+                            currentUser={currentUser}
                         />
                     </div>
                 </div>

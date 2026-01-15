@@ -1,14 +1,16 @@
-
 export interface File {
   type: 'file';
   name: string;
   content: string;
+  permissions?: 'user' | 'root';
+  isEncrypted?: boolean;
 }
 
 export interface Directory {
   type: 'directory';
   name: string;
   children: { [name: string]: File | Directory };
+  permissions?: 'user' | 'root';
 }
 
 export type VFSNode = File | Directory;
@@ -19,6 +21,7 @@ export interface Scenario {
   objectiveFileNameOptions: string[];
   objectiveFileContent: string;
   clueTemplate: (hint: string) => string;
+  starterClueTemplate: (discoveryArea: string) => string;
   clueFileNameOptions: string[];
   distractionFiles: { [name: string]: string };
   distractionDirs: string[];
@@ -37,6 +40,8 @@ export interface GameState {
     name: string;
     content: string;
   };
+  currentUser: 'user' | 'root';
+  rootPassword?: string;
 }
 
 export interface ChatMessage {

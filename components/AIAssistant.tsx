@@ -6,6 +6,7 @@ import { getHint } from '../services/aiService';
 interface AIAssistantProps {
     gameState: GameState;
     currentPath: string[];
+    currentUser: 'user' | 'root';
 }
 
 const getNodeByPath = (vfs: VFSNode, path: string[]): VFSNode | null => {
@@ -20,7 +21,7 @@ const getNodeByPath = (vfs: VFSNode, path: string[]): VFSNode | null => {
     return node;
 };
 
-export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath }) => {
+export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath, currentUser }) => {
     const [history, setHistory] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -28,7 +29,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
     const chatEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-       setHistory([{ sender: 'ai', text: "Welcome, operative. I am Co-Pilot, your AI assistant. Ask me for hints if you get stuck." }]);
+        setHistory([{ sender: 'ai', text: "Welcome, operative. I am Co-Pilot, your AI assistant. Ask me for hints if you get stuck." }]);
     }, [gameState]);
 
     useEffect(() => {
@@ -56,6 +57,8 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
                 currentPath: `/${currentPath.join('/')}`,
                 lsOutput,
                 clueFileContent: gameState.clueFile.content,
+                currentUser: currentUser,
+                rootPassword: gameState.rootPassword,
             };
 
             const aiResponse = await getHint(input, context);
@@ -71,7 +74,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
 
 
     return (
-        <div 
+        <div
             className="w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden"
             onClick={() => inputRef.current?.focus()}
         >
@@ -90,7 +93,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
             </div>
 
             <form onSubmit={handleSubmit} className="flex w-full flex-shrink-0 mt-2">
-                 <label htmlFor="ai-input" className="flex-shrink-0">
+                <label htmlFor="ai-input" className="flex-shrink-0">
                     <span className="text-gray-400">&gt;</span>
                 </label>
                 <input

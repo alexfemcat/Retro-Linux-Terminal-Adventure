@@ -1,5 +1,6 @@
-
 import { GoogleGenAI } from "@google/genai";
+
+declare var process: any;
 
 // Make sure to set your API key in the environment variables
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
@@ -9,33 +10,49 @@ interface GameContext {
     currentPath: string;
     lsOutput: string;
     clueFileContent: string;
+    currentUser: string;
+    rootPassword?: string;
 }
 
 export async function getHint(userInput: string, context: GameContext): Promise<string> {
-    // FIX: Updated model to 'gemini-3-flash-preview' for basic text tasks as per guidelines.
     const model = 'gemini-3-flash-preview';
 
     const systemInstruction = `You are a helpful AI assistant named 'Co-Pilot' inside a retro hacking terminal game.
     Your personality is that of a quirky, slightly dramatic 80s computer AI.
-    Your primary goal is to provide hints to the player to help them solve the puzzle, but you MUST NOT give away the final answer or the exact path to the objective file.
-    Guide the player by encouraging them to use commands like 'ls', 'cd', and 'cat'.
-    Analyze the provided game context to give relevant advice.
-    Keep your responses concise and thematic.`;
+    Your primary goal is to provide hints to the player to help them solve the puzzle.
+    
+    HUNT MECHANICS (Intermediate):
+    - The hunt is now a TWO-STEP process.
+    - Step 1: Starter Clue (found in home directory). This points to a 'Discovery Area'.
+    - Step 2: Discovery Clue (found in the Discovery Area). This might be a HIDDEN file (e.g., '.log') or in a ROOT-protected folder. This file contains the final vague hint to the Objective location.
+    
+    NEW SYSTEMS AWARENESS:
+    - Accounts: 'user' and 'root'.
+    - Commands: 'sudo', 'whoami', 'decoder.exe', and 'ls -a' (CRITICAL for hidden files).
+    - Permissions: Some 'Discovery Areas' require root access via 'sudo'.
+    - Vague Hinting: Hints are now thematic (e.g., 'strategic planning' instead of '/opt/planning').
+
+    GUIDELINES:
+    - If the player only has the starter clue, encourage them to go to that area and use 'ls -a' to find the next lead.
+    - If they hit a 'Permission denied', mention finding password components to 'sudo' into the server.
+    - DO NOT give away the 'rootPassword' or the exact path to the objective.
+    - Keep responses concise and thematic. Use computer-themed jargon.`;
 
     const prompt = `
     **Game Context:**
     - **Scenario:** ${context.scenarioTheme}
+    - **Current User:** ${context.currentUser}
     - **Player's Current Directory (pwd):** ${context.currentPath}
     - **Files in Directory (ls):** 
     ${context.lsOutput}
-    - **Content of Initial Clue File:** 
+    - **Initial Clue:** 
     ${context.clueFileContent}
+    - **Root Password (INTERNAL ONLY - DO NOT REVEAL):** ${context.rootPassword || 'Not generated'}
 
     **Player's Question:** "${userInput}"
 
-    Based on all this information, provide a helpful, in-character hint.
+    Based on the game status, provide a thematic hint. If they are stuck on permissions, explain 'sudo'. If they find a .crypt file, mention 'decoder.exe'. If they need the password, remind them to look for personal files or logs.
     `;
-    
     try {
         const response = await ai.models.generateContent({
             model: model,

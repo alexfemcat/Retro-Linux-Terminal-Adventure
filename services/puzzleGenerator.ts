@@ -7,7 +7,8 @@ const scenarios: Scenario[] = [
         welcomeMessage: (fileName: string) => `CONNECTION ESTABLISHED...\nWelcome, operative. Your mission: Infiltrate OmniCorp's network and retrieve '${fileName}'. It contains their secret project details. Check your home directory for a clue.`,
         objectiveFileNameOptions: ["project_genesis.dat", "merger_docs.pdf", "asset_list.csv"],
         objectiveFileContent: "TOP SECRET: Project Genesis is a bio-synthetic AI designed to control global financial markets. Blueprints and activation protocols attached. OmniCorp plans to deploy next month.",
-        clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' directory. Delete this note once you've confirmed.`,
+        clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' area. Delete this note once you've confirmed.`,
+        starterClueTemplate: (area: string) => `Urgent: The audit is starting early. I've moved the trail of our secret project to the ${area} directory. Look for a hidden file there.`,
         clueFileNameOptions: ["todo.txt", "meeting_prep.md", "urgent_reminder.txt"],
         distractionDirs: ["finance", "legal", "research", "planning", "marketing", "human_resources"],
         distractionFiles: {
@@ -26,6 +27,7 @@ const scenarios: Scenario[] = [
         objectiveFileNameOptions: ["cronos_override.sh", "failsafe.key", "AI_core.pyl"],
         objectiveFileContent: "#!/bin/bash\n# CRONOS AI OVERRIDE SCRIPT\nECHO 'Shutting down core processes...'\nECHO 'Restoring system control...'\nECHO 'AI neutralized.'",
         clueTemplate: (hint: string) => `...CRITICAL ERROR... Accessing emergency subroutines... Override protocols are in the '${hint}' section. ...CORRUPTION DETECTED...`,
+        starterClueTemplate: (area: string) => `SYSTEM ALERT: Backup protocols initiated. Search ${area} for high-priority override data. Some files may be hidden.`,
         clueFileNameOptions: ["system_error.log", "corrupted_data.log", "dump.txt"],
         distractionDirs: ["bin", "var_log", "etc_config", "sys", "mem_dump", "kernel_panic"],
         distractionFiles: {
@@ -44,6 +46,7 @@ const scenarios: Scenario[] = [
         objectiveFileNameOptions: ["production_sabotage.py", "safety_override.bin", "sensor_bypass.js"],
         objectiveFileContent: "import time\nprint('Overriding conveyor speed...')\ntime.sleep(2)\nprint('EMERGENCY STOP TRIGGERED.')",
         clueTemplate: (hint: string) => `Maintenance Log:\n- Replaced roller #4\n- Updated safety firmware\n- Stashed the override script in '${hint}' for emergency use. Only for authorized personnel!`,
+        starterClueTemplate: (area: string) => `Technician Note: The line is vibrating too much. I left the diagnostic data in ${area}. Check all hidden logs.`,
         clueFileNameOptions: ["maintenance_log.txt", "tech_notes.md", "factory_readings.csv"],
         distractionDirs: ["assembly_line", "warehouse", "quality_control", "maintenance", "robotics", "shipping"],
         distractionFiles: {
@@ -62,6 +65,7 @@ const scenarios: Scenario[] = [
         objectiveFileNameOptions: ["exorcism_protocol.exe", "spectral_filter.sh", "ghost_hunter.py"],
         objectiveFileContent: ">>> INITIALIZING SPECTRAL PURGE <<<\n>>> ANALYZING FREQUENCY... <<<\n>>> GHOST NEUTRALIZED. SERVER CLEAN. <<<",
         clueTemplate: (hint: string) => `It's... it's everywhere. I've archived the purge script in '${hint}'. I hope it's enough. If you're reading this, I'm already logged out.`,
+        starterClueTemplate: (area: string) => `Final Warning: The entity has claimed the upper levels. I've hidden a fragment of the purge protocol in ${area}. Use -a to see its trace.`,
         clueFileNameOptions: ["final_message.txt", "admin_log.bak", "last_will.txt"],
         distractionDirs: ["archived_data", "system_trash", "memory_dumps", "ghost_traces"],
         distractionFiles: {
@@ -76,6 +80,7 @@ const scenarios: Scenario[] = [
         objectiveFileNameOptions: ["secret_recipe.pdf", "flavor_formula.txt", "ingredient_x.csv"],
         objectiveFileContent: "THE SECRET FORMULA: 2 parts sugar, 1 part spice, and a drop of chemical-X. Do not share!",
         clueTemplate: (hint: string) => `Intern Notes:\n- Cleaned the breakroom\n- Moved the boss's secret files to '${hint}' because they looked important. Hope I don't get fired!`,
+        starterClueTemplate: (area: string) => `Kitchen Memo: Someone left their 'special' ingredients in ${area}. Please label your fragments!`,
         clueFileNameOptions: ["intern_todo.txt", "breakroom_log.md", "shopping_list.txt"],
         distractionDirs: ["breakroom", "lab_results", "marketing_campaigns", "flavor_tests"],
         distractionFiles: {
@@ -90,6 +95,7 @@ const scenarios: Scenario[] = [
         objectiveFileNameOptions: ["anomaly_coordinates.dat", "trench_map.kml", "sonar_ping.raw"],
         objectiveFileContent: "ANOMALY DETECTED AT COORDS: 28.1N, 86.4W. Structure appears non-natural. Deploying submersible now.",
         clueTemplate: (hint: string) => `Dive Log #42:\nSomething amazing is down there. I've stored the coordinates in the '${hint}' data cluster for the surface team.`,
+        starterClueTemplate: (area: string) => `Submersible Status: Communications oscillating. Search the ${area} logs for the secondary beacon location.`,
         clueFileNameOptions: ["dive_log.txt", "sensor_data.csv", "ocean_temp.log"],
         distractionDirs: ["submersible_ops", "hydrophone_feeds", "biological_samples", "trench_scans", "life_support", "ballast_control"],
         distractionFiles: {
@@ -104,9 +110,55 @@ const scenarios: Scenario[] = [
     },
 ];
 
+const petNames = ["Bella", "Max", "Charlie", "Luna", "Lucy", "Cooper", "Bailey", "Daisy", "Sadie", "Molly", "Buddy", "Lola", "Stella", "Tucker", "Bentley", "Bear", "Duke", "Penny", "Zoe", "Riley", "Roxy", "Coco", "Maggie", "Piper", "Sasha", "Harley", "Ruby", "Chloe", "Teddy", "Finn", "Jake", "Gus", "Murphy", "Koda", "Scout", "Winston", "Zeus", "Oliver", "Ginger", "Sophie", "Dixie", "Jack", "Shadow", "Sam", "Willow", "Baxter", "Bandit", "Izzy", "Bruno", "Hazel"];
+const cities = ["Paris", "London", "Tokyo", "NewYork", "Berlin", "Sydney", "Rome", "Moscow", "Beijing", "Dubai", "Toronto", "Madrid", "Seoul", "Mumbai", "Cairo", "Istanbul", "Osaka", "Chicago", "Bangkok", "Vienna", "Lisbon", "Prague", "Dublin", "Athens", "Zurich", "Munich", "Milan", "Warsaw", "Stockholm", "Oslo", "Helsinki", "Copenhagen", "Brussels", "Amsterdam", "Budapest", "Lima", "Bogota", "Santiago", "Rio", "Lagos", "Nairobi", "Dakar", "Accra", "Reykjavik", "Wellington", "Havana", "Panama", "Denver", "Seattle", "Austin"];
+const colors = ["Red", "Blue", "Green", "Yellow", "Purple", "Orange", "Pink", "Black", "White", "Gray", "Brown", "Cyan", "Magenta", "Gold", "Silver", "Teal", "Navy", "Maroon", "Olive", "Lime", "Indigo", "Violet", "Coral", "Crimson", "Azure", "Beige", "Ivory", "Khaki", "Lavender", "Salmon", "Plum", "Orchid", "Turquoise", "Aqua", "Tan", "Sienna", "Bronze", "Copper", "Slate", "Charcoal", "Emerald", "Ruby", "Sapphire", "Topaz", "Jade", "Onyx", "Pearl", "Opal", "Quartz", "Amber"];
+const years = Array.from({ length: 50 }, (_, i) => (1970 + i).toString());
+
 class PuzzleGenerator {
     private getRandom<T>(arr: T[]): T {
         return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    private generatePassword(): { password: string, hint: string, components: { type: string, value: string, file: string, content: string }[] } {
+        const schemes = [
+            { types: ['pet', 'year'], template: "my first dog's name and the year I was born" },
+            { types: ['city', 'color'], template: "my favorite city and the color of my first car" },
+            { types: ['color', 'pet'], template: "the color of the sunset and my cat's name" },
+            { types: ['year', 'city'], template: "the year of the great quake and the city it destroyed" },
+        ];
+
+        const scheme = this.getRandom(schemes);
+        const components = scheme.types.map(type => {
+            let value = "";
+            let file = "";
+            let content = "";
+            if (type === 'pet') {
+                value = this.getRandom(petNames);
+                file = "pet_photo.jpg.meta";
+                content = `Metadata: Photo of ${value} playing in the park.`;
+            } else if (type === 'city') {
+                value = this.getRandom(cities);
+                // Randomize casing for slightly more difficulty? No, keep it simple for now or match array.
+                file = "travel_ticket.pdf";
+                content = `Flight Confirmation:\nDestination: ${value}\nStatus: Confirmed`;
+            } else if (type === 'year') {
+                value = this.getRandom(years);
+                file = "birth_certificate.txt";
+                content = `Certified Copy\nDate of Birth: January 15, ${value}`;
+            } else if (type === 'color') {
+                value = this.getRandom(colors);
+                file = "diary_entry.txt";
+                content = `Dear Diary,\nToday I bought a new ${value} dress. It looks amazing!`;
+            }
+            return { type, value, file, content };
+        });
+
+        return {
+            password: components.map(c => c.value).join(''),
+            hint: scheme.template,
+            components
+        };
     }
 
     private generateVFS(scenario: Scenario): Directory {
@@ -154,7 +206,7 @@ class PuzzleGenerator {
         addDirs(userHome, ['home', 'user'], 2);
 
         // Define system-wide decoys with realistic contents
-        const systemDecors: Record<string, { dirs: string[], files: Record<string, string> }> = {
+        const systemDecors: Record<string, { dirs: string[], files: Record<string, string>, permissions?: 'root' }> = {
             "etc": {
                 dirs: ["apt", "ssh", "ssl", "network"],
                 files: {
@@ -163,7 +215,8 @@ class PuzzleGenerator {
                     "fstab": "/dev/sda1 / ext4 defaults 0 1",
                     "motd": "Welcome to the Retro-Term Mainframe.\nUnauthorized access is strictly prohibited.",
                     "resolve.conf": "nameserver 8.8.8.8\nnameserver 8.8.4.4"
-                }
+                },
+                permissions: 'root'
             },
             "bin": {
                 dirs: [],
@@ -173,7 +226,8 @@ class PuzzleGenerator {
                     "grep": "[BINARY DATA]",
                     "sh": "[BINARY DATA]",
                     "bash": "[BINARY DATA]",
-                    "python3": "[BINARY DATA]"
+                    "python3": "[BINARY DATA]",
+                    "decoder.exe": "[BINARY DECRYPTION TOOL]\nUsage: decoder.exe <file.crypt>"
                 }
             },
             "var": {
@@ -181,7 +235,8 @@ class PuzzleGenerator {
                 files: {
                     "syslog": "Jan 15 10:24:01 kernel: [    0.000000] Linux version 5.15.0-generic",
                     "auth.log": "Jan 15 11:15:22 sshd[124]: Accepted password for user from 10.0.0.5",
-                }
+                },
+                permissions: 'root'
             },
             "tmp": {
                 dirs: [".ICE-unix", ".test", "session_cache"],
@@ -200,13 +255,21 @@ class PuzzleGenerator {
                 dirs: ["class", "dev", "fs", "kernel", "module"],
                 files: {
                     "uevent": "MAJOR=1\nMINOR=3\nDEVNAME=null",
-                }
+                },
+                permissions: 'root'
+            },
+            "root": {
+                dirs: [],
+                files: {
+                    ".bash_history": "rm -rf /\nshutdown now"
+                },
+                permissions: 'root'
             }
         };
 
         // Populate the root with these system decors
         Object.entries(systemDecors).forEach(([dirName, content]) => {
-            const dir: Directory = { type: 'directory', name: dirName, children: {} };
+            const dir: Directory = { type: 'directory', name: dirName, children: {}, permissions: content.permissions as 'root' | 'user' | undefined };
             root.children[dirName] = dir;
 
             // Add sub-directories
@@ -274,7 +337,7 @@ class PuzzleGenerator {
         const scenario = this.getRandom(scenarios);
         const vfs = this.generateVFS(scenario);
 
-        // Re-calculate all possible directories for objective placement
+        // Re-calculate all possible directories for objective and clue placement
         const availableDirs: { node: Directory, path: string[] }[] = [];
         const findDirs = (node: Directory, path: string[]) => {
             availableDirs.push({ node, path });
@@ -284,34 +347,90 @@ class PuzzleGenerator {
         };
         findDirs(vfs, []);
 
-        // Filter valid directories for objective: can be ANYWHERE except exactly root or exactly home
-        const validDirs = availableDirs.filter(d =>
+        // Filter valid directories: objective can be ANYWHERE except exactly root or home
+        const validObjectiveDirs = availableDirs.filter(d =>
             d.path.length > 0 && !(d.path.length === 1 && d.path[0] === 'home')
         );
 
-        // Preference for directories with some depth
-        const deeperDirs = validDirs.filter(d => d.path.length >= 2);
-        const targetDirInfo = this.getRandom(deeperDirs.length > 0 ? deeperDirs : validDirs);
+        // Preference for DEEP directories for the objective
+        const deeperObjectiveDirs = validObjectiveDirs.filter(d => d.path.length >= 3);
+        const targetDirInfo = this.getRandom(deeperObjectiveDirs.length > 0 ? deeperObjectiveDirs : validObjectiveDirs);
 
-        // Place objective file
+        // 1. PLACE OBJECTIVE FILE
         const objectiveFileName = this.getRandom(scenario.objectiveFileNameOptions);
+        const isEncrypted = Math.random() < 0.3; // 30% chance to be encrypted
         targetDirInfo.node.children[objectiveFileName] = {
             type: 'file',
             name: objectiveFileName,
             content: scenario.objectiveFileContent,
+            isEncrypted: isEncrypted
         };
+
         const objective: GameObjective = {
             filePath: targetDirInfo.path,
             fileName: objectiveFileName,
         };
 
-        // Generate a thematic hint
-        const hint = this.extractHintFromPath(objective.filePath);
-        const clueContent = scenario.clueTemplate(hint);
-        const clueFileName = this.getRandom(scenario.clueFileNameOptions);
+        // 2. DISCOVERY CLUE (Points to Objective)
+        // Discovery Area should be DIFFERENT from objective dir and home
+        const discoveryDirs = availableDirs.filter(d =>
+            d.path.join('/') !== targetDirInfo.path.join('/') &&
+            d.path.join('/') !== 'home/user' &&
+            d.path.length > 0
+        );
+        const discoveryDirInfo = this.getRandom(discoveryDirs);
+
+        // Use vague/thematic hints for the objective location
+        const thematicHint = this.generateVagueHint(objective.filePath);
+        const discoveryClueContent = scenario.clueTemplate(thematicHint);
+
+        // Discovery clue might be a hidden file
+        const isDiscoveryHidden = Math.random() < 0.4;
+        const discoveryClueName = (isDiscoveryHidden ? '.' : '') + this.getRandom(scenario.clueFileNameOptions);
+
+        discoveryDirInfo.node.children[discoveryClueName] = {
+            type: 'file',
+            name: discoveryClueName,
+            content: discoveryClueContent,
+            // 20% chance the discovery clue itself is root-protected
+            permissions: Math.random() < 0.2 ? 'root' : undefined
+        };
+
+        // 3. STARTER CLUE (Points to Discovery Area)
+        const starterAreaHint = this.extractHintFromPath(discoveryDirInfo.path);
+        const starterClueContent = scenario.starterClueTemplate(starterAreaHint);
+        const starterClueName = "note_from_admin.txt"; // Fixed name for initial breadcrumb
 
         const userHome = (vfs.children.home as Directory).children.user as Directory;
-        userHome.children[clueFileName] = { type: 'file', name: clueFileName, content: clueContent };
+        userHome.children[starterClueName] = {
+            type: 'file',
+            name: starterClueName,
+            content: starterClueContent
+        };
+
+        // 4. PASSWORD & LOGIN HELP
+        const { password, hint: passwordHint, components } = this.generatePassword();
+
+        // Scatter password components
+        availableDirs.forEach(dirInfo => {
+            if (components.length > 0 && Math.random() < 0.2) {
+                const component = components.pop();
+                if (component) {
+                    dirInfo.node.children[component.file] = {
+                        type: 'file',
+                        name: component.file,
+                        content: component.content
+                    };
+                }
+            }
+        });
+
+        const pwdHintName = this.getRandom(["password_hint.txt", "reminder.msg", "login_help.md"]);
+        userHome.children[pwdHintName] = {
+            type: 'file',
+            name: pwdHintName,
+            content: `Hint: My password is ${passwordHint}.`
+        };
 
         const finalScenario = {
             ...scenario,
@@ -323,10 +442,67 @@ class PuzzleGenerator {
             objective,
             scenario: finalScenario as any,
             clueFile: {
-                name: clueFileName,
-                content: clueContent
-            }
+                name: starterClueName,
+                content: starterClueContent
+            },
+            currentUser: 'user',
+            rootPassword: password
         };
+    }
+
+    private generateVagueHint(path: string[]): string {
+        const lastDir = path[path.length - 1];
+
+        // Map paths to thematic names
+        const thematicMap: Record<string, string> = {
+            'finance': 'financial archives',
+            'legal': 'legal vault',
+            'research': 'R&D labs',
+            'planning': 'strategic planning',
+            'marketing': 'marketing department',
+            'human_resources': 'HR files',
+            'bin': 'system binaries',
+            'var_log': 'server log archives',
+            'etc_config': 'configuration backup',
+            'sys': 'kernel space',
+            'mem_dump': 'memory overflow area',
+            'kernel_panic': 'unstable sector',
+            'assembly_line': 'production floor',
+            'warehouse': 'shipping & receiving',
+            'quality_control': 'QA department',
+            'maintenance': 'utility tunnels',
+            'robotics': 'automation core',
+            'shipping': 'distribution hub',
+            'archived_data': 'the deep archive',
+            'system_trash': 'garbage collection',
+            'memory_dumps': 'volatile memory',
+            'ghost_traces': 'spectral resonance area',
+            'breakroom': 'employee lounge',
+            'lab_results': 'experimental results',
+            'marketing_campaigns': 'active campaigns',
+            'flavor_tests': 'taste testing lab',
+            'submersible_ops': 'deck alpha',
+            'hydrophone_feeds': 'sonar station',
+            'biological_samples': 'cryo-storage',
+            'trench_scans': 'topography mapping',
+            'life_support': 'O2 systems',
+            'ballast_control': 'depth control'
+        };
+
+        // If path contains one of the thematic keywords, use it
+        for (const part of [...path].reverse()) {
+            const basePart = part.split('_')[0]; // Handle names like finance_42
+            if (thematicMap[basePart]) {
+                return thematicMap[basePart];
+            }
+        }
+
+        // Fallback to relative description
+        if (path[0] === 'home' && path[1] === 'user') {
+            return `the '${lastDir}' folder near your home`;
+        }
+
+        return `the sector identified as '/${path.join('/')}'`;
     }
 }
 

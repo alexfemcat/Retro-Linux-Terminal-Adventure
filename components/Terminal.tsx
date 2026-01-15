@@ -7,6 +7,8 @@ interface TerminalProps {
     onWin: () => void;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
+    currentUser: 'user' | 'root';
+    setCurrentUser: (user: 'user' | 'root') => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -18,12 +20,13 @@ const getPathDisplay = (currentPath: string[]) => {
 
 const InputLine: React.FC<{
     currentPath: string[];
+    currentUser: 'user' | 'root';
     onSubmit: (command: string) => void;
     onTab: (value: string, setValue: (v: string) => void) => void;
     getCompletion: (value: string) => string | null;
     inputRef: React.RefObject<HTMLInputElement>;
     commandHistory: string[];
-}> = ({ currentPath, onSubmit, onTab, getCompletion, inputRef, commandHistory }) => {
+}> = ({ currentPath, currentUser, onSubmit, onTab, getCompletion, inputRef, commandHistory }) => {
     const [value, setValue] = useState('');
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -72,10 +75,10 @@ const InputLine: React.FC<{
     return (
         <form onSubmit={handleSubmit} className="flex w-full">
             <label htmlFor="command-input" className="flex-shrink-0">
-                <span className="text-green-400">user@retro-term</span>
+                <span className="text-green-400">{currentUser}@retro-term</span>
                 <span className="text-gray-400">:</span>
                 <span className="text-blue-400">{pathString}</span>
-                <span className="text-gray-400">$</span>
+                <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
             </label>
             <div className="flex-grow relative overflow-hidden h-6">
                 {suggestion && suggestion.startsWith(value) && value.length > 0 && (
@@ -106,13 +109,21 @@ const InputLine: React.FC<{
 };
 
 
-export const Terminal: React.FC<TerminalProps> = ({ gameState, onWin, currentPath, setCurrentPath }) => {
+export const Terminal: React.FC<TerminalProps> = ({
+    gameState,
+    onWin,
+    currentPath,
+    setCurrentPath,
+    currentUser,
+    setCurrentUser
+}) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
+    const [isSudoEntering, setIsSudoEntering] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
-    const { vfs, scenario, objective } = gameState;
+    const { vfs, scenario, objective, rootPassword } = gameState;
 
     useEffect(() => {
         const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
@@ -180,8 +191,19 @@ export const Terminal: React.FC<TerminalProps> = ({ gameState, onWin, currentPat
 
     const processCommand = (command: string) => {
         const trimmedCommand = command.trim();
-        if (trimmedCommand) {
+        if (!isSudoEntering && trimmedCommand) {
             setCommandHistory(prev => [...prev, trimmedCommand]);
+        }
+
+        if (isSudoEntering) {
+            setIsSudoEntering(false);
+            if (trimmedCommand === rootPassword) {
+                setCurrentUser('root');
+                setHistory(prev => [...prev, <div key={Date.now() + 1} className="text-yellow-400">Access granted. You are now root.</div>]);
+            } else {
+                setHistory(prev => [...prev, <div key={Date.now() + 1} className="text-red-500">Sorry, try again.</div>]);
+            }
+            return;
         }
 
         const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
@@ -200,9 +222,19 @@ ls           ls [-a]                 Lists files and directories. Use '-a' for h
 cd           cd [directory]          Changes directory. Use '..' to go up a level.
 cat          cat [file]              Displays the content of a file.
 pwd          pwd                     Prints the current working directory path.
+whoami       whoami                  Print the current user name.
+sudo         sudo                    Gain root privileges (requires password).
 grep         grep [term] [file]      Searches for a specific 'term' within a 'file'.
+decoder.exe  ./decoder.exe [file]    Decrypts a .crypt file.
 clear        clear                   Clears all text from the terminal screen.`;
                     output = <div className="whitespace-pre-wrap">{helpText.trim()}</div>;
+                    break;
+                case 'whoami':
+                    output = currentUser;
+                    break;
+                case 'sudo':
+                    setIsSudoEntering(true);
+                    output = "[sudo] password for user: ";
                     break;
                 case 'clear':
                     const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
@@ -215,6 +247,11 @@ clear        clear                   Clears all text from the terminal screen.`;
                 case 'ls':
                     const node = getNodeByPath(currentPath);
                     if (node?.type === 'directory') {
+                        if (node.permissions === 'root' && currentUser !== 'root') {
+                            output = `ls: cannot open directory '.': Permission denied`;
+                            break;
+                        }
+
                         const showHidden = args.includes('-a');
                         let children = (Object.values(node.children) as VFSNode[]);
 
@@ -229,10 +266,14 @@ clear        clear                   Clears all text from the terminal screen.`;
                         }
 
                         output = (
-                            <div className="grid grid-cols-3 gap-x-4">
+                            <div className="flex flex-wrap gap-x-6 gap-y-1">
                                 {children.map(child => (
-                                    <span key={child.name} className={child.type === 'directory' ? 'text-blue-400' : ''}>
-                                        {child.name}
+                                    <span
+                                        key={child.name}
+                                        className={`${child.type === 'directory' ? 'text-slate-400 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70 italic' : ''}`}
+                                        style={{ textShadow: child.type === 'directory' ? 'none' : '0 0 5px rgba(255,255,255,0.5)' }}
+                                    >
+                                        {child.name}{child.type === 'directory' ? '/' : ''}{child.permissions === 'root' ? ' [root]' : ''}
                                     </span>
                                 ))}
                             </div>
@@ -246,8 +287,12 @@ clear        clear                   Clears all text from the terminal screen.`;
                     if (targetPath) {
                         const targetNode = getNodeByPath(targetPath);
                         if (targetNode && targetNode.type === 'directory') {
-                            setCurrentPath(targetPath);
-                            output = null;
+                            if (targetNode.permissions === 'root' && currentUser !== 'root') {
+                                output = `-bash: cd: ${args[0]}: Permission denied`;
+                            } else {
+                                setCurrentPath(targetPath);
+                                output = null;
+                            }
                         } else {
                             output = `cd: no such file or directory: ${args[0]}`;
                         }
@@ -260,16 +305,56 @@ clear        clear                   Clears all text from the terminal screen.`;
                     if (catPath) {
                         const fileNode = getNodeByPath(catPath);
                         if (fileNode?.type === 'file') {
-                            output = <div className="whitespace-pre-wrap">{fileNode.content}</div>;
-                            const isWin = fileNode.name === objective.fileName && JSON.stringify(catPath.slice(0, -1)) === JSON.stringify(objective.filePath);
-                            if (isWin) {
-                                onWin();
+                            if (fileNode.permissions === 'root' && currentUser !== 'root') {
+                                output = `cat: ${args[0]}: Permission denied`;
+                            } else if (fileNode.isEncrypted) {
+                                output = `Error: File '${args[0]}' is encrypted. Access requires decoder.exe.`;
+                            } else {
+                                output = <div className="whitespace-pre-wrap">{fileNode.content}</div>;
+                                const isWin = fileNode.name === objective.fileName && JSON.stringify(catPath.slice(0, -1)) === JSON.stringify(objective.filePath);
+                                if (isWin) {
+                                    onWin();
+                                }
                             }
                         } else {
                             output = `cat: ${args[0]}: Is a directory or does not exist`;
                         }
                     } else {
                         output = `cat: ${args[0]}: No such file or directory`;
+                    }
+                    break;
+                case './decoder.exe':
+                case '/bin/decoder.exe':
+                case 'decoder.exe':
+                    if (args.length < 1) {
+                        output = "Usage: decoder.exe <file.crypt>";
+                        break;
+                    }
+                    const decPath = resolvePath(args[0]);
+                    if (decPath) {
+                        const fileNode = getNodeByPath(decPath);
+                        if (fileNode?.type === 'file') {
+                            if (!fileNode.isEncrypted) {
+                                output = `decoder: ${args[0]}: File is not encrypted.`;
+                            } else {
+                                output = (
+                                    <div className="text-yellow-400">
+                                        <div className="mb-2">{">>>"} ANALYZING ENCRYPTION LAYER... DONE.</div>
+                                        <div className="mb-2">{">>>"} BYPASSING CIPHER... DONE.</div>
+                                        <div className="mb-2">{">>>"} DECRYPTED CONTENT:</div>
+                                        <div className="whitespace-pre-wrap pl-4 border-l-2 border-yellow-400">{fileNode.content}</div>
+                                    </div>
+                                );
+                                const isWin = fileNode.name === objective.fileName && JSON.stringify(decPath.slice(0, -1)) === JSON.stringify(objective.filePath);
+                                if (isWin) {
+                                    onWin();
+                                }
+                            }
+                        } else {
+                            output = `decoder: ${args[0]}: No such file.`;
+                        }
+                    } else {
+                        output = `decoder: ${args[0]}: No such file or directory.`;
                     }
                     break;
                 case 'grep':
@@ -282,8 +367,14 @@ clear        clear                   Clears all text from the terminal screen.`;
                     if (grepPath) {
                         const fileNode = getNodeByPath(grepPath);
                         if (fileNode?.type === 'file') {
-                            const matchingLines = fileNode.content.split('\n').filter(line => line.includes(term));
-                            output = <div className="whitespace-pre-wrap">{matchingLines.join('\n')}</div>;
+                            if (fileNode.permissions === 'root' && currentUser !== 'root') {
+                                output = `grep: ${fileParts.join(' ')}: Permission denied`;
+                            } else if (fileNode.isEncrypted) {
+                                output = `grep: ${fileParts.join(' ')}: Binary file (encrypted) matches`;
+                            } else {
+                                const matchingLines = fileNode.content.split('\n').filter(line => line.includes(term));
+                                output = <div className="whitespace-pre-wrap">{matchingLines.join('\n')}</div>;
+                            }
                         } else {
                             output = `grep: ${fileParts.join(' ')}: Is a directory or does not exist`;
                         }
@@ -297,11 +388,11 @@ clear        clear                   Clears all text from the terminal screen.`;
         const pathString = getPathDisplay(currentPath);
         const inputHistory = (
             <div className="flex">
-                <span className="text-green-400">user@retro-term</span>
+                <span className="text-green-400">{currentUser}@retro-term</span>
                 <span className="text-gray-400">:</span>
                 <span className="text-blue-400">{pathString}</span>
-                <span className="text-gray-400">$</span>
-                <span className="pl-2">{command}</span>
+                <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
+                <span className="pl-2">{isSudoEntering ? '********' : trimmedCommand}</span>
             </div>
         );
 
@@ -335,7 +426,7 @@ clear        clear                   Clears all text from the terminal screen.`;
         const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
 
         if (isCommand) {
-            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'grep', 'clear'];
+            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'grep', 'clear', 'decoder.exe'];
             const matches = availableCommands.filter(c => c.startsWith(currentValue));
             if (matches.length > 0) {
                 const common = getCommonPrefix(matches);
@@ -399,6 +490,7 @@ clear        clear                   Clears all text from the terminal screen.`;
             </div>
             <InputLine
                 currentPath={currentPath}
+                currentUser={currentUser}
                 onSubmit={processCommand}
                 onTab={handleTab}
                 getCompletion={getCompletion}
