@@ -33,10 +33,18 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState }) => {
         if (!file.encryption) return <span className="text-yellow-500">[Encrypted: Legacy]</span>;
 
         return (
-            <div className="space-y-1 mt-1">
+            <div className="space-y-1 mt-1 border-l border-red-500/20 pl-2">
+                {file.encryption.isBoss && <div className="text-red-500 font-bold underline mb-1">!!! BOSS NODE !!!</div>}
                 {file.encryption.requirements.map((req, idx) => (
-                    <div key={idx} className="text-orange-500">
-                        [{req.type.toUpperCase()}{req.transformation ? `:${req.transformation.type.toUpperCase()}` : ''}] Key: <span className="text-white font-bold underline">{req.targetValue}</span>
+                    <div key={idx} className="text-orange-500 leading-tight">
+                        <span className="text-gray-500 uppercase">[{req.type}]</span>
+                        {req.transformation && (
+                            <span className="text-[9px] ml-1 opacity-80">
+                                ({req.transformation.type}: {Array.isArray(req.transformation.value) ? req.transformation.value.join(':') : req.transformation.value})
+                            </span>
+                        )}
+                        <br />
+                        Key: <span className="text-white font-bold underline select-all">{req.targetValue}</span>
                     </div>
                 ))}
             </div>
