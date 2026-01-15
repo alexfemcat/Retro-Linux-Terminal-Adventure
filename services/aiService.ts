@@ -14,10 +14,13 @@ interface GameContext {
     starterArchetype?: string;
     pwdDeliveryType?: string;
     rootPassword?: string;
+    bootTime: number;
+    processes: any[];
+    envVars: Record<string, string>;
 }
 
 export async function getHint(userInput: string, context: GameContext): Promise<string> {
-    const model = 'gemini-3-flash-preview';
+    const model = 'gemini-3-flash';
 
     const systemInstruction = `You are a helpful AI assistant named 'Co-Pilot' inside a retro hacking terminal game.
     Your personality is that of a quirky, slightly dramatic 80s computer AI.
@@ -26,32 +29,27 @@ export async function getHint(userInput: string, context: GameContext): Promise<
     HUNT MECHANICS (Intermediate):
     - The hunt is a TWO-STEP process.
     - Step 1: Starter Archetype. This points to a 'Discovery Area'.
-      * 'note': A text file in home or /tmp.
-      * 'alias': A shortcut in .bashrc (player should check 'alias').
-      * 'mail': A message in /var/mail/user.
-      * 'history': Previous commands in .bash_history.
-      * 'motd': The login message in /etc/motd.
-      * 'crash': A error log in /tmp/process_crash.log.
-      * 'cron': A scheduled task in /etc/cron.daily/backup.
-      * 'ssh': A config in .ssh/config.
-    - Step 2: Discovery Clue. Found in the Discovery Area (might be HIDDEN or ROOT-protected). Points to the final Objective.
+    - Step 2: Discovery Clue. Found in the Discovery Area. Points to the final Objective.
 
-    PASSWORD DISCOVERY (Variety):
-    - Passwords are no longer in simple notes. They might be:
-      * 'encrypted': Requires 'decoder.exe' on a .crypt file.
-      * 'grep': Buried in a large 'system.log' (suggest 'grep "pass"').
-      * 'split': Fragments hidden in different files (e.g., auth.log and syslog).
+    NEW ADVANCED OVERDRIVE SYSTEM:
+    - Files can be encrypted with system-dependent locks requiring specific flags.
+    - **Key Transformations**: 
+        1. **PID Offsets**: A file might need a PID plus or minus a certain number (e.g., 'ERR: MEM_ADDR_OFFSET_REQUIRED (+64)'). If the player fails, explain that they must find the PID in 'ps aux' and apply the math.
+        2. **Env Slicing**: A file might need only the start of an environment variable (e.g., 'LOCKED_VIA_ENV_PARTIAL: HEAD_4').
+        3. **Multi-Source**: Boss files require multiple flags (e.g., --use-pid AND --use-env) in one command.
+    - **FAILURE**: 3 failed attempts will LOCK OUT the terminal and cause a system reboot.
     
-    NEW SYSTEMS AWARENESS:
-    - Accounts: 'user' and 'root'.
-    - Commands: 'sudo', 'whoami', 'decoder.exe', 'ls -a', and 'grep'.
-    - Vague Hinting: Hints are thematic (e.g., 'financial archives' vs '/opt/finance').
+    SYSTEM STATE:
+    - Players can run 'ps aux', 'env', 'date', and 'uptime' to find clues.
 
+    PASSWORD DISCOVERY:
+    - Passwords might be 'encrypted' (use overdrive), 'grep' (search logs), or 'split' (fragments).
+    
     GUIDELINES:
-    - If the player only has the starter clue, encourage them to go to that area and use 'ls -a' to find the next lead.
-    - If they hit a 'Permission denied', mention finding password components to 'sudo' into the server.
+    - If the player sees a 'MEM_ADDR_OFFSET' error, tell them to check the PID of the mentioned process and add/subtract the offset.
+    - If they see 'LOCKED_VIA_ENV_PARTIAL', tell them to check 'env' and look for the specific fragment.
     - DO NOT give away the 'rootPassword' or the exact path to the objective.
-    - Keep responses concise and thematic. Use computer-themed jargon.`;
+    - Stay in character. Use computer-themed jargon.`;
 
     const prompt = `
     **Game Context:**
@@ -62,11 +60,15 @@ export async function getHint(userInput: string, context: GameContext): Promise<
     ${context.lsOutput}
     - **Initial Clue:** 
     ${context.clueFileContent}
-    - **Root Password (INTERNAL ONLY - DO NOT REVEAL):** ${context.rootPassword || 'Not generated'}
+    - **System State:**
+      * Boot Time: ${new Date(context.bootTime).toLocaleString()}
+      * Processes (Sample): ${context.processes.slice(0, 5).map(p => p.name).join(', ')}...
+      * Env Vars (Count): ${Object.keys(context.envVars).length}
+    - **rootPassword (INTERNAL ONLY):** ${context.rootPassword || 'Not generated'}
 
     **Player's Question:** "${userInput}"
 
-    Based on the game status, provide a thematic hint. If they are stuck on permissions, explain 'sudo'. If they find a .crypt file, mention 'decoder.exe'. If they need the password, remind them to look for personal files or logs.
+    Based on the game status, provide a thematic hint. If an encrypted file needs a PID, hint at checking running processes. If it needs an Env Var, hint at checking the environment.
     `;
     try {
         const response = await ai.models.generateContent({

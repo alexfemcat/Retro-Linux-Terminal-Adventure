@@ -61,6 +61,9 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
                 starterArchetype: gameState.starterArchetype,
                 pwdDeliveryType: gameState.pwdDeliveryType,
                 rootPassword: gameState.rootPassword,
+                bootTime: gameState.bootTime,
+                processes: gameState.processes,
+                envVars: gameState.envVars,
             };
 
             const aiResponse = await getHint(input, context);

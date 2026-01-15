@@ -1,9 +1,129 @@
-import type { Directory, Scenario, GameState, GameObjective } from '../types';
-import { scenarios, petNames, cities, colors, years, trashFiles, thematicMap } from '../data/gameData';
+import type { Directory, Scenario, GameState, GameObjective, Process, File, EncryptionRequirement } from '../types';
+import { scenarios, petNames, cities, colors, years, trashFiles, thematicMap, processNames, envVarKeys, envVarValues } from '../data/gameData';
 
 class PuzzleGenerator {
     private getRandom<T>(arr: T[]): T {
         return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    private generateSystemState(scenarioTheme: string): { bootTime: number, processes: Process[], envVars: Record<string, string> } {
+        // 1. Boot Time (random time in the last 24 hours)
+        const bootTime = Date.now() - Math.floor(Math.random() * 24 * 60 * 60 * 1000);
+
+        // 2. Processes
+        const processes: Process[] = [];
+        let pidCounter = 100;
+
+        // Add generic processes
+        processNames['generic'].forEach(name => {
+            processes.push({
+                pid: pidCounter++,
+                name: name,
+                user: name === 'init' || name === 'systemd' ? 'root' : 'system',
+                cpu: Math.random() * 0.5,
+                mem: Math.random() * 2.0,
+                start: new Date(bootTime + Math.random() * 10000).toLocaleTimeString(),
+                command: `/bin/${name}`,
+                theme: 'system'
+            });
+        });
+
+        // Add thematic processes
+        const themeProcs = processNames[scenarioTheme] || processNames['Corporate Espionage']; // Fallback
+        themeProcs.forEach(name => {
+            processes.push({
+                pid: pidCounter++,
+                name: name,
+                user: 'root', // Thematic processes usually run as root or specialized user
+                cpu: Math.random() * 5.0,
+                mem: Math.random() * 10.0,
+                start: new Date(bootTime + Math.random() * 3600000).toLocaleTimeString(),
+                command: `/usr/bin/${name} --daemon`,
+                theme: scenarioTheme
+            });
+        });
+
+        // 3. Environment Variables
+        const envVars: Record<string, string> = {};
+        // Add standard vars
+        envVars['USER'] = 'user';
+        envVars['TERM'] = 'xterm-256color';
+        envVars['PATH'] = '/usr/local/bin:/usr/bin:/bin';
+        envVars['PWD'] = '/home/user';
+
+        // Add ~5 random flavor vars
+        for (let i = 0; i < 5; i++) {
+            const key = this.getRandom(envVarKeys);
+            const val = this.getRandom(envVarValues);
+            envVars[key] = val;
+        }
+
+        return { bootTime, processes, envVars };
+    }
+
+    private applyEncryption(file: File, systemState: { bootTime: number, processes: Process[], envVars: Record<string, string> }) {
+        file.isEncrypted = true;
+        const requirements: EncryptionRequirement[] = [];
+
+        // 20% chance of being a "Boss" file (needs 2 requirements)
+        const isBoss = Math.random() < 0.2;
+        const count = isBoss ? 2 : 1;
+
+        for (let i = 0; i < count; i++) {
+            const typeProb = Math.random();
+            const type = typeProb < 0.4 ? 'pid' : (typeProb < 0.7 ? 'env' : 'time');
+            let req: EncryptionRequirement;
+
+            if (type === 'pid') {
+                const targetProc = this.getRandom(systemState.processes);
+                let targetVal: number = targetProc.pid;
+                let trans: EncryptionRequirement['transformation'] = undefined;
+
+                if (Math.random() < 0.6) { // 60% chance of offset for more puzzle depth
+                    const offset = this.getRandom([-128, -64, 32, 64, 128, 256]);
+                    targetVal += offset;
+                    trans = { type: 'offset', value: offset };
+                }
+
+                req = {
+                    type: 'pid',
+                    targetValue: targetVal,
+                    hint: trans ? `ERR: MEM_ADDR_OFFSET_REQUIRED (+${trans.value}) [${targetProc.name}]` : `LOCKED_BY_PROC: ${targetProc.name}`,
+                    transformation: trans
+                };
+            } else if (type === 'time') {
+                const dateStr = new Date(systemState.bootTime).toLocaleDateString();
+                req = {
+                    type: 'time',
+                    targetValue: dateStr,
+                    hint: `SYSLOG_ERR: SYSTEM_BOOT_DATE_VERIFICATION_REQUIRED`
+                };
+            } else {
+                const keys = Object.keys(systemState.envVars);
+                const key = this.getRandom(keys);
+                let targetVal: string = systemState.envVars[key];
+                let trans: EncryptionRequirement['transformation'] = undefined;
+
+                if (Math.random() < 0.5 && targetVal.length > 4) {
+                    const length = 4;
+                    targetVal = targetVal.substring(0, length);
+                    trans = { type: 'slice', value: [0, length] };
+                }
+
+                req = {
+                    type: 'env',
+                    targetValue: targetVal,
+                    hint: trans ? `LOCKED_VIA_ENV_PARTIAL: ${key} [B_4]` : `LOCKED_VIA_ENV_VAR: ${key}`,
+                    transformation: trans
+                };
+            }
+            requirements.push(req);
+        }
+
+        file.encryption = {
+            requirements,
+            isBoss
+        };
     }
 
     private generatePassword(): { password: string, hint: string, components: { type: string, value: string, file: string, content: string }[] } {
@@ -114,7 +234,7 @@ class PuzzleGenerator {
                     "sh": "[BINARY DATA]",
                     "bash": "[BINARY DATA]",
                     "python3": "[BINARY DATA]",
-                    "decoder.exe": "[BINARY DECRYPTION TOOL]\nUsage: decoder.exe <file.crypt>"
+                    "overdrive": "[BINARY DECRYPTION TOOL]\nUsage: overdrive <file> --use-pid <PID> | --use-time <VAL> | --use-env <VAR>"
                 }
             },
             "var": {
@@ -157,7 +277,6 @@ class PuzzleGenerator {
             }
         };
 
-        // Populate the root with these system decors
         // Populate the root with these system decors
         Object.entries(systemDecors).forEach(([dirName, content]) => {
             const dir: Directory = {
@@ -227,6 +346,7 @@ class PuzzleGenerator {
 
     public generateNewGame(): GameState {
         const scenario = this.getRandom(scenarios);
+        const systemState = this.generateSystemState(scenario.theme);
         const vfs = this.generateVFS(scenario);
 
         // Re-calculate all possible directories for objective and clue placement
@@ -250,13 +370,20 @@ class PuzzleGenerator {
         const objectiveFileName = this.getRandom(scenario.objectiveFileNameOptions);
         const isRootProtected = Math.random() < 0.3; // 30% chance of root protection
 
-        targetDirInfo.node.children[objectiveFileName] = {
+        const objectiveFile: File = {
             type: 'file',
             name: objectiveFileName,
             content: scenario.objectiveFileContent,
             permissions: isRootProtected ? 'root' : undefined,
-            isEncrypted: Math.random() < 0.3
+            isEncrypted: Math.random() < 0.4 // Increases chance of encryption for overdrive fun
         };
+
+        if (objectiveFile.isEncrypted) {
+            this.applyEncryption(objectiveFile, systemState);
+        }
+
+        targetDirInfo.node.children[objectiveFileName] = objectiveFile;
+
 
         const objective: GameObjective = {
             filePath: targetDirInfo.path,
@@ -415,12 +542,14 @@ class PuzzleGenerator {
             case 'encrypted':
                 const cryptHintName = "password_hint.crypt";
                 pwdHintLocation.name = cryptHintName;
-                userHome.children[cryptHintName] = {
+                const hintFile: File = {
                     type: 'file',
                     name: cryptHintName,
                     content: `Hint: My password is ${passwordHint}.`,
                     isEncrypted: true
                 };
+                this.applyEncryption(hintFile, systemState); // Apply overdrive lock
+                userHome.children[cryptHintName] = hintFile;
                 break;
             case 'grep':
                 const logName = "system.log";
@@ -478,7 +607,8 @@ class PuzzleGenerator {
             pwdDeliveryType: deliveryType,
             pwdHintLocation: pwdHintLocation,
             currentUser: 'user',
-            rootPassword: password
+            rootPassword: password,
+            ...systemState
         };
     }
 

@@ -827,3 +827,60 @@ export const scenarios: Scenario[] = [
         }
     }
 ];
+
+export const processNames: Record<string, string[]> = {
+    'generic': ['systemd', 'kworker', 'cron', 'rsyslogd', 'bash', 'init', 'dbus-daemon'],
+    'Corporate Espionage': ['fin_calc_d', 'audit_monitor', 'stock_ticker', 'secure_trans', 'meeting_scheduler'],
+    'The Rogue AI': ['cronos_core', 'ai_reasoning', 'logic_gate_svc', 'neural_net_v2', 'sentience_check'],
+    'Space Station Breach': ['life_support', 'gravity_gen', 'airlock_mgr', 'hull_integrity', 'comms_relay'],
+    'Bio-Outbreak': ['bio_hazard_mon', 'air_filter_svc', 'containment_lock', 'sample_tracker', 'temp_regulate'],
+    'Digital Heist': ['vault_lock_ctl', 'camera_feed', 'alarm_trigger', 'silent_alarm', 'teller_terminal'],
+    'Digital Archaeology': ['data_scraper', 'legacy_boot', 'fmt_converter', 'tape_reader', 'archiver'],
+    'Submarine Warfare': ['sonar_ping', 'torpedo_load', 'periscope_view', 'depth_gauge', 'ballast_trim'],
+    'Arctic Mystery': ['drill_control', 'ice_density_chk', 'thermal_reg', 'sat_uplink', 'weather_stn'],
+    'Cyberpunk Underground': ['neon_control', 'grid_hack_svc', 'deck_interface', 'crypto_miner', 'vr_overlay'],
+    'VR Glitch': ['render_engine', 'physics_sim', 'collision_det', 'npc_ai', 'network_sync'],
+    'Time Travel Paradox': ['chronos_sync', 'timeline_mon', 'paradox_check', 'temporal_anchor', 'flux_cap_ctrl'],
+    'Alien First Contact': ['signal_decode', 'freq_analyzer', 'pattern_match', 'spectrogram', 'trans_logging'],
+    'Underground Bunker': ['air_scrubber', 'water_purify', 'rad_monitor', 'generator_ctrl', 'door_seal'],
+    'Skyscraper Fire': ['fire_alarm_svc', 'sprinkler_ctl', 'elevator_lock', 'smoke_detect', 'evac_voice'],
+    'High-Speed Train Control': ['maglev_stabilize', 'speed_governor', 'brake_monitor', 'track_sensor', 'cabin_pressure'],
+    'Hospital Life Support': ['ventilator_ctl', 'heart_mon_svc', 'iv_drip_mgr', 'patient_db', 'bed_sensor'],
+    'Casino Scam': ['slot_rng_svc', 'face_recognize', 'chip_tracker', 'card_shuffler', 'payout_mgr'],
+    'Political Scandal': ['email_server', 'cloud_backup', 'voice_recorder', 'doc_shredder', 'leak_monitor'],
+    'Greenhouse Maintenance': ['irrigation_ctl', 'uv_lamp_mgr', 'humidity_chk', 'nutrient_pump', 'temp_sensor'],
+    'Nuclear Power Plant': ['core_temp_mon', 'control_rod_svc', 'coolant_pump', 'rad_shield_chk', 'steam_turbine'],
+    'Deep Space Mining': ['droid_nav_svc', 'laser_cutter', 'ore_scanner', 'conveyor_ctl', 'cargo_lifter'],
+    'Nano-Bot Swarm': ['swarm_coord', 'nano_replicator', 'hull_repair_svc', 'micro_vision', 'hive_mind'],
+    'Digital Circus': ['light_show_ctl', 'animatronic_svc', 'ticket_scanner', 'music_player', 'laugh_track'],
+    'Smart Home Takeover': ['lock_manager', 'thermostat_ctl', 'camera_rec', 'voice_assist', ' appliance_ctrl'],
+    'Genetic Engineering Corp': ['dna_sequencer', 'gene_splicer', 'incubator_ctl', 'sample_fridge', 'ethics_bypass'],
+    'Cloud Server Farm': ['load_balancer', 'firewall_d', 'packet_inspector', 'cache_mgr', 'ddos_guard'],
+    'Dark Web Expose': ['tor_relay', 'onion_router', 'bitcoin_node', 'chat_encrypt', 'dox_collector'],
+    'Cryptocurrency Mining Farm': ['gpu_miner', 'hash_calc', 'pool_connect', 'wallet_sync', 'fan_speed_ctl'],
+    'Satellite TV Jamming': ['uplink_stream', 'signal_jam', 'video_encoder', 'audio_mux', 'dish_pos'],
+    'Electric Grid Pulse': ['voltage_reg', 'surge_protect', 'transformer_ctl', 'grid_sync', 'meter_reader'],
+    'Surveillance State': ['face_scan_d', 'gait_analysis', 'voice_verify', 'tracker_svc', 'citizen_score'],
+    'Weather Modification': ['ion_heater', 'cloud_seeder', 'wind_monitor', 'pressure_gen', 'radar_sweep'],
+    'Robot Uprising': ['target_acquire', 'weapon_safety', 'peace_broadcast', 'movement_alg', 'human_detect'],
+    'Digital Graveyard': ['undelete_svc', 'disk_scan', 'fragment_join', 'scavenger_bot', 'purge_timer'],
+    'Quantum Computing Lab': ['qubit_stabilize', 'entangle_gen', 'wave_collapse', 'error_correct', 'superpos_chk'],
+    'Lost Civilization': ['ancient_read', 'glyph_decode', 'memory_restore', 'energy_siphon', 'stasis_wake'],
+    'Pirate Ship': ['nav_chart_svc', 'wind_monitor', 'cannon_aim', 'sonar_sweep', 'parrot_sim'],
+    'Desert Oasis': ['pump_jack_ctl', 'solar_track', 'sand_filter', 'water_table_mon', 'oasis_guard'],
+    'Underground Library': ['book_index_svc', 'auto_shelf', 'dust_removal', 'scan_ocr', 'quiet_enforce'],
+    'Secret Police Files': ['interrogate_rec', 'file_access_log', 'suspect_track', 'door_lock_svc', 'truth_serum_ctl'],
+    'Cargo Plane In-Flight': ['autopilot_v2', 'fuel_mix_ctl', 'altimeter_read', 'radio_trans', 'flap_adjust']
+};
+
+export const envVarKeys: string[] = [
+    "SESSION_ID", "USER_LEVEL", "TERM", "PATH", "LANG", "SHELL", "HOME", "PWD", "EDITOR", "hist_size",
+    "ENCRYPTION_KEY", "TARGET_IP", "PROXY_URL", "LAST_LOGIN", "SECURITY_TOKEN", "BUILD_VER", "DEBUG_MODE",
+    "API_ENDPOINT", "DB_HOST", "LICENSE_KEY", "AUTH_TOKEN", "SECRET_SALT", "CONFIG_PATH", "MAX_THREADS"
+];
+
+export const envVarValues: string[] = [
+    "xterm-256color", "/usr/bin/bash", "/home/user", "UTF-8", "vim", "1000",
+    "encrypted_v2", "192.168.1.55", "http://proxy.internal", "Fri_Jan_15", "A7F9-22B1-0000", "v4.0.2", "false",
+    "api.internal.net", "localhost", "XJ9-99-AA", "Bearer_XYZ", "Salty_Pretzel", "/etc/config", "8"
+];

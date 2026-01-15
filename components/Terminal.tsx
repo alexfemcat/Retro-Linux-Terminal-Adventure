@@ -18,6 +18,74 @@ const getPathDisplay = (currentPath: string[]) => {
     return path;
 };
 
+const OverdriveSequence: React.FC<{
+    requirements: { type: string, label: string, target: string, provided: string, success: boolean, failReason: string }[],
+    onResult: (success: boolean) => void
+}> = ({ requirements, onResult }) => {
+    const [lines, setLines] = useState<string[]>([]);
+
+    useEffect(() => {
+        let isCancelled = false;
+        const run = async () => {
+            setLines(["INITIALIZING OVERDRIVE BYPASS..."]);
+            await new Promise(r => setTimeout(r, 800));
+            if (isCancelled) return;
+
+            for (let i = 0; i < requirements.length; i++) {
+                const req = requirements[i];
+
+                for (let j = 0; j < 6; j++) {
+                    const randomHex = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
+                    setLines(prev => {
+                        const next = [...prev];
+                        next[i + 1] = `SYNCING ${req.label} STREAM: 0x${randomHex}`;
+                        return next;
+                    });
+                    await new Promise(r => setTimeout(r, 100));
+                    if (isCancelled) return;
+                }
+
+                if (req.success) {
+                    setLines(prev => {
+                        const next = [...prev];
+                        const hexVal = isNaN(parseInt(req.target)) ? 'DATA' : `0x${parseInt(req.target).toString(16).toUpperCase().padStart(6, '0')}`;
+                        next[i + 1] = `SYNCING ${req.label} STREAM: [OK] - ${hexVal}`;
+                        return next;
+                    });
+                    await new Promise(r => setTimeout(r, 500));
+                } else {
+                    setLines(prev => {
+                        const next = [...prev];
+                        next[i + 1] = `SYNCING ${req.label} STREAM: [FAILED]`;
+                        next.push(`CRITICAL ERROR: ${req.failReason}`);
+                        return next;
+                    });
+                    await new Promise(r => setTimeout(r, 1000));
+                    onResult(false);
+                    return;
+                }
+            }
+
+            setLines(prev => [...prev, "PHASE SHIFT COMPLETED. BREAKING ENCRYPTION..."]);
+            await new Promise(r => setTimeout(r, 1000));
+            onResult(true);
+        };
+
+        run();
+        return () => { isCancelled = true; };
+    }, [requirements, onResult]);
+
+    return (
+        <div className="font-mono text-sm border-l-2 border-yellow-500/50 pl-4 py-2 bg-yellow-500/5 my-2">
+            {lines.map((l, i) => (
+                <div key={i} className={l.includes('[OK]') ? 'text-green-400' : (l.includes('[FAILED]') || l.includes('ERROR') ? 'text-red-500' : 'text-yellow-400')}>
+                    {l}
+                </div>
+            ))}
+        </div>
+    );
+};
+
 const InputLine: React.FC<{
     currentPath: string[];
     currentUser: 'user' | 'root';
@@ -120,10 +188,12 @@ export const Terminal: React.FC<TerminalProps> = ({
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
     const [isSudoEntering, setIsSudoEntering] = useState<boolean>(false);
+    const [failedAttempts, setFailedAttempts] = useState<number>(0);
+    const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
-    const { vfs, scenario, objective, rootPassword } = gameState;
+    const { vfs, scenario, objective, rootPassword, bootTime, processes, envVars } = gameState;
 
     useEffect(() => {
         const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
@@ -132,7 +202,18 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     useEffect(() => {
         terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [history]);
+    }, [history, isLockedOut]);
+
+    const handleLockout = useCallback(() => {
+        setIsLockedOut(true);
+        setHistory(prev => [...prev, <div key={Date.now()} className="text-red-600 font-bold blink">{">>>"} TERMINAL LOCKOUT INITIATED. TOO MANY FAILED OVERDRIVES. REBOOTING...</div>]);
+        setTimeout(() => {
+            setHistory([]);
+            setIsLockedOut(false);
+            setFailedAttempts(0);
+            setHistory([<div key="reboot">SYSTEM REBOOT... OK.</div>, ...scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-re-${i}`}>{line}</div>)]);
+        }, 10000);
+    }, [scenario.welcomeMessage]);
 
     const resolvePath = useCallback((pathStr: string): string[] | null => {
         if (!pathStr) return currentPath;
@@ -190,6 +271,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     }, [vfs]);
 
     const processCommand = (command: string) => {
+        if (isLockedOut) return;
+
         const trimmedCommand = command.trim();
         if (!isSudoEntering && trimmedCommand) {
             setCommandHistory(prev => [...prev, trimmedCommand]);
@@ -218,15 +301,22 @@ export const Terminal: React.FC<TerminalProps> = ({
 COMMAND      USAGE                   DESCRIPTION
 ----------------------------------------------------------------------------
 help         help                    Shows this list of commands.
-ls           ls [-a]                 Lists files and directories. Use '-a' for hidden files.
-cd           cd [directory]          Changes directory. Use '..' to go up a level.
+ls           ls [-a]                 Lists files and directories.
+cd           cd [directory]          Changes directory.
 cat          cat [file]              Displays the content of a file.
-pwd          pwd                     Prints the current working directory path.
+pwd          pwd                     Prints the current working directory.
 whoami       whoami                  Print the current user name.
-sudo         sudo                    Gain root privileges (requires password).
-grep         grep [term] [file]      Searches for a specific 'term' within a 'file'.
-decoder.exe  ./decoder.exe [file]    Decrypts a .crypt file.
-clear        clear                   Clears all text from the terminal screen.`;
+sudo         sudo                    Gain root privileges.
+grep         grep [term] [file]      Searches for a specific 'term'.
+ps           ps aux                  Lists running processes.
+env          env                     Lists environment variables.
+uptime       uptime                  Shows system running time.
+date         date                    Shows current system date.
+overdrive    overdrive [file] [flags] Attempts to decrypt a file using system state.
+             --use-pid [PID]         Decrypt using a Process ID.
+             --use-time [VAL]        Decrypt using a Time value.
+             --use-env [VAL]         Decrypt using an Env Var value.
+clear        clear                   Clears the terminal screen.`;
                     output = <div className="whitespace-pre-wrap">{helpText.trim()}</div>;
                     break;
                 case 'whoami':
@@ -237,12 +327,50 @@ clear        clear                   Clears all text from the terminal screen.`;
                     output = "[sudo] password for user: ";
                     break;
                 case 'clear':
-                    const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
-                    setHistory(welcomeLines);
+                    setHistory([]);
                     output = null;
                     break;
                 case 'pwd':
                     output = `/${currentPath.join('/')}`;
+                    break;
+                case 'date':
+                    output = new Date().toString();
+                    break;
+                case 'uptime':
+                    const diff = Date.now() - (bootTime || Date.now());
+                    const hours = Math.floor(diff / 3600000);
+                    const minutes = Math.floor((diff % 3600000) / 60000);
+                    output = `up ${hours} hours, ${minutes} minutes`;
+                    break;
+                case 'ps':
+                    if (args[0] === 'aux' || args.length === 0) {
+                        output = (
+                            <div className="whitespace-pre-wrap">
+                                <div className="text-gray-400 border-b border-gray-600 mb-1">USER       PID %CPU %MEM    START   COMMAND</div>
+                                {(processes || []).map(p => (
+                                    <div key={p.pid} className="grid grid-cols-[80px_60px_60px_60px_80px_1fr]">
+                                        <span>{p.user}</span>
+                                        <span>{p.pid}</span>
+                                        <span>{p.cpu.toFixed(1)}</span>
+                                        <span>{p.mem.toFixed(1)}</span>
+                                        <span>{p.start}</span>
+                                        <span>{p.command}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    } else {
+                        output = `ps: unsupported option '${args[0]}'. Try 'ps aux'`;
+                    }
+                    break;
+                case 'env':
+                    output = (
+                        <div className="whitespace-pre-wrap">
+                            {Object.entries(envVars || {}).map(([k, v]) => (
+                                <div key={k}>{k}={v}</div>
+                            ))}
+                        </div>
+                    );
                     break;
                 case 'ls':
                     const node = getNodeByPath(currentPath);
@@ -308,7 +436,17 @@ clear        clear                   Clears all text from the terminal screen.`;
                             if (fileNode.permissions === 'root' && currentUser !== 'root') {
                                 output = `cat: ${args[0]}: Permission denied`;
                             } else if (fileNode.isEncrypted) {
-                                output = `Error: File '${args[0]}' is encrypted. Access requires decoder.exe.`;
+                                const hints = fileNode.encryption?.requirements.map(r => r.hint).filter(Boolean);
+                                output = (
+                                    <div className="text-red-400">
+                                        <div>Error: File '${args[0]}' is encrypted.</div>
+                                        <div>Access Control: ACTIVE</div>
+                                        <div className="mt-2 text-gray-400">
+                                            {hints?.map((h, i) => <div key={i}>- {h}</div>)}
+                                        </div>
+                                        <div className="mt-2 italic">Use 'overdrive' to attempt decryption.</div>
+                                    </div>
+                                );
                             } else {
                                 output = <div className="whitespace-pre-wrap">{fileNode.content}</div>;
                                 const isWin = fileNode.name === objective.fileName && JSON.stringify(catPath.slice(0, -1)) === JSON.stringify(objective.filePath);
@@ -323,39 +461,97 @@ clear        clear                   Clears all text from the terminal screen.`;
                         output = `cat: ${args[0]}: No such file or directory`;
                     }
                     break;
-                case './decoder.exe':
-                case '/bin/decoder.exe':
-                case 'decoder.exe':
-                    if (args.length < 1) {
-                        output = "Usage: decoder.exe <file.crypt>";
+                case 'overdrive':
+                    if (args.length < 2) {
+                        output = "Usage: overdrive [file] [--use-pid <PID> | --use-time <VAL> | --use-env <VAL>]";
                         break;
                     }
-                    const decPath = resolvePath(args[0]);
-                    if (decPath) {
-                        const fileNode = getNodeByPath(decPath);
-                        if (fileNode?.type === 'file') {
-                            if (!fileNode.isEncrypted) {
-                                output = `decoder: ${args[0]}: File is not encrypted.`;
-                            } else {
-                                output = (
-                                    <div className="text-yellow-400">
-                                        <div className="mb-2">{">>>"} ANALYZING ENCRYPTION LAYER... DONE.</div>
-                                        <div className="mb-2">{">>>"} BYPASSING CIPHER... DONE.</div>
-                                        <div className="mb-2">{">>>"} DECRYPTED CONTENT:</div>
-                                        <div className="whitespace-pre-wrap pl-4 border-l-2 border-yellow-400">{fileNode.content}</div>
-                                    </div>
-                                );
-                                const isWin = fileNode.name === objective.fileName && JSON.stringify(decPath.slice(0, -1)) === JSON.stringify(objective.filePath);
-                                if (isWin) {
-                                    onWin();
-                                }
-                            }
-                        } else {
-                            output = `decoder: ${args[0]}: No such file.`;
-                        }
-                    } else {
-                        output = `decoder: ${args[0]}: No such file or directory.`;
+
+                    const odFilePath = resolvePath(args[0]);
+                    if (!odFilePath) {
+                        output = `overdrive: ${args[0]}: No such file or directory.`;
+                        break;
                     }
+
+                    const fileNode = getNodeByPath(odFilePath);
+                    if (fileNode?.type !== 'file' || !fileNode.isEncrypted || !fileNode.encryption) {
+                        output = `overdrive: ${args[0]}: File is not encrypted or is not a processable data stream.`;
+                        break;
+                    }
+
+                    // Extract all flags
+                    const providedFlags: Record<string, string> = {};
+                    for (let i = 1; i < args.length; i++) {
+                        if (args[i].startsWith('--use-') && args[i + 1]) {
+                            providedFlags[args[i]] = args[i + 1];
+                        }
+                    }
+
+                    const reqs = fileNode.encryption.requirements;
+                    const results = reqs.map(req => {
+                        const flag = `--use-${req.type}`;
+                        const providedValue = providedFlags[flag];
+                        const isMatch = providedValue?.toString() === req.targetValue.toString();
+
+                        let failReason = "KEY_MISMATCH";
+                        // Custom logic for "Almost correct" feedback
+                        if (!isMatch && providedValue) {
+                            if (req.transformation?.type === 'offset') {
+                                // Check if they provided the base PID instead of transformed
+                                const basePid = (req.targetValue as number) - (req.transformation.value as number);
+                                if (providedValue === basePid.toString()) failReason = "OFFSET_ERROR_DETECTED: STACK_POINTER_MISMATCH";
+                            } else if (req.transformation?.type === 'slice') {
+                                // Check if they provided the whole env var
+                                const fullEnv = Object.values(envVars).find(v => v === providedValue);
+                                if (fullEnv && fullEnv.startsWith(req.targetValue as string)) failReason = "SLICE_ERROR: BUFFER_LENGTH_EXCEEDED";
+                            }
+                        }
+
+                        return {
+                            type: req.type,
+                            label: req.type.toUpperCase(),
+                            target: req.targetValue.toString(),
+                            provided: providedValue || "",
+                            success: isMatch,
+                            failReason
+                        };
+                    });
+
+                    // Start Animation sequence
+                    output = (
+                        <div className="mt-2">
+                            <OverdriveSequence
+                                requirements={results}
+                                onResult={(success) => {
+                                    if (success) {
+                                        fileNode.isEncrypted = false;
+                                        setFailedAttempts(0);
+                                        setHistory(prev => [...prev, (
+                                            <div className="text-green-400 font-bold mb-4">
+                                                {">>>"} CRITICAL OVERRIDE SUCCESSFUL. DATA STREAM DECRYPTED.
+                                                <div className="whitespace-pre-wrap pl-4 border-l-2 border-green-500 mt-2 text-white font-normal">
+                                                    {fileNode.content}
+                                                </div>
+                                            </div>
+                                        )]);
+                                        const isWin = fileNode.name === objective.fileName && JSON.stringify(odFilePath.slice(0, -1)) === JSON.stringify(objective.filePath);
+                                        if (isWin) onWin();
+                                    } else {
+                                        const newFails = failedAttempts + 1;
+                                        setFailedAttempts(newFails);
+                                        const firstFail = results.find(r => !r.success);
+                                        setHistory(prev => [...prev, (
+                                            <div className="text-red-500 mb-4">
+                                                {">>>"} OVERDRIVE FAILURE: {firstFail?.failReason || "CORE_SYNC_LOST"}
+                                                <div className="text-sm italic">Attempt {newFails}/3 before lockout.</div>
+                                            </div>
+                                        )]);
+                                        if (newFails >= 3) handleLockout();
+                                    }
+                                }}
+                            />
+                        </div>
+                    );
                     break;
                 case 'grep':
                     if (args.length < 2) {
@@ -426,7 +622,7 @@ clear        clear                   Clears all text from the terminal screen.`;
         const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
 
         if (isCommand) {
-            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'grep', 'clear', 'decoder.exe'];
+            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'grep', 'clear', 'overdrive', 'ps', 'env', 'uptime', 'date'];
             const matches = availableCommands.filter(c => c.startsWith(currentValue));
             if (matches.length > 0) {
                 const common = getCommonPrefix(matches);
@@ -477,7 +673,7 @@ clear        clear                   Clears all text from the terminal screen.`;
 
     return (
         <div
-            className="w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden"
+            className={`w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden ${isLockedOut ? 'grayscale blur-sm' : ''}`}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();
@@ -488,15 +684,17 @@ clear        clear                   Clears all text from the terminal screen.`;
                 {history.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
                 <div ref={terminalEndRef} />
             </div>
-            <InputLine
-                currentPath={currentPath}
-                currentUser={currentUser}
-                onSubmit={processCommand}
-                onTab={handleTab}
-                getCompletion={getCompletion}
-                inputRef={inputRef}
-                commandHistory={commandHistory}
-            />
+            {!isLockedOut && (
+                <InputLine
+                    currentPath={currentPath}
+                    currentUser={currentUser}
+                    onSubmit={processCommand}
+                    onTab={handleTab}
+                    getCompletion={getCompletion}
+                    inputRef={inputRef}
+                    commandHistory={commandHistory}
+                />
+            )}
         </div>
     );
 };

@@ -1,9 +1,23 @@
+export interface EncryptionRequirement {
+  type: 'pid' | 'time' | 'env';
+  targetValue: string | number;
+  hint?: string;
+  transformation?: {
+    type: 'offset' | 'slice';
+    value: number | [number, number];
+  };
+}
+
 export interface File {
   type: 'file';
   name: string;
   content: string;
   permissions?: 'user' | 'root';
   isEncrypted?: boolean;
+  encryption?: {
+    requirements: EncryptionRequirement[];
+    isBoss?: boolean;
+  };
 }
 
 export interface Directory {
@@ -32,6 +46,17 @@ export interface GameObjective {
   fileName: string;
 }
 
+export interface Process {
+  pid: number;
+  name: string;
+  user: 'root' | 'user' | 'system';
+  cpu: number;
+  mem: number;
+  start: string;
+  command: string;
+  theme: string;
+}
+
 export interface GameState {
   vfs: Directory;
   objective: GameObjective;
@@ -52,6 +77,11 @@ export interface GameState {
   };
   currentUser: 'user' | 'root';
   rootPassword?: string;
+
+  // System State
+  bootTime: number; // Timestamp
+  processes: Process[];
+  envVars: Record<string, string>;
 }
 
 export interface ChatMessage {
