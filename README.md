@@ -21,8 +21,8 @@ The core experience. Focused purely on terminal navigation and file-based puzzle
 *   *Status: Complete & Archived*
 
 ### 🟡 [Main / Development Branch](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/tree/main)
-**For those who want the cutting edge.**
-This is where the current development is happening and finished versions will be published to their own releases.
+**For those who want to for whatever reason see what I'm currently working on.**
+This is where the current development is happening and finished versions will be published to their own releases. NOTE: this main branch is literally only current development, and will probably not be a working version. Refer to stable releases for working versions.
 *   *Status: Active Development*
 
 ---
