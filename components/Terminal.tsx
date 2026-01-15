@@ -19,11 +19,18 @@ const getPathDisplay = (currentPath: string[]) => {
 const InputLine: React.FC<{
     currentPath: string[];
     onSubmit: (command: string) => void;
+    onTab: (value: string, setValue: (v: string) => void) => void;
+    getCompletion: (value: string) => string | null;
     inputRef: React.RefObject<HTMLInputElement>;
     commandHistory: string[];
-}> = ({ currentPath, onSubmit, inputRef, commandHistory }) => {
+}> = ({ currentPath, onSubmit, onTab, getCompletion, inputRef, commandHistory }) => {
     const [value, setValue] = useState('');
+    const [suggestion, setSuggestion] = useState<string | null>(null);
     const [historyIndex, setHistoryIndex] = useState(-1);
+
+    useEffect(() => {
+        setSuggestion(getCompletion(value));
+    }, [value, getCompletion]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,7 +40,14 @@ const InputLine: React.FC<{
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'ArrowUp') {
+        if (e.key === 'Tab') {
+            e.preventDefault();
+            if (suggestion) {
+                setValue(suggestion + (suggestion.endsWith('/') ? '' : ' '));
+            } else {
+                onTab(value, setValue);
+            }
+        } else if (e.key === 'ArrowUp') {
             e.preventDefault();
             if (commandHistory.length > 0) {
                 const newIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
@@ -63,21 +77,31 @@ const InputLine: React.FC<{
                 <span className="text-blue-400">{pathString}</span>
                 <span className="text-gray-400">$</span>
             </label>
-            <input
-                ref={inputRef}
-                id="command-input"
-                type="text"
-                className="flex-grow bg-transparent border-none outline-none pl-2 text-inherit"
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                autoFocus
-                autoComplete="off"
-                autoCapitalize="off"
-                autoCorrect="off"
-            />
-            <div className="w-2 h-6 bg-[#33ff00] blinking-cursor"></div>
-        </form>
+            <div className="flex-grow relative overflow-hidden h-6">
+                {suggestion && suggestion.startsWith(value) && value.length > 0 && (
+                    <div
+                        className="absolute left-0 top-0 pl-2 text-gray-500 pointer-events-none whitespace-pre z-0"
+                        style={{ textShadow: 'none' }}
+                    >
+                        {suggestion}
+                    </div>
+                )}
+                <input
+                    ref={inputRef}
+                    id="command-input"
+                    type="text"
+                    className="absolute left-0 top-0 w-full bg-transparent border-none outline-none pl-2 text-inherit z-10"
+                    value={value}
+                    onChange={(e) => setValue(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    autoFocus
+                    autoComplete="off"
+                    autoCapitalize="off"
+                    autoCorrect="off"
+                />
+            </div>
+            <div className="w-2 h-6 bg-[#33ff00] blinking-cursor shrink-0"></div>
+        </form >
     );
 };
 
@@ -284,6 +308,82 @@ clear        clear                   Clears all text from the terminal screen.`;
         setHistory(prev => [...prev, inputHistory, ...(output ? [output] : [])]);
     };
 
+    const handleTab = (currentValue: string, setValue: (v: string) => void) => {
+        const completed = getCompletion(currentValue);
+        if (completed) {
+            setValue(completed);
+        }
+    };
+
+    const getCommonPrefix = (strings: string[]): string => {
+        if (strings.length === 0) return '';
+        let prefix = strings[0];
+        for (let i = 1; i < strings.length; i++) {
+            while (strings[i].indexOf(prefix) !== 0) {
+                prefix = prefix.substring(0, prefix.length - 1);
+                if (prefix === '') return '';
+            }
+        }
+        return prefix;
+    };
+
+    const getCompletion = useCallback((currentValue: string): string | null => {
+        if (!currentValue) return null;
+
+        const parts = currentValue.trimStart().split(/\s+/);
+        const lastPart = parts[parts.length - 1];
+        const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
+
+        if (isCommand) {
+            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'grep', 'clear'];
+            const matches = availableCommands.filter(c => c.startsWith(currentValue));
+            if (matches.length > 0) {
+                const common = getCommonPrefix(matches);
+                const suffix = (matches.length === 1 && common === matches[0]) ? ' ' : '';
+                return common + suffix;
+            }
+        } else {
+            if (currentValue.endsWith(' ')) return null;
+
+            let searchDir: string[] = [...currentPath];
+            let prefix = lastPart;
+            let pathPrefix = '';
+
+            if (lastPart.includes('/')) {
+                const lastSlashIdx = lastPart.lastIndexOf('/');
+                pathPrefix = lastPart.substring(0, lastSlashIdx + 1);
+                prefix = lastPart.substring(lastSlashIdx + 1);
+
+                const resolved = resolvePath(pathPrefix);
+                if (resolved) {
+                    searchDir = resolved;
+                } else {
+                    return null;
+                }
+            }
+
+            const node = getNodeByPath(searchDir);
+            if (node?.type === 'directory') {
+                const matches = Object.keys(node.children)
+                    .filter(name => name.startsWith(prefix))
+                    .map(name => {
+                        const child = node.children[name];
+                        return child.type === 'directory' ? `${name}/` : name;
+                    });
+
+                if (matches.length > 0) {
+                    const common = getCommonPrefix(matches);
+                    const isUnique = matches.length === 1;
+                    const reconstructedLastPart = pathPrefix + common;
+                    const rest = currentValue.substring(0, currentValue.lastIndexOf(lastPart));
+                    const suffix = (isUnique && !common.endsWith('/')) ? ' ' : '';
+                    return rest + reconstructedLastPart + suffix;
+                }
+            }
+        }
+        return null;
+    }, [currentPath, getNodeByPath, resolvePath]);
+
     return (
         <div
             className="w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden"
@@ -300,6 +400,8 @@ clear        clear                   Clears all text from the terminal screen.`;
             <InputLine
                 currentPath={currentPath}
                 onSubmit={processCommand}
+                onTab={handleTab}
+                getCompletion={getCompletion}
                 inputRef={inputRef}
                 commandHistory={commandHistory}
             />
