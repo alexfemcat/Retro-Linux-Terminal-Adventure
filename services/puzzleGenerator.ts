@@ -445,6 +445,10 @@ class PuzzleGenerator {
                 name: starterClueName,
                 content: starterClueContent
             },
+            discoveryClue: {
+                path: discoveryDirInfo.path,
+                name: discoveryClueName
+            },
             currentUser: 'user',
             rootPassword: password
         };

@@ -40,6 +40,10 @@ export interface GameState {
     name: string;
     content: string;
   };
+  discoveryClue?: {
+    path: string[];
+    name: string;
+  };
   currentUser: 'user' | 'root';
   rootPassword?: string;
 }

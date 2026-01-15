@@ -3,7 +3,11 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './components/Terminal';
 import { AIAssistant } from './components/AIAssistant';
 import { puzzleGenerator } from './services/puzzleGenerator';
+import { DebugOverlay } from './components/DebugOverlay';
 import type { GameState } from './types';
+
+// SET THIS TO FALSE BEFORE PUBLIC RELEASE
+const SHOW_DEBUG = true;
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -74,12 +78,15 @@ const App: React.FC = () => {
                             setCurrentUser={setCurrentUser}
                         />
                     </div>
-                    <div className="w-1/3 h-full">
-                        <AIAssistant
-                            gameState={gameState}
-                            currentPath={currentPath}
-                            currentUser={currentUser}
-                        />
+                    <div className="w-1/3 h-full flex flex-col min-h-0">
+                        <div className="flex-1 min-h-0">
+                            <AIAssistant
+                                gameState={gameState}
+                                currentPath={currentPath}
+                                currentUser={currentUser}
+                            />
+                        </div>
+                        {SHOW_DEBUG && <DebugOverlay gameState={gameState} />}
                     </div>
                 </div>
             ) : (
