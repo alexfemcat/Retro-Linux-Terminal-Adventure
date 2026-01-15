@@ -3,69 +3,64 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![React](https://img.shields.io/badge/React-20232A?style=flat&logo=react&logoColor=61DAFB)](https://reactjs.org/)
 [![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Google Gemini](https://img.shields.io/badge/Google_Gemini-8E75B2?style=flat&logo=google-gemini&logoColor=white)](https://ai.google.dev/)
 
-A high-stakes, retro-themed terminal hacking adventure. Infiltrate corporate mainframes, decode alien signals, and recover lost bitcoin keys using real Linux commands.
+> "The mainframe is a maze. The commands are your map. The AI is your ghost in the machine."
 
-## 🚀 Key Features
+Retro Linux Terminal Adventure is an immersive, AI-powered hacking simulation. Using a procedurally generated Virtual File System (VFS), players must navigate complex directory structures using real Linux commands to uncover secrets, recover data, and avoid detection.
 
-- **Procedural VFS**: Every playthrough generates a completely unique directory structure and mystery.
-- **Classic Terminal Experience**: Use `ls`, `cd`, `cat`, `grep`, `pwd`, and `clear` to navigate the system.
-- **AI-Powered Assistant**: A built-in AI operative (powered by Google Gemini) to assist you with hints and technical details.
-- **Dynamic Scenarios**: Multiple themes including Corporate Espionage, Rogue AI, Deep Sea Research, and Illegal Mech Racing.
-- **CRT Aesthetics**: High-quality retro-futuristic UI with scanlines, flickering effects, and green phosphor glow.
-- **Command History**: Navigate your previous commands with ease using the Up and Down arrow keys.
+---
 
-## 🕹️ How to Play
+## 🚦 Select Your Experience
 
-1. **Read the Briefing**: Your operative name and mission objective are displayed upon connection.
-2. **Scan the Environment**: Use `ls` to see files and `ls -a` for hidden ones.
-3. **Hunt for Clues**: Find and `cat` files in your home directory to discover hints about the target's location.
-4. **Navigate**: Use `cd` to move through the directory layers (levels range from 3 to 6 deep).
-5. **Intercept**: Once you find the target file, `cat` it to secure the payload and complete the mission.
+This project is evolving. Depending on your interest, you may want to download a specific version from our **[Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases)** page:
 
-## 🛠️ Installation & Setup
+### 🟢 [Version 1.0: Simple Edition](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple)
+**Recommended for beginners.**
+The core experience. Focused purely on terminal navigation and file-based puzzles. Lightweight, stable, and perfect for learning basic Linux commands.
+*   *Status: Complete & Archived*
 
-### Prerequisites
-- [Node.js](https://nodejs.org/) (v18 or higher recommended)
-- [Gemini API Key](https://aistudio.google.com/app/apikey)
+### 🟡 [Main / Development Branch](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/tree/main)
+**For those who want the cutting edge.**
+This is where the current development is happening and finished versions will be published to their own releases.
+*   *Status: Active Development*
 
-### Setup Instructions
+---
 
-1. **Clone the Repository**
+## 🕹️ Core Mechanics
+
+- **Procedural VFS**: No two hacking runs are the same.
+- **Authentic Commands**: Support for `ls`, `cd`, `cat`, `grep`, `pwd`, and more.
+- **AI-Driven Narrative**: Missions and hints generated on-the-fly by Google Gemini in some versions, check the releases for more information.
+- **CRT Visuals**: High-fidelity retro-futuristic interface with scanline hardware emulation.
+
+---
+
+## 🛠️ Quick Start (Development Version)
+
+1. **Clone & Enter**
    ```bash
    git clone https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure.git
    cd Retro-Linux-Terminal-Adventure
    ```
 
-2. **Configure Environment Variables**
-   Create a `.env` file in the root directory:
+2. **Configure Credentials**
+   Create a `.env` file and add your [Gemini API Key](https://aistudio.google.com/app/apikey):
    ```env
    API_KEY=YOUR_GEMINI_API_KEY
    ```
 
-3. **Install Dependencies**
+3. **Deploy**
    ```bash
-   npm install
+   npm install && npm run dev
    ```
-
-4. **Start the Engine**
-   ```bash
-   npm run dev
-   ```
-   Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## 📦 Project Structure
-
-- `src/components/`: Terminal and AI Assistant UI components.
-- `src/services/`: Procedural puzzle generation and AI communication logic.
-- `src/types.ts`: TypeScript interfaces for the Virtual File System and Game State.
-- `src/index.css`: CRT scanline effects and terminal styling.
-
-## 📜 License
-
-Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-*Built for hackers, by hackers.*
+
+## 📜 Repository Guidelines
+
+- **Looking for a specific version?** Check the [Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases) section.
+- **Want to contribute?** Feel free to fork the `main` branch and submit a Pull Request.
+
+---
+*Built for hackers, by hackers. Stay in the shadows.* 🕶️
