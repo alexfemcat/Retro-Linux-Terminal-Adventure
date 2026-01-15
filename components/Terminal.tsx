@@ -9,6 +9,13 @@ interface TerminalProps {
     setCurrentPath: (path: string[]) => void;
 }
 
+const getPathDisplay = (currentPath: string[]) => {
+    const path = `/${currentPath.join('/')}`;
+    if (path === '/home/user') return '~';
+    if (path.startsWith('/home/user/')) return `~/${currentPath.slice(2).join('/')}`;
+    return path;
+};
+
 const InputLine: React.FC<{
     currentPath: string[];
     onSubmit: (command: string) => void;
@@ -46,7 +53,7 @@ const InputLine: React.FC<{
         }
     };
 
-    const pathString = `~/${currentPath.slice(2).join('/')}`.replace('~//', '~');
+    const pathString = getPathDisplay(currentPath);
 
     return (
         <form onSubmit={handleSubmit} className="flex w-full">
@@ -169,7 +176,8 @@ clear        clear                   Clears all text from the terminal screen.`;
                     output = <div className="whitespace-pre-wrap">{helpText.trim()}</div>;
                     break;
                 case 'clear':
-                    setHistory([]);
+                    const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
+                    setHistory(welcomeLines);
                     output = null;
                     break;
                 case 'pwd':
@@ -257,7 +265,7 @@ clear        clear                   Clears all text from the terminal screen.`;
             }
         }
 
-        const pathString = `~/${currentPath.slice(2).join('/')}`.replace('~//', '~');
+        const pathString = getPathDisplay(currentPath);
         const inputHistory = (
             <div className="flex">
                 <span className="text-green-400">user@retro-term</span>

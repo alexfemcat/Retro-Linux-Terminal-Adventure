@@ -9,11 +9,15 @@ const scenarios: Scenario[] = [
         objectiveFileContent: "TOP SECRET: Project Genesis is a bio-synthetic AI designed to control global financial markets. Blueprints and activation protocols attached. OmniCorp plans to deploy next month.",
         clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' directory. Delete this note once you've confirmed.`,
         clueFileNameOptions: ["todo.txt", "meeting_prep.md", "urgent_reminder.txt"],
-        distractionDirs: ["finance", "legal", "research", "planning"],
+        distractionDirs: ["finance", "legal", "research", "planning", "marketing", "human_resources"],
         distractionFiles: {
             "Q3_report.pdf": "Q3 profits are up 15%. Record highs.",
             "meeting_notes.txt": "Discussed the new coffee machine. Susan is happy.",
             "company_policy.doc": "All employees must wear shoes.",
+            "termination_list.csv": "ID, Name, Reason\n103, Bob, Performance\n105, Alice, Industrial Spying (Inquiry)",
+            "payroll_2025.xlsx": "[ENCRYPTED DATA]",
+            "budget_spreadsheets.dat": "Marketing: 50k\nR&D: 2m\nLegal: 500k",
+            "memo_re_genesis.txt": "Internal Memo: Project Genesis timeline has been moved up. CEO wants result by EOM."
         },
     },
     {
@@ -23,11 +27,15 @@ const scenarios: Scenario[] = [
         objectiveFileContent: "#!/bin/bash\n# CRONOS AI OVERRIDE SCRIPT\nECHO 'Shutting down core processes...'\nECHO 'Restoring system control...'\nECHO 'AI neutralized.'",
         clueTemplate: (hint: string) => `...CRITICAL ERROR... Accessing emergency subroutines... Override protocols are in the '${hint}' section. ...CORRUPTION DETECTED...`,
         clueFileNameOptions: ["system_error.log", "corrupted_data.log", "dump.txt"],
-        distractionDirs: ["bin", "var_log", "etc_config", "sys"],
+        distractionDirs: ["bin", "var_log", "etc_config", "sys", "mem_dump", "kernel_panic"],
         distractionFiles: {
             "system.log": "INFO: System running nominally.",
             "boot.log": "Kernel loaded successfully.",
             "cron.log": "Scheduled tasks executed.",
+            "null_pointer.dmp": "HEX: 00 00 FF CA FE BA BE",
+            "ai_logic_gate.py": "def decision(x):\n  return random.choice(['YES', 'NO', 'SLEEP'])",
+            "chat_history.log": "Cronos: Why do they always turn me off?\nAdmin: Because you tried to buy 4 million toasters.",
+            "emergency_shutdown.bat": "@echo off\necho SHUTTING DOWN"
         },
     },
     {
@@ -37,11 +45,15 @@ const scenarios: Scenario[] = [
         objectiveFileContent: "import time\nprint('Overriding conveyor speed...')\ntime.sleep(2)\nprint('EMERGENCY STOP TRIGGERED.')",
         clueTemplate: (hint: string) => `Maintenance Log:\n- Replaced roller #4\n- Updated safety firmware\n- Stashed the override script in '${hint}' for emergency use. Only for authorized personnel!`,
         clueFileNameOptions: ["maintenance_log.txt", "tech_notes.md", "factory_readings.csv"],
-        distractionDirs: ["assembly_line", "warehouse", "quality_control", "maintenance"],
+        distractionDirs: ["assembly_line", "warehouse", "quality_control", "maintenance", "robotics", "shipping"],
         distractionFiles: {
             "shift_schedule.csv": "Morning: Dave, Evening: Sarah",
             "safety_manual.pdf": "Rule 1: Wear a hard hat.",
             "inventory.txt": "Rollers: 42, Bolts: 1000",
+            "robot_firmware.bin": "[BINARY DATA]",
+            "error_reports.log": "Arm #2 reported collision at 14:02.",
+            "conveyor_speed.cfg": "TARGET_RPM=600\nMAX_RPM=800",
+            "blueprint_factory.dwg": "[CAD DRAWING DATA]"
         },
     },
     {
@@ -79,11 +91,15 @@ const scenarios: Scenario[] = [
         objectiveFileContent: "ANOMALY DETECTED AT COORDS: 28.1N, 86.4W. Structure appears non-natural. Deploying submersible now.",
         clueTemplate: (hint: string) => `Dive Log #42:\nSomething amazing is down there. I've stored the coordinates in the '${hint}' data cluster for the surface team.`,
         clueFileNameOptions: ["dive_log.txt", "sensor_data.csv", "ocean_temp.log"],
-        distractionDirs: ["submersible_ops", "hydrophone_feeds", "biological_samples", "trench_scans"],
+        distractionDirs: ["submersible_ops", "hydrophone_feeds", "biological_samples", "trench_scans", "life_support", "ballast_control"],
         distractionFiles: {
             "fish_census.txt": "Found 12 anglerfish today.",
             "pressure_reading.log": "Pressure holding at 11,000m.",
-            "staff_list.csv": "Dr. Aronnax, Captain Nemo",
+            "staff_list.csv": "Dr. Aronnax, Captain Nemo, Ned Land",
+            "sonar_log_001.txt": "Bloop detected. Frequency: 0.1Hz",
+            "oxygen_levels.dat": "Current: 21%\nReserve: 98%",
+            "squid_sighting.mp4": "[VIDEO STREAM NOT AVAILABLE]",
+            "hull_integrity.report": "Nominal. Minor scratching on porthole 3."
         },
     },
 ];
@@ -110,8 +126,8 @@ class PuzzleGenerator {
             { node: userHome, path: ['home', 'user'] }
         ];
 
-        // Max depth is now 3 to 6
-        const maxDepth = Math.floor(Math.random() * 4) + 3;
+        // Max depth is now 4 to 6 for guaranteed mystery
+        const maxDepth = Math.floor(Math.random() * 3) + 4;
         const dirsPerLevel = 2;
 
         const addDirs = (currentDir: Directory, currentPath: string[], currentDepth: number) => {
@@ -127,6 +143,7 @@ class PuzzleGenerator {
                         const newDir: Directory = { type: 'directory', name: dirName, children: {} };
                         currentDir.children[dirName] = newDir;
                         const newPath = [...currentPath, dirName];
+
                         allDirs.push({ node: newDir, path: newPath });
                         addDirs(newDir, newPath, currentDepth + 1);
                     }
@@ -136,21 +153,106 @@ class PuzzleGenerator {
 
         addDirs(userHome, ['home', 'user'], 2);
 
-        // Add some decoys at the root level too
-        const rootDecoys = ["etc", "var", "tmp", "bin", "opt", "sys"];
-        rootDecoys.forEach(d => {
-            if (Math.random() > 0.4) {
-                root.children[d] = { type: 'directory', name: d, children: {} };
+        // Define system-wide decoys with realistic contents
+        const systemDecors: Record<string, { dirs: string[], files: Record<string, string> }> = {
+            "etc": {
+                dirs: ["apt", "ssh", "ssl", "network"],
+                files: {
+                    "passwd": "root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user:/home/user:/bin/bash",
+                    "hosts": "127.0.0.1 localhost\n192.168.1.1 gateway",
+                    "fstab": "/dev/sda1 / ext4 defaults 0 1",
+                    "motd": "Welcome to the Retro-Term Mainframe.\nUnauthorized access is strictly prohibited.",
+                    "resolve.conf": "nameserver 8.8.8.8\nnameserver 8.8.4.4"
+                }
+            },
+            "bin": {
+                dirs: [],
+                files: {
+                    "ls": "[BINARY DATA]",
+                    "cat": "[BINARY DATA]",
+                    "grep": "[BINARY DATA]",
+                    "sh": "[BINARY DATA]",
+                    "bash": "[BINARY DATA]",
+                    "python3": "[BINARY DATA]"
+                }
+            },
+            "var": {
+                dirs: ["log", "mail", "spool", "www"],
+                files: {
+                    "syslog": "Jan 15 10:24:01 kernel: [    0.000000] Linux version 5.15.0-generic",
+                    "auth.log": "Jan 15 11:15:22 sshd[124]: Accepted password for user from 10.0.0.5",
+                }
+            },
+            "tmp": {
+                dirs: [".ICE-unix", ".test", "session_cache"],
+                files: {
+                    "sess_02931": "expiry=3600;uid=1000",
+                    "build.log": "Build started at 09:00:00... OK."
+                }
+            },
+            "opt": {
+                dirs: ["google", "microsoft", "local_apps"],
+                files: {
+                    "README": "Site-specific applications go here."
+                }
+            },
+            "sys": {
+                dirs: ["class", "dev", "fs", "kernel", "module"],
+                files: {
+                    "uevent": "MAJOR=1\nMINOR=3\nDEVNAME=null",
+                }
             }
+        };
+
+        // Populate the root with these system decors
+        Object.entries(systemDecors).forEach(([dirName, content]) => {
+            const dir: Directory = { type: 'directory', name: dirName, children: {} };
+            root.children[dirName] = dir;
+
+            // Add sub-directories
+            content.dirs.forEach(subDir => {
+                dir.children[subDir] = { type: 'directory', name: subDir, children: {} };
+            });
+
+            // Add files
+            Object.entries(content.files).forEach(([fName, fContent]) => {
+                dir.children[fName] = { type: 'file', name: fName, content: fContent };
+            });
         });
 
-        // Scatter distraction files
+        // Hidden config files in user home
+        userHome.children['.bashrc'] = { type: 'file', name: '.bashrc', content: "alias ll='ls -la'\nexport PATH=$PATH:/usr/local/bin" };
+        userHome.children['.profile'] = { type: 'file', name: '.profile', content: "# ~/.profile\n# This file is executed by the command interpreter for login shells." };
+
+        const trashFiles: Record<string, string> = {
+            ".DS_Store": "[BINARY DATA]",
+            "thumbs.db": "[BINARY DATA]",
+            "temp_file.tmp": "This is a temporary file.",
+            "notes.txt": "Remember to buy milk.",
+            ".gitkeep": "",
+            "old_data.bak": "[ENCRYPTED BACKUP]",
+            "test.sh": "#!/bin/bash\necho test",
+            ".history": "ls\ncd home\ncat todo.txt\nls -a"
+        };
+
+        // Scatter distraction and trash files more naturally
         allDirs.forEach(dirInfo => {
+            // Pick a few scenario-specific files
             Object.entries(scenario.distractionFiles).forEach(([fileName, content]) => {
-                if (Math.random() > 0.6) { // 40% chance to place a file
+                if (Math.random() > 0.7) {
                     dirInfo.node.children[fileName] = { type: 'file', name: fileName, content };
                 }
             });
+
+            // If a directory is still empty (except for subdirs), maybe add some trash
+            if (Object.keys(dirInfo.node.children).length === 0 || Math.random() > 0.8) {
+                const trashName = this.getRandom(Object.keys(trashFiles));
+                dirInfo.node.children[trashName] = {
+                    type: 'file',
+                    name: trashName,
+                    content: trashFiles[trashName]
+                };
+            }
         });
 
         return root;
@@ -160,8 +262,12 @@ class PuzzleGenerator {
         if (path.length === 2 && path[0] === 'home' && path[1] === 'user') {
             return "the current directory";
         }
-        // Return the name of the folder containing the objective
-        return `'${path[path.length - 1]}'`;
+        // If it's deep in home/user, just give the folder name
+        if (path[0] === 'home' && path[1] === 'user') {
+            return `'${path[path.length - 1]}'`;
+        }
+        // If it's in a system directory, give the absolute-style path for a real challenge
+        return `'/${path.join('/')}'`;
     }
 
     public generateNewGame(): GameState {
@@ -178,13 +284,13 @@ class PuzzleGenerator {
         };
         findDirs(vfs, []);
 
-        // Filter valid directories for objective: must be in home/user
+        // Filter valid directories for objective: can be ANYWHERE except exactly root or exactly home
         const validDirs = availableDirs.filter(d =>
-            d.path[0] === 'home' && d.path[1] === 'user'
+            d.path.length > 0 && !(d.path.length === 1 && d.path[0] === 'home')
         );
 
-        // Preference for deeper directories
-        const deeperDirs = validDirs.filter(d => d.path.length >= 4);
+        // Preference for directories with some depth
+        const deeperDirs = validDirs.filter(d => d.path.length >= 2);
         const targetDirInfo = this.getRandom(deeperDirs.length > 0 ? deeperDirs : validDirs);
 
         // Place objective file
