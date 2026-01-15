@@ -12,6 +12,7 @@ interface GameContext {
     clueFileContent: string;
     currentUser: string;
     starterArchetype?: string;
+    pwdDeliveryType?: string;
     rootPassword?: string;
 }
 

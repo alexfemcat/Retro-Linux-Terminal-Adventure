@@ -42,11 +42,21 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState }) => {
                 </div>
 
                 <div>
-                    <span className="text-gray-500 uppercase">[Archetype]</span>
+                    <span className="text-gray-500 uppercase">[Archetypes]</span>
                     <div className="ml-2">
-                        Type: <span className="text-white font-bold">{gameState.starterArchetype || 'default'}</span>
+                        Start: <span className="text-white font-bold">{gameState.starterArchetype || 'note'}</span><br />
+                        Security: <span className="text-white font-bold">{gameState.pwdDeliveryType || 'note'}</span>
                     </div>
                 </div>
+
+                {gameState.pwdHintLocation && (
+                    <div>
+                        <span className="text-gray-500 uppercase">[Password Lead]</span>
+                        <div className="ml-2">
+                            Loc: <span className="text-white font-bold">/{gameState.pwdHintLocation.path.join('/')}/{gameState.pwdHintLocation.name}</span>
+                        </div>
+                    </div>
+                )}
 
                 <div className="text-[10px] text-red-500/50 mt-2 italic">
                     * Detach this component before public release

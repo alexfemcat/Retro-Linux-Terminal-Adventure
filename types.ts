@@ -45,6 +45,11 @@ export interface GameState {
     name: string;
   };
   starterArchetype?: 'note' | 'alias' | 'mail' | 'history' | 'motd' | 'crash' | 'cron' | 'ssh';
+  pwdDeliveryType?: 'note' | 'encrypted' | 'grep' | 'split';
+  pwdHintLocation?: {
+    path: string[];
+    name: string;
+  };
   currentUser: 'user' | 'root';
   rootPassword?: string;
 }

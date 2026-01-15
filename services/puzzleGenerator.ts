@@ -182,14 +182,14 @@ class PuzzleGenerator {
         const maxDepth = Math.floor(Math.random() * 3) + 4;
         const dirsPerLevel = 2;
 
-        const addDirs = (currentDir: Directory, currentPath: string[], currentDepth: number) => {
+        const addDirs = (currentDir: Directory, currentPath: string[], currentDepth: number, pool: string[]) => {
             if (currentDepth >= maxDepth) return;
 
             for (let i = 0; i < dirsPerLevel; i++) {
                 // Higher chance (80%) to add at least one directory at the first level to avoid empty suitableDirs
                 const chance = currentDepth === 2 ? 0.2 : 0.4;
                 if (Math.random() > chance) {
-                    const baseName = this.getRandom(scenario.distractionDirs);
+                    const baseName = this.getRandom(pool);
                     const dirName = `${baseName}_${Math.floor(Math.random() * 100)}`;
                     if (!currentDir.children[dirName]) {
                         const newDir: Directory = { type: 'directory', name: dirName, children: {} };
@@ -197,18 +197,19 @@ class PuzzleGenerator {
                         const newPath = [...currentPath, dirName];
 
                         allDirs.push({ node: newDir, path: newPath });
-                        addDirs(newDir, newPath, currentDepth + 1);
+                        addDirs(newDir, newPath, currentDepth + 1, pool);
                     }
                 }
             }
         };
 
-        addDirs(userHome, ['home', 'user'], 2);
+        addDirs(userHome, ['home', 'user'], 2, scenario.distractionDirs);
 
         // Define system-wide decoys with realistic contents
-        const systemDecors: Record<string, { dirs: string[], files: Record<string, string>, permissions?: 'root' }> = {
+        const systemDecors: Record<string, { dirs: string[], files: Record<string, string>, pool?: string[], permissions?: 'root' }> = {
             "etc": {
                 dirs: ["apt", "ssh", "ssl", "network"],
+                pool: ["config", "services", "security", "defaults"],
                 files: {
                     "passwd": "root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user:/home/user:/bin/bash",
                     "hosts": "127.0.0.1 localhost\n192.168.1.1 gateway",
@@ -232,6 +233,7 @@ class PuzzleGenerator {
             },
             "var": {
                 dirs: ["log", "mail", "spool", "www"],
+                pool: ["backups", "archive", "internal", "web_data"],
                 files: {
                     "syslog": "Jan 15 10:24:01 kernel: [    0.000000] Linux version 5.15.0-generic",
                     "auth.log": "Jan 15 11:15:22 sshd[124]: Accepted password for user from 10.0.0.5",
@@ -240,6 +242,7 @@ class PuzzleGenerator {
             },
             "tmp": {
                 dirs: [".ICE-unix", ".test", "session_cache"],
+                pool: ["temporary", "build_cache", "temp_logs"],
                 files: {
                     "sess_02931": "expiry=3600;uid=1000",
                     "build.log": "Build started at 09:00:00... OK."
@@ -247,8 +250,9 @@ class PuzzleGenerator {
             },
             "opt": {
                 dirs: ["google", "microsoft", "local_apps"],
+                pool: ["enterprise", "dist", "v1.0.4", "legacy"],
                 files: {
-                    "README": "Site-specific applications go here."
+                    "README.txt": "Site-specific applications go here."
                 }
             },
             "sys": {
@@ -268,19 +272,32 @@ class PuzzleGenerator {
         };
 
         // Populate the root with these system decors
+        // Populate the root with these system decors
         Object.entries(systemDecors).forEach(([dirName, content]) => {
-            const dir: Directory = { type: 'directory', name: dirName, children: {}, permissions: content.permissions as 'root' | 'user' | undefined };
+            const dir: Directory = {
+                type: 'directory',
+                name: dirName,
+                children: {},
+                permissions: (content as any).permissions as 'root' | 'user' | undefined
+            };
             root.children[dirName] = dir;
 
             // Add sub-directories
             content.dirs.forEach(subDir => {
-                dir.children[subDir] = { type: 'directory', name: subDir, children: {} };
+                const sub: Directory = { type: 'directory', name: subDir, children: {} };
+                dir.children[subDir] = sub;
+                allDirs.push({ node: sub, path: [dirName, subDir] });
             });
 
             // Add files
             Object.entries(content.files).forEach(([fName, fContent]) => {
                 dir.children[fName] = { type: 'file', name: fName, content: fContent };
             });
+
+            // Add procedural subdirs to system folders
+            if ((content as any).pool) {
+                addDirs(dir, [dirName], 1, (content as any).pool);
+            }
         });
 
         // Hidden config files in user home
@@ -347,10 +364,8 @@ class PuzzleGenerator {
         };
         findDirs(vfs, []);
 
-        // Filter valid directories: objective can be ANYWHERE except exactly root or home
-        const validObjectiveDirs = availableDirs.filter(d =>
-            d.path.length > 0 && !(d.path.length === 1 && d.path[0] === 'home')
-        );
+        // Filter valid directories: objective can be ANYWHERE except exactly root
+        const validObjectiveDirs = availableDirs.filter(d => d.path.length > 0);
 
         // Preference for DEEP directories for the objective
         const deeperObjectiveDirs = validObjectiveDirs.filter(d => d.path.length >= 3);
@@ -358,12 +373,14 @@ class PuzzleGenerator {
 
         // 1. PLACE OBJECTIVE FILE
         const objectiveFileName = this.getRandom(scenario.objectiveFileNameOptions);
-        const isEncrypted = Math.random() < 0.3; // 30% chance to be encrypted
+        const isRootProtected = Math.random() < 0.3; // 30% chance of root protection
+
         targetDirInfo.node.children[objectiveFileName] = {
             type: 'file',
             name: objectiveFileName,
             content: scenario.objectiveFileContent,
-            isEncrypted: isEncrypted
+            permissions: isRootProtected ? 'root' : undefined,
+            isEncrypted: Math.random() < 0.3
         };
 
         const objective: GameObjective = {
@@ -380,6 +397,15 @@ class PuzzleGenerator {
         );
         const discoveryDirInfo = this.getRandom(discoveryDirs);
 
+        // Anti-Softlock: Ensure the entire path to the discovery clue is user-accessible
+        let currentPathDir = vfs;
+        discoveryDirInfo.path.forEach(segment => {
+            currentPathDir = currentPathDir.children[segment] as Directory;
+            if (currentPathDir.permissions === 'root') {
+                delete currentPathDir.permissions;
+            }
+        });
+
         // Use vague/thematic hints for the objective location
         const thematicHint = this.generateVagueHint(objective.filePath);
         const discoveryClueContent = scenario.clueTemplate(thematicHint);
@@ -392,8 +418,7 @@ class PuzzleGenerator {
             type: 'file',
             name: discoveryClueName,
             content: discoveryClueContent,
-            // 20% chance the discovery clue itself is root-protected
-            permissions: Math.random() < 0.2 ? 'root' : undefined
+            permissions: undefined // Must be user-readable to avoid softlock
         };
 
         // 3. STARTER CLUE (Points to Discovery Area)
@@ -499,19 +524,22 @@ class PuzzleGenerator {
 
         // Dynamic Password Hint Delivery
         const pwdDeliveryTypes = ['note', 'encrypted', 'grep', 'split'];
-        const deliveryType = this.getRandom(pwdDeliveryTypes);
+        const deliveryType = this.getRandom(pwdDeliveryTypes) as 'note' | 'encrypted' | 'grep' | 'split';
+        let pwdHintLocation = { path: ['home', 'user'], name: '' };
 
         switch (deliveryType) {
             case 'note':
-                const pwdHintName = this.getRandom(["password_hint.txt", "reminder.msg", "login_help.md"]);
-                userHome.children[pwdHintName] = {
+                const noteName = this.getRandom(["password_hint.txt", "reminder.msg", "login_help.md"]);
+                pwdHintLocation.name = noteName;
+                userHome.children[noteName] = {
                     type: 'file',
-                    name: pwdHintName,
+                    name: noteName,
                     content: `Hint: My password is ${passwordHint}.`
                 };
                 break;
             case 'encrypted':
                 const cryptHintName = "password_hint.crypt";
+                pwdHintLocation.name = cryptHintName;
                 userHome.children[cryptHintName] = {
                     type: 'file',
                     name: cryptHintName,
@@ -521,6 +549,7 @@ class PuzzleGenerator {
                 break;
             case 'grep':
                 const logName = "system.log";
+                pwdHintLocation.name = logName;
                 const logLines = Array.from({ length: 50 }, () => `Jan 15 ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}:01 retro-term systemd[1]: Running task...`);
                 logLines[Math.floor(Math.random() * 50)] = `Jan 15 12:00:00 retro-term security_admin: REMINDER: Password hint is "${passwordHint}"`;
                 userHome.children[logName] = {
@@ -530,13 +559,20 @@ class PuzzleGenerator {
                 };
                 break;
             case 'split':
+                pwdHintLocation = { path: ['var', 'log'], name: 'auth.log / syslog' };
                 const part1 = passwordHint.substring(0, Math.floor(passwordHint.length / 2));
                 const part2 = passwordHint.substring(Math.floor(passwordHint.length / 2));
 
-                const authLog = vfs.children.var.type === 'directory' ? ((vfs.children.var as Directory).children.log as Directory) : null;
-                if (authLog) {
-                    authLog.children['auth.log'] = { type: 'file', name: 'auth.log', content: `NOTICE: Password fragment alpha: ${part1}` };
-                    authLog.children['syslog'] = { type: 'file', name: 'syslog', content: `DEBUG: Password fragment omega: ${part2}` };
+                // Anti-Softlock: Ensure var/log is accessible
+                const varNode = vfs.children.var as Directory;
+                if (varNode.permissions === 'root') delete varNode.permissions;
+                const logNode = varNode.children.log as Directory;
+                if (logNode.permissions === 'root') delete logNode.permissions;
+
+                const authLogDir = logNode;
+                if (authLogDir) {
+                    authLogDir.children['auth.log'] = { type: 'file', name: 'auth.log', content: `NOTICE: Password fragment alpha: ${part1}` };
+                    authLogDir.children['syslog'] = { type: 'file', name: 'syslog', content: `DEBUG: Password fragment omega: ${part2}` };
                 }
                 userHome.children['security_status.txt'] = {
                     type: 'file',
@@ -564,6 +600,8 @@ class PuzzleGenerator {
                 name: discoveryClueName
             },
             starterArchetype: archetype,
+            pwdDeliveryType: deliveryType,
+            pwdHintLocation: pwdHintLocation,
             currentUser: 'user',
             rootPassword: password
         };

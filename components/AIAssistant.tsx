@@ -59,6 +59,7 @@ export const AIAssistant: React.FC<AIAssistantProps> = ({ gameState, currentPath
                 clueFileContent: gameState.clueFile.content,
                 currentUser: currentUser,
                 starterArchetype: gameState.starterArchetype,
+                pwdDeliveryType: gameState.pwdDeliveryType,
                 rootPassword: gameState.rootPassword,
             };
 
