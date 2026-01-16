@@ -12,37 +12,26 @@ The hunt is no longer a straight line. Every mission is a multi-layered digital 
 2.  **Breadcrumb Trails**: Lead artifacts are scattered across the system, often requiring root access or keen eyes for hidden files to uncover.
 3.  **Thematic Logic**: Objective locations are described thematically, requiring you to understand the system's "logical" layout rather than just following absolute paths.
 
+### 🔐 Secure Connections & Enhanced Features
+Beyond the core investigation, this edition introduces new ways to interact with the system and uncover secrets:
+- **SSH Access**: Discover and utilize secure shell protocols to navigate and interact with remote parts of the virtual file system, unlocking new pathways and challenges.
+- **Unforeseen Capabilities**: Unearth additional system features and tools that can aid in your investigation, providing novel approaches to solving complex puzzles.
+- **Network Scanning**: Employ advanced network reconnaissance techniques to map out the digital landscape, identify active services, and uncover hidden vulnerabilities within the simulated network.
+
 ### 🛠️ Mechanical Variability
 Every session is procedurally generated with high mechanical entropy:
 - **Starter Archetypes**: You might be tracing shell history, reading internal mail, or even diagnosing a crashed system daemon.
 - **Security Challenges**: Gaining root access is no longer a simple search. You may need to use advanced terminal tools to sift through logs, combine fragmented data, or decrypt locked security hints.
 
-### 🤖 AI Co-Pilot
-Your 80s-inspired AI assistant is now fully integrated into the intermediate mechanics. It understands the new archetypes and can guide you through complex tasks like decoding files or grepping logs.
-
-### 🖥️ Enhanced Visuals & UI
-- **`ls` Styling**: Improved directory and file distinction (Grey for folders, Glowing White for files).
-- **Security Context**: Prompt dynamically changes based on `user` vs `root`.
-- **Debug Overlay**: A built-in testing terminal (toggled via `App.tsx`) to help you verify game generation during development.
-
 ---
 
 ## 🛠️ Installation & Setup
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/your-repo/retro-linux-terminal-adventure.git
-   ```
-2. **Install dependencies:**
+1. **Install dependencies:**
    ```bash
    npm install
    ```
-3. **Configure Environment:**
-   Create a `.env` file in the root and add your Gemini API Key:
-   ```env
-   API_KEY=your_google_gemini_api_key_here
-   ```
-4. **Run Development Server:**
+2. **Run Development Server:**
    ```bash
    npm run dev
    ```
