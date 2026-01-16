@@ -143,7 +143,7 @@ const InputLine: React.FC<{
     return (
         <form onSubmit={handleSubmit} className="flex w-full">
             <label htmlFor="command-input" className="flex-shrink-0">
-                <span className="text-green-400">{currentUser}@retro-term</span>
+                <span className="text-green-400">{currentUser}@localhost</span>
                 <span className="text-gray-400">:</span>
                 <span className="text-blue-400">{pathString}</span>
                 <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
@@ -245,16 +245,30 @@ export const Terminal: React.FC<TerminalProps> = ({
         }
 
         // Validate path
+        // Validate path and resolve case-insensitivity
         let node: VFSNode = vfs;
+        const validPath: string[] = [];
+
         for (const part of newPath) {
-            if (node.type === 'directory' && node.children[part]) {
+            if (node.type !== 'directory') return null;
+
+            if (node.children[part]) {
                 node = node.children[part];
+                validPath.push(part);
             } else {
-                return null; // Invalid path
+                // Try case-insensitive match
+                const lowerPart = part.toLowerCase();
+                const match: string | undefined = Object.keys(node.children).find(k => k.toLowerCase() === lowerPart);
+                if (match) {
+                    node = node.children[match];
+                    validPath.push(match);
+                } else {
+                    return null; // Invalid path
+                }
             }
         }
 
-        return newPath;
+        return validPath;
 
     }, [currentPath, vfs]);
 
@@ -327,7 +341,7 @@ clear        clear                   Clears the terminal screen.`;
                     output = "[sudo] password for user: ";
                     break;
                 case 'clear':
-                    setHistory([]);
+                    setHistory(scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-clr-${i}-${Date.now()}`}>{line}</div>));
                     output = null;
                     break;
                 case 'pwd':
@@ -394,15 +408,16 @@ clear        clear                   Clears the terminal screen.`;
                         }
 
                         output = (
-                            <div className="flex flex-wrap gap-x-6 gap-y-1">
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
                                 {children.map(child => (
-                                    <span
+                                    <div
                                         key={child.name}
-                                        className={`${child.type === 'directory' ? 'text-slate-400 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70 italic' : ''}`}
-                                        style={{ textShadow: child.type === 'directory' ? 'none' : '0 0 5px rgba(255,255,255,0.5)' }}
+                                        className={`${child.type === 'directory' ? 'text-cyan-300 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70 italic' : ''} break-all`}
+                                        title={child.name}
+                                        style={{ textShadow: child.type === 'directory' ? '0 0 5px currentColor' : '0 0 5px rgba(255,255,255,0.5)' }}
                                     >
-                                        {child.name}{child.type === 'directory' ? '/' : ''}{child.permissions === 'root' ? ' [root]' : ''}
-                                    </span>
+                                        {child.name}{child.type === 'directory' ? '/' : ''}{child.permissions === 'root' ? '*' : ''}
+                                    </div>
                                 ))}
                             </div>
                         );
@@ -411,6 +426,9 @@ clear        clear                   Clears the terminal screen.`;
                     }
                     break;
                 case 'cd':
+                    // Update resolvePath inside the component or its definition to handle case-insensitivity
+                    // Note: Since I can only edit this block, I will assume resolvePath is updated in the next separate edit or I must update the function definition above.
+                    // Wait, I am editing the 'ls' command block here.
                     const targetPath = resolvePath(args[0] || '/home/user');
                     if (targetPath) {
                         const targetNode = getNodeByPath(targetPath);
@@ -584,7 +602,7 @@ clear        clear                   Clears the terminal screen.`;
         const pathString = getPathDisplay(currentPath);
         const inputHistory = (
             <div className="flex">
-                <span className="text-green-400">{currentUser}@retro-term</span>
+                <span className="text-green-400">{currentUser}@localhost</span>
                 <span className="text-gray-400">:</span>
                 <span className="text-blue-400">{pathString}</span>
                 <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
@@ -673,15 +691,15 @@ clear        clear                   Clears the terminal screen.`;
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-4 text-xl border-2 border-[#33ff00]/50 crt-screen relative overflow-hidden ${isLockedOut ? 'grayscale blur-sm' : ''}`}
+            className={`w-full h-full flex flex-col p-6 text-lg text-[#33ff00] font-vt323 crt-screen relative overflow-hidden ${isLockedOut ? 'grayscale blur-sm' : ''}`}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();
                 }
             }}
         >
-            <div className="flex-grow overflow-y-auto pr-2">
-                {history.map((line, i) => <div key={i} className="mb-1">{line}</div>)}
+            <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
+                {history.map((line, i) => <div key={i} className="mb-1 leading-tight">{line}</div>)}
                 <div ref={terminalEndRef} />
             </div>
             {!isLockedOut && (

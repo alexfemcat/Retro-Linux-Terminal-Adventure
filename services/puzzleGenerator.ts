@@ -167,6 +167,53 @@ class PuzzleGenerator {
         };
     }
 
+    private populateUserHome(userHome: Directory) {
+        const standardDirs: Record<string, Record<string, string>> = {
+            "Documents": {
+                "resume.pdf": "My Resume...",
+                "budget.xlsx": "Rent: $800\nFood: $300\nRetro Games: $500",
+                "notes.txt": "Remember to call Mom."
+            },
+            "Downloads": {
+                "installer_v2.deb": "[BINARY]",
+                "movie_torrent.file": "[BINARY]",
+                "receipt_amazon.pdf": "Order #12345: Mechanical Keyboard"
+            },
+            "Music": {
+                "favorite_song.mp3": "[AUDIO DATA]",
+                "playlist_chill.m3u": "#EXTM3U\nlofi_beat.mp3"
+            },
+            "Pictures": {
+                "vacation.jpg": "[IMAGE DATA]",
+                "screenshot_001.png": "[IMAGE DATA]",
+                "profile_pic.png": "[IMAGE DATA]"
+            },
+            "Videos": {
+                "funny_cat.mp4": "[VIDEO DATA]"
+            },
+            "Desktop": {
+                "TODO.txt": "1. Make game\n2. ???\n3. Profit"
+            },
+            "Templates": {
+                "blank.doc": ""
+            },
+            "Public": {}
+        };
+
+        Object.entries(standardDirs).forEach(([dirName, files]) => {
+            // Create directory if it doesn't exist
+            if (!userHome.children[dirName]) {
+                userHome.children[dirName] = { type: 'directory', name: dirName, children: {} };
+            }
+            const dir = userHome.children[dirName] as Directory;
+
+            // Add files logic
+            Object.entries(files).forEach(([fName, fContent]) => {
+                dir.children[fName] = { type: 'file', name: fName, content: fContent };
+            });
+        });
+    }
+
     private generateVFS(scenario: Scenario): Directory {
         const root: Directory = {
             type: 'directory', name: '', children: {
@@ -180,9 +227,20 @@ class PuzzleGenerator {
 
         // Procedurally generate a deeper directory structure starting from user home
         const userHome = (root.children.home as Directory).children.user as Directory;
+
+        // Populate user home with realistic folders and files
+        this.populateUserHome(userHome);
+
         const allDirs: { node: Directory, path: string[] }[] = [
             { node: userHome, path: ['home', 'user'] }
         ];
+
+        // Add the new valid directories to allDirs so they can be used for game logic if needed
+        Object.values(userHome.children).forEach(child => {
+            if (child.type === 'directory') {
+                allDirs.push({ node: child as Directory, path: ['home', 'user', child.name] });
+            }
+        });
 
         // Max depth is now 4 to 6 for guaranteed mystery
         const maxDepth = Math.floor(Math.random() * 3) + 4;
@@ -220,7 +278,7 @@ class PuzzleGenerator {
                     "passwd": "root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user:/home/user:/bin/bash",
                     "hosts": "127.0.0.1 localhost\n192.168.1.1 gateway",
                     "fstab": "/dev/sda1 / ext4 defaults 0 1",
-                    "motd": "Welcome to the Retro-Term Mainframe.\nUnauthorized access is strictly prohibited.",
+                    "motd": "Welcome to the System Mainframe.\nUnauthorized access is strictly prohibited.",
                     "resolve.conf": "nameserver 8.8.8.8\nnameserver 8.8.4.4"
                 },
                 permissions: 'root'
@@ -470,7 +528,7 @@ class PuzzleGenerator {
                 etc.children['motd'] = {
                     type: 'file',
                     name: 'motd',
-                    content: `Welcome to the Retro-Term Mainframe.\n\nNOTICE: Access to the ${starterAreaHint} sector is restricted to Level 2 clearance.\nLast login: ${this.getRandom(cities)} / VPN`
+                    content: `Welcome to the System Mainframe.\n\nNOTICE: Access to the ${starterAreaHint} sector is restricted to Level 2 clearance.\nLast login: ${this.getRandom(cities)} / VPN`
                 };
                 starterClueContent = "The system MOTD in /etc/motd contains a department notice.";
                 break;
@@ -554,8 +612,8 @@ class PuzzleGenerator {
             case 'grep':
                 const logName = "system.log";
                 pwdHintLocation.name = logName;
-                const logLines = Array.from({ length: 50 }, () => `Jan 15 ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}:01 retro-term systemd[1]: Running task...`);
-                logLines[Math.floor(Math.random() * 50)] = `Jan 15 12:00:00 retro-term security_admin: REMINDER: Password hint is "${passwordHint}"`;
+                const logLines = Array.from({ length: 50 }, () => `Jan 15 ${Math.floor(Math.random() * 24)}:${Math.floor(Math.random() * 60)}:01 localhost systemd[1]: Running task...`);
+                logLines[Math.floor(Math.random() * 50)] = `Jan 15 12:00:00 localhost security_admin: REMINDER: Password hint is "${passwordHint}"`;
                 userHome.children[logName] = {
                     type: 'file',
                     name: logName,
