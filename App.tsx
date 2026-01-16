@@ -13,7 +13,7 @@ const App: React.FC = () => {
     const [currentPath, setCurrentPath] = useState<string[]>(['home', 'user']);
     const [currentUser, setCurrentUser] = useState<'user' | 'root'>('user');
 
-    const [showDebug, setShowDebug] = useState<boolean>(true);
+    const [showDebug, setShowDebug] = useState<boolean>(false);
 
     const startNewGame = useCallback(() => {
         const newGameState = puzzleGenerator.generateNewGame();
