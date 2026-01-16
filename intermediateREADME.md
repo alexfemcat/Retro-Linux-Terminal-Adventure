@@ -36,13 +36,24 @@ Every session is procedurally generated with high mechanical entropy:
    npm run dev
    ```
 
-## 🎮 How to Play
+## 🕵️‍♂️ Investigator's Field Guide
 
-1.  **Initial Scan**: Look at your starting environment. Is there a note? New mail? A weird alias?
-2.  **Follow the Trail**: Use standard Linux commands (`ls`, `cd`, `cat`, `grep`, `pwd`) to navigate the VFS.
-3.  **Escalate Privileges**: Find the password components to use `sudo` and access restricted areas.
-4.  **Decrypt the Prize**: If the target ends in `.crypt`, find the decoder and extract the payload.
-5.  **Achieve Objective**: Locate and `cat` the target file to complete the mission.
+Navigating the network requires more than just knowing command syntax; it requires a hacker's intuition.
+
+### 1. The Cold Start
+Every session begins on your local workstation. Your first task is to discover the network topology. Check `/etc/hosts` for known systems, scan the network with `nmap`, and identify your targets. The mission briefing in `~/MISSION.txt` will guide your objective.
+
+### 2. Social Engineering & Forensics
+Root passwords aren't found in plain text. They are constructed from personal details scattered across the file system.
+*   **The Blueprint**: Check the environment variables (`env`) to find the `PWD_HINT`. It will tell you the structure (e.g., "Pet Name + Year").
+*   **The Evidence**: Scour the `Documents` directory. Photo metadata, birth certificates, and travel tickets contain the raw data you need.
+
+### 3. The Golden Rule of Lateral Movement
+Here is the secret to traversing the network: **The credentials for a remote system are often hidden on the machine you are currently accessing.**
+If you find clues (like a city name or color) that don't fit the local password pattern, *do not discard them*. They are likely the keys to the next server in the chain.
+
+### 4. Closing the Net
+Once you have the target IP (from logs or history) and the constructed password, use `ssh root@<ip>` to breach the next node. Repeat the cycle: Recon, Loot, Move. Your final objective lies at the end of this breadcrumb trail.
 
 ---
 

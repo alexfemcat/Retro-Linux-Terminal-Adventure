@@ -15,7 +15,7 @@ Retro Linux Terminal Adventure is an immersive, "hacking" simulation. Using a pr
 
 This project is evolving. Depending on your interest, you may want to download a specific version from our **[Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases)** page:
 
-### 🟡 Intermediate Edition
+### 🟡 [Intermediate Edition](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v0.8-intermediate)
 **For players who want a deeper, more unpredictable hacking experience.**
 Adds the **Enhanced Difficulty** system: multi-stage digital investigations, variable system-based starting leads, and advanced security challenges (Log analysis, SSH, Data reconstruction).
 *   *Status: in development*
@@ -48,21 +48,24 @@ Refer to stable releases for finalized versions.
 
 ---
 
-## 🕵️‍♂️ Investigator's Field Guide
+## 🕵️‍♂️ Investigator's Field Guide (Intermediate Edition)
 
 Navigating the network requires more than just knowing command syntax; it requires a hacker's intuition.
 
 ### 1. The Cold Start
 Every session begins on your local workstation. Your first task is to discover the network topology. Check `/etc/hosts` for known systems, scan the network with `nmap`, and identify your targets. The mission briefing in `~/MISSION.txt` will guide your objective.
 
-### 2. Network Reconnaissance
-Use `ping` to verify hosts are online, `nmap` to scan for open ports and services, and `ip a` to understand your current network position. Each discovered node may hold clues to access others. SSH is your gateway—but you'll need credentials.
+### 2. Social Engineering & Forensics
+Root passwords aren't found in plain text. They are constructed from personal details scattered across the file system.
+*   **The Blueprint**: Check the environment variables (`env`) to find the `PWD_HINT`. It will tell you the structure (e.g., "Pet Name + Year").
+*   **The Evidence**: Scour the `Documents` directory. Photo metadata, birth certificates, and travel tickets contain the raw data you need.
 
-### 3. Social Engineering
-Root passwords aren't found in plain text. They're constructed from personal details scattered across the file system. Read emails, photo metadata, certificates, and diary entries. The `PWD_HINT` environment variable will tell you how to combine the pieces—but finding them is your job.
+### 3. The Golden Rule of Lateral Movement
+Here is the secret to traversing the network: **The credentials for a remote system are often hidden on the machine you are currently accessing.**
+If you find clues (like a city name or color) that don't fit the local password pattern, *do not discard them*. They are likely the keys to the next server in the chain.
 
-### 4. Gaining Access
-Once you've pieced together a password, use `ssh root@<ip>` to infiltrate remote systems or `sudo` to elevate privileges locally. Each node has its own security, its own secrets. Your final objective might be buried deep in a database server or hidden in a corporate web server's logs.
+### 4. Closing the Net
+Once you have the target IP (from logs or history) and the constructed password, use `ssh root@<ip>` to breach the next node. Repeat the cycle: Recon, Loot, Move. Your final objective lies at the end of this breadcrumb trail.
 
 ---
 
