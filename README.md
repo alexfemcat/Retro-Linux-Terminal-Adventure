@@ -15,10 +15,10 @@ Retro Linux Terminal Adventure is an immersive, "hacking" simulation. Using a pr
 
 This project is evolving. Depending on your interest, you may want to download a specific version from our **[Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases)** page:
 
-### 🟡 [Intermediate Edition](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v0.8-intermediate)
+### 🟡 Intermediate Edition
 **For players who want a deeper, more unpredictable hacking experience.**
 Adds the **Enhanced Difficulty** system: multi-stage digital investigations, variable system-based starting leads, and advanced security challenges (Log analysis, SSH, Data reconstruction).
-*   *Status: Released*
+*   *Status: in development*
 
 ### 🟢 [Beginner Edition WITH AI Tutor](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases/tag/v1.0-simple)
 **Recommended for beginners.**
