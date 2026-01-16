@@ -47,3 +47,5 @@ Every session is procedurally generated with high mechanical entropy:
 ---
 
 *This project is built with React, TypeScript, and Vite. Designed for a premium, retro-hacking aesthetic.*
+
+<img width="1336" height="1018" alt="intermediate" src="https://github.com/user-attachments/assets/38113137-dd3c-4609-8675-3ab76ed5cc26" />

@@ -299,7 +299,26 @@ class PuzzleGenerator {
         };
     }
 
-    private generateNode(scenario: Scenario, type: 'workstation' | 'server' | 'database', id: string, hostname: string, ip: string): NetworkNode {
+    private placeClues(node: NetworkNode, clues: { file: string, content: string }[]): void {
+        const home = ((node.vfs.children['home'] as Directory).children['user'] as Directory);
+        
+        // Create Documents/network_intel if needed
+        if (!home.children['Documents']) {
+             home.children['Documents'] = { type: 'directory', name: 'Documents', children: {} };
+        }
+        const docs = home.children['Documents'] as Directory;
+        
+        if (!docs.children['network_intel']) {
+             docs.children['network_intel'] = { type: 'directory', name: 'network_intel', children: {} };
+        }
+        const intelDir = docs.children['network_intel'] as Directory;
+        
+        clues.forEach(clue => {
+            intelDir.children[clue.file] = { type: 'file', name: clue.file, content: clue.content };
+        });
+    }
+
+    private generateNode(scenario: Scenario, type: 'workstation' | 'server' | 'database', id: string, hostname: string, ip: string): { node: NetworkNode, puzzle: { password: string, hint: string, components: any[] }, users: string[] } {
         const systemState = this.generateSystemState(scenario.theme);
 
         // VFS Generation
@@ -346,13 +365,7 @@ class PuzzleGenerator {
         const puzzle = this.generateSocialPuzzle();
         systemState.envVars["PWD_HINT"] = puzzle.hint;
 
-        // Scatter puzzle clues in user home
-        const userHome = homeDir.children['user'] as Directory;
-        puzzle.components.forEach(comp => {
-            if (Math.random() > 0.5) {
-                userHome.children[comp.file] = { type: 'file', name: comp.file, content: comp.content };
-            }
-        });
+        // NOTE: We no longer scatter clues inside the node. They are returned to be placed on previous nodes.
 
         const node: NetworkNode = {
             id,
@@ -372,12 +385,13 @@ class PuzzleGenerator {
         // Generate honeypots
         this.generateHoneypots(node);
 
-        return node;
+        return { node, puzzle, users: selectedUsers };
     }
 
     public generateNetwork(): GameState {
         const scenario = this.getRandom(scenarios);
         const nodes: NetworkNode[] = [];
+        const nodeData: { puzzle: any, users: string[] }[] = [];
 
         // Generate 3-5 nodes
         const numNodes = 3 + Math.floor(Math.random() * 3);
@@ -386,11 +400,15 @@ class PuzzleGenerator {
         const themeColors = ['text-green-400', 'text-amber-400', 'text-cyan-400', 'text-red-400', 'text-blue-400', 'text-purple-400', 'text-pink-400'];
 
         // 1. Localhost (Player Start) - always green
-        const localNode = this.generateNode(scenario, 'workstation', 'local', 'localhost', '192.168.1.100');
-        localNode.isDiscovered = true;
-        localNode.themeColor = themeColors[0]; // Always green for localhost
-        localNode.currentUser = 'user';
-        nodes.push(localNode);
+        const localGen = this.generateNode(scenario, 'workstation', 'local', 'localhost', '192.168.1.100');
+        localGen.node.isDiscovered = true;
+        localGen.node.themeColor = themeColors[0]; // Always green for localhost
+        localGen.node.currentUser = 'user';
+        nodes.push(localGen.node);
+        nodeData.push({ puzzle: localGen.puzzle, users: localGen.users });
+
+        // Place Localhost clues on Localhost (needed for sudo)
+        this.placeClues(localGen.node, localGen.puzzle.components);
 
         // 2. Generate Remote Nodes with unique hostnames and IPs
         const usedHostnames = new Set<string>(['localhost']);
@@ -405,24 +423,54 @@ class PuzzleGenerator {
             usedHostnames.add(hostname);
 
             // Get unique IP
-            let ip = `10.0.4.${10 + i}`;
+            let ip = `10.0.4.${10 + Math.floor(Math.random() * 200)}`;
             while (usedIPs.has(ip)) {
                 ip = `10.0.4.${10 + Math.floor(Math.random() * 200)}`;
             }
             usedIPs.add(ip);
 
             const type = i === numNodes - 2 ? 'database' : 'server';
-            const node = this.generateNode(scenario, type, `remote-${i}`, hostname, ip);
+            const gen = this.generateNode(scenario, type, `remote-${i}`, hostname, ip);
 
             // Assign unique theme color (cycle through colors if more nodes than colors)
-            node.themeColor = themeColors[(i + 1) % themeColors.length];
+            gen.node.themeColor = themeColors[(i + 1) % themeColors.length];
 
-            nodes.push(node);
+            nodes.push(gen.node);
+            nodeData.push({ puzzle: gen.puzzle, users: gen.users });
         }
 
-        // 3. Add discovery clues across network
-        // Add IPs to /etc/hosts of localhost
-        const localHosts = (localNode.vfs.children.etc as Directory).children['hosts'] as File;
+        // 3. Link Nodes and Place Clues Backwards
+        // We iterate through nodes 0 to N-2
+        for (let i = 0; i < nodes.length - 1; i++) {
+            const currentNode = nodes[i];
+            const nextNode = nodes[i + 1];
+            const nextData = nodeData[i + 1];
+
+            // A. Place Next Node's Password Clues on Current Node
+            this.placeClues(currentNode, nextData.puzzle.components);
+
+            // B. Pick a specific user from the Next Node to hack
+            const targetUser = this.getRandom(nextData.users) || 'user';
+
+            // C. Generate Auth Logs on Current Node pointing to Next Node
+            this.generateAuthLog(currentNode, { ip: nextNode.ip, username: targetUser });
+
+            // D. Generate Bash History on Current Node
+            const userHome = ((currentNode.vfs.children.home as Directory).children['user'] as Directory);
+            const clues: string[] = [
+                `ssh ${targetUser}@${nextNode.ip}`,
+                `# Connecting to ${nextNode.hostname} as ${targetUser}`
+            ];
+            this.generateBashHistory(userHome, clues);
+        }
+        
+        // For the last node, we still need bash history, but no next node clues
+        const lastNode = nodes[nodes.length - 1];
+        const lastUserHome = ((lastNode.vfs.children.home as Directory).children['user'] as Directory);
+        this.generateBashHistory(lastUserHome, []); // No specific clues for "next"
+
+        // 4. Add IPs to /etc/hosts of localhost (unchanged)
+        const localHosts = (nodes[0].vfs.children.etc as Directory).children['hosts'] as File;
         let hostsContent = localHosts.content;
         nodes.forEach(n => {
             if (n.id !== 'local') {
@@ -430,28 +478,6 @@ class PuzzleGenerator {
             }
         });
         localHosts.content = hostsContent;
-
-        // Generate auth logs with clues pointing to other nodes
-        nodes.forEach((node, idx) => {
-            if (idx < nodes.length - 1) {
-                const nextNode = nodes[idx + 1];
-                this.generateAuthLog(node, { ip: nextNode.ip, username: 'admin' });
-            }
-        });
-
-        // Generate bash histories with ssh commands
-        nodes.forEach((node, idx) => {
-            const userHome = ((node.vfs.children.home as Directory).children['user'] as Directory);
-            const clues: string[] = [];
-
-            if (idx < nodes.length - 1) {
-                const nextNode = nodes[idx + 1];
-                clues.push(`ssh admin@${nextNode.ip}`);
-                clues.push(`# Connected to ${nextNode.hostname}`);
-            }
-
-            this.generateBashHistory(userHome, clues);
-        });
 
         // 4. Define Win Condition
         // Win: Get root on the last node
@@ -461,7 +487,7 @@ class PuzzleGenerator {
         const welcomeMessage = scenario.welcomeMessage('MISSION BRIEFING');
 
         // Add Mission Briefing to Localhost
-        const userHome = ((localNode.vfs.children.home as Directory).children['user'] as Directory);
+        const userHome = ((nodes[0].vfs.children.home as Directory).children['user'] as Directory);
         userHome.children['MISSION.txt'] = {
             type: 'file',
             name: 'MISSION.txt',
