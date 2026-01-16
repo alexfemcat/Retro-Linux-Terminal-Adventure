@@ -1,5 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { GameState, VFSNode, NetworkNode, PlayerState } from '../types';
+import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
+import { MARKET_CATALOG, buyItem } from '../services/MarketSystem';
+import { writeSave } from '../services/PersistenceService';
 
 export interface TerminalProps {
     gameState: GameState;
@@ -10,6 +13,7 @@ export interface TerminalProps {
     onWin: () => void;
     onMissionAccept: (mission: any) => void;
     onMissionAbort: () => void;
+    onPlayerStateChange: (newState: PlayerState) => void;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
     currentUser: 'user' | 'root';
@@ -133,6 +137,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     onWin,
     onMissionAccept,
     onMissionAbort,
+    onPlayerStateChange,
     currentPath,
     setCurrentPath,
     currentUser,
@@ -260,92 +265,123 @@ export const Terminal: React.FC<TerminalProps> = ({
         const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
         let output: React.ReactNode | null = null;
 
+        const availability = checkCommandAvailability(cmd, {
+            playerState,
+            isMissionActive,
+            currentPath,
+            currentUser,
+            hostname
+        });
+
+        if (!availability.available) {
+            setHistory(prev => [...prev, availability.error]);
+            return;
+        }
 
         switch (cmd) {
             case 'help':
                 output = (
                     <div className="whitespace-pre-wrap text-yellow-300">
-                        {`
-COMMAND      USAGE                   DESCRIPTION
-----------------------------------------------------------------------------
-help         help                    Shows this list.
-ls           ls [-a]                 Lists files.
-cd           cd [dir]                Changes directory.
-cat          cat [file]              Reads file content.
-pwd          pwd                     Current directory path.
-whoami       whoami                  Current user.
-jobs         jobs [accept <id>]      Browse/Accept missions (Homebase only).
-market       market [buy <id>]       Browse/Buy upgrades (Homebase only).
-sudo         sudo                    Gain root access.
-ssh          ssh [user]@[ip]         Connect to remote host.
-ping         ping [ip]               Check host availability.
-ip           ip a                    Show network interfaces.
-nmap         nmap [ip] [-sV]         Scan for open ports/services.
-grep         grep [term] [file]      Search in file.
-ps           ps aux                  List processes.
-env          env                     List environment variables.
-uptime       uptime                  Show system uptime.
-date         date                    Show current date/time.
-clear        clear                   Clear screen.
-exit         exit                    Disconnect/Logout.
-abort        abort                   Abandon current mission (Remote only).
-disconnect   disconnect              Alias for abort.
-
-TIPS:
-- Clues are fragmented across files and nodes.
-- Use 'cat' on log files to find IPs and usernames.
-- Check .bash_history for ssh commands.
-- WARNING: Logs contain honeypot data. Real clues are buried.
-- Use 'nmap' to discover services, 'ssh' to pivot between nodes.`}
+                        <div className="font-bold mb-1">AVAILABLE COMMANDS:</div>
+                        <div className="grid grid-cols-[120px_200px_1fr] gap-x-4 opacity-90">
+                            <div className="border-b border-yellow-300/30 pb-1">COMMAND</div>
+                            <div className="border-b border-yellow-300/30 pb-1">USAGE</div>
+                            <div className="border-b border-yellow-300/30 pb-1">DESCRIPTION</div>
+                            {Object.values(COMMAND_REGISTRY).map(def => (
+                                <React.Fragment key={def.id}>
+                                    <div>{def.id}</div>
+                                    <div className="text-gray-400">{def.usage}</div>
+                                    <div>{def.description}</div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                        <div className="mt-4 text-xs text-yellow-300/70 italic">
+                            TIPS: Clues are fragmented. Use 'cat' on logs. 'nmap' to discover services. 'ssh' to pivot.
+                        </div>
                     </div>
                 );
                 break;
             case 'jobs':
-                if (isMissionActive) {
-                    output = "Error: Jobs system unavailable while on remote mission.";
-                } else {
-                    if (args[0] === 'accept') {
-                        // For now, accept the first dummy mission
-                        output = "Mission accepted. Initiating connection...";
-                        setTimeout(() => onMissionAccept({}), 1000);
-                    } else {
-                        output = (
-                            <div className="text-yellow-400">
-                                <div>AVAILABLE CONTRACTS:</div>
-                                <div>----------------------------</div>
-                                <div>[1] OMNICORP_DATA_RECOVERY (Diff: 1, Reward: 500c)</div>
-                                <div>Usage: jobs accept 1</div>
-                            </div>
-                        );
-                    }
-                }
-                break;
-            case 'market':
-                if (isMissionActive) {
-                    output = "Error: Market unavailable while on remote mission.";
+                if (args[0] === 'accept') {
+                    // For now, accept the first dummy mission
+                    output = "Mission accepted. Initiating connection...";
+                    setTimeout(() => onMissionAccept({}), 1000);
                 } else {
                     output = (
                         <div className="text-yellow-400">
-                            <div>SOFTWARE MARKET:</div>
+                            <div>AVAILABLE CONTRACTS:</div>
                             <div>----------------------------</div>
-                            <div>nmap: 500c - Network scanner</div>
-                            <div>hydra: 1500c - Brute force tool</div>
-                            <div className="mt-2">HARDWARE MARKET:</div>
-                            <div>----------------------------</div>
-                            <div>CPU_V2: 1000c - Faster execution</div>
-                            <div className="text-gray-500 italic mt-2">Usage: market buy [item_id] (Coming soon in Phase 2)</div>
+                            <div>[1] OMNICORP_DATA_RECOVERY (Diff: 1, Reward: 500c)</div>
+                            <div>Usage: jobs accept 1</div>
+                        </div>
+                    );
+                }
+                break;
+            case 'market':
+                if (args[0] === 'buy') {
+                    const itemId = args[1];
+                    if (!itemId) {
+                        output = "Usage: market buy <item_id>";
+                    } else {
+                        const result = buyItem(itemId, playerState);
+                        if (result.success && result.updatedPlayerState) {
+                            output = (
+                                <div className="text-green-400">
+                                    [SUCCESS] Purchased {itemId}. Credits remaining: {result.updatedPlayerState.credits}c
+                                </div>
+                            );
+                            onPlayerStateChange(result.updatedPlayerState);
+                            // Auto-save logic
+                            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                            writeSave(slotId, result.updatedPlayerState);
+                        } else {
+                            output = <div className="text-red-500">[ERROR] {result.error}</div>;
+                        }
+                    }
+                } else {
+                    const software = MARKET_CATALOG.filter(i => i.type === 'software');
+                    const hardware = MARKET_CATALOG.filter(i => i.type === 'hardware');
+                    output = (
+                        <div className="text-yellow-400">
+                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">MARKETPLACE - HARDWARE & SOFTWARE</div>
+
+                            <div className="mb-1 text-xs opacity-70">SOFTWARE</div>
+                            <div className="grid grid-cols-[100px_80px_1fr] gap-x-4 mb-4">
+                                {software.map(item => (
+                                    <React.Fragment key={item.id}>
+                                        <div className={playerState.installedSoftware.includes(item.id) ? 'line-through opacity-50' : 'font-bold'}>{item.id}</div>
+                                        <div>{item.cost}c</div>
+                                        <div className="text-gray-400 text-sm">{item.description}</div>
+                                    </React.Fragment>
+                                ))}
+                            </div>
+
+                            <div className="mb-1 text-xs opacity-70">HARDWARE</div>
+                            <div className="grid grid-cols-[100px_80px_1fr] gap-x-4 mb-4">
+                                {hardware.map(item => {
+                                    const currentLevel = playerState.hardware[item.hardwareKey!].level;
+                                    const isOwned = currentLevel >= (item.stats?.level || 0);
+                                    return (
+                                        <React.Fragment key={item.id}>
+                                            <div className={isOwned ? 'line-through opacity-50' : 'font-bold'}>{item.id}</div>
+                                            <div>{item.cost}c</div>
+                                            <div className="text-gray-400 text-sm">{item.description}</div>
+                                        </React.Fragment>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
+                                Usage: market buy [item_id]
+                            </div>
                         </div>
                     );
                 }
                 break;
             case 'abort':
             case 'disconnect':
-                if (!isMissionActive) {
-                    output = "Error: You are already at your Homebase.";
-                } else {
-                    output = "Aborting mission... disconnecting...";
-                    setTimeout(() => onMissionAbort(), 1000);
-                }
+                output = "Aborting mission... disconnecting...";
+                setTimeout(() => onMissionAbort(), 1000);
                 break;
             case 'clear':
                 setHistory(getWelcomeLines());
@@ -678,7 +714,7 @@ TIPS:
         const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
 
         if (isCommand) {
-            const cmds = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'ssh', 'ping', 'nmap', 'ip', 'grep', 'clear', 'exit'];
+            const cmds = Object.keys(COMMAND_REGISTRY);
             const matches = cmds.filter(c => c.startsWith(currentValue));
             if (matches.length > 0) return getCommonPrefix(matches) + (matches.length === 1 ? ' ' : '');
         } else {

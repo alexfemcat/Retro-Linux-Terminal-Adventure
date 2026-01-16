@@ -3,7 +3,7 @@ import { initDB, readSave, writeSave, getAllSaveSlots, createInitialPlayerState 
 import { PlayerState, SaveSlot } from '../types';
 
 interface TitleScreenProps {
-    onGameLoad: (playerState: PlayerState) => void;
+    onGameLoad: (playerState: PlayerState, slotId: string) => void;
 }
 
 const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad }) => {
@@ -44,12 +44,12 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad }) => {
 
             if (existingSave) {
                 // Load game
-                onGameLoad(existingSave);
+                onGameLoad(existingSave, slotId);
             } else {
                 // New game
                 const freshPlayerState = createInitialPlayerState();
                 await writeSave(slotId, freshPlayerState);
-                onGameLoad(freshPlayerState); // Load the newly created game
+                onGameLoad(freshPlayerState, slotId); // Load the newly created game
             }
             // Re-load slots to update UI after changes
             const allSlots = await getAllSaveSlots();

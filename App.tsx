@@ -51,7 +51,8 @@ const App: React.FC = () => {
         }
     }, [playerState, startNewGame]);
 
-    const handleGameLoad = useCallback((loadedPlayerState: PlayerState) => {
+    const handleGameLoad = useCallback((loadedPlayerState: PlayerState, slotId: string) => {
+        localStorage.setItem('active-save-slot', slotId);
         startNewGame(loadedPlayerState);
         setShowTitleScreen(false);
     }, [startNewGame]);
@@ -141,6 +142,7 @@ const App: React.FC = () => {
                                 onWin={handleWin}
                                 onMissionAccept={handleMissionAccept}
                                 onMissionAbort={handleMissionAbort}
+                                onPlayerStateChange={setPlayerState}
                                 currentPath={currentPath}
                                 setCurrentPath={setCurrentPath}
                                 currentUser={currentUser}
