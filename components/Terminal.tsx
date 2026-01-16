@@ -345,7 +345,6 @@ TIPS:
                             if (gameState.winCondition.type === 'file_found' &&
                                 activeNode.id === gameState.winCondition.nodeId &&
                                 fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
-                                // Verify full path if strictly required, but usually filename in correct node is enough if uniques
                                 onWin();
                             }
                         }
@@ -419,6 +418,45 @@ TIPS:
                     return; // Async handled above
                 } else {
                     output = `Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn`;
+                }
+                break;
+            case 'grep':
+                if (args.length < 2) {
+                    output = "usage: grep [term] [file]";
+                    break;
+                }
+                const searchTerm = args[0];
+                const grepFilePath = resolvePath(args[1]);
+
+                if (!grepFilePath) {
+                    output = `grep: ${args[1]}: No such file or directory`;
+                    break;
+                }
+
+                const fileNode = getNodeByPath(grepFilePath);
+
+                if (!fileNode) {
+                    output = `grep: ${args[1]}: No such file or directory`;
+                    break;
+                }
+
+                if (fileNode.type === 'directory') {
+                    output = `grep: ${args[1]}: Is a directory`;
+                    break;
+                }
+
+                if (fileNode.permissions === 'root' && currentUser !== 'root') {
+                    output = `grep: ${args[1]}: Permission denied`;
+                    break;
+                }
+
+                const lines = fileNode.content.split('\n');
+                const matchingLines = lines.filter(line => line.includes(searchTerm));
+
+                if (matchingLines.length > 0) {
+                    output = <div className="whitespace-pre-wrap">{matchingLines.join('\n')}</div>;
+                } else {
+                    output = null; // No output if no matches
                 }
                 break;
             case 'ssh':

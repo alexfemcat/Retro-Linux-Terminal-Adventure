@@ -151,9 +151,9 @@ class PuzzleGenerator {
             const timestamp = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString();
             fakeAuthEntries.push(`${timestamp} sshd[${1000 + i}]: Failed password for ${fakeUser} from ${fakeIP} port ${20000 + i}`);
         }
-        logDir.children['fake_auth.log'] = {
+        logDir.children['auth.log'] = {
             type: 'file',
-            name: 'fake_auth.log',
+            name: 'auth.log',
             content: fakeAuthEntries.join('\n')
         };
 
