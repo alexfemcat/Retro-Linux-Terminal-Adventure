@@ -29,7 +29,8 @@ const InputLine: React.FC<{
     inputRef: React.RefObject<HTMLInputElement>;
     commandHistory: string[];
     isPasswordInput: boolean;
-}> = ({ currentPath, currentUser, hostname, onSubmit, onTab, getCompletion, inputRef, commandHistory, isPasswordInput }) => {
+    themeColor: string;
+}> = ({ currentPath, currentUser, hostname, onSubmit, onTab, getCompletion, inputRef, commandHistory, isPasswordInput, themeColor }) => {
     const [value, setValue] = useState('');
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -79,7 +80,7 @@ const InputLine: React.FC<{
         <form onSubmit={handleSubmit} className="flex w-full">
             {!isPasswordInput && (
                 <label htmlFor="command-input" className="flex-shrink-0 mr-2">
-                    <span className="text-green-400">{currentUser}@{hostname}</span>
+                    <span className={themeColor}>{currentUser}@{hostname}</span>
                     <span className="text-gray-400">:</span>
                     <span className="text-blue-400">{pathString}</span>
                     <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
@@ -237,7 +238,7 @@ export const Terminal: React.FC<TerminalProps> = ({
             const pathString = getPathDisplay(currentPath);
             setHistory(prev => [...prev, (
                 <div key={Date.now()} className="flex">
-                    <span className="text-green-400">{currentUser}@{hostname}</span>
+                    <span className={themeColor}>{currentUser}@{hostname}</span>
                     <span className="text-gray-400">:</span>
                     <span className="text-blue-400">{pathString}</span>
                     <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
@@ -630,6 +631,7 @@ TIPS:
                     inputRef={inputRef}
                     commandHistory={commandHistory}
                     isPasswordInput={inputMode === 'password'}
+                    themeColor={themeColor}
                 />
             )}
         </div>
