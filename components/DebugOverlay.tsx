@@ -32,7 +32,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState, activeNod
         >
             <h3 className="text-green-500 font-bold mb-4 border-b border-green-500/30 pb-1 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                NETWORK DEBUGGER (ADMIN)
+                NETWORK DEBUGGER (F2 - DEV MODE)
             </h3>
 
             {/* Win Condition */}
@@ -43,7 +43,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState, activeNod
 
             {/* Network Map */}
             <div className="mb-4 space-y-2">
-                <h4 className="text-gray-500 uppercase text-xs border-b border-gray-700 pb-1">Network Topology</h4>
+                <h4 className="text-gray-500 uppercase text-xs border-b border-gray-700 pb-1">Network Topology ({gameState.nodes.length} Nodes)</h4>
                 {gameState.nodes.map((node) => (
                     <div
                         key={node.id}
@@ -97,15 +97,62 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState, activeNod
                 </div>
             </div>
 
-            {/* Hint / Puzzle Debug */}
+            {/* Developer Cheat Sheet */}
             <div className="mt-4 border-t border-gray-700 pt-2">
-                <h4 className="text-gray-500 uppercase text-xs mb-1">Puzzle State</h4>
-                <div className="text-gray-400 text-[9px] ">
-                    Info: Check specific node VFS for clues.
-                    <br />
-                    Use 'nmap' to find ports.
-                    <br />
-                    Use 'ssh' to pivot.
+                <h4 className="text-gray-500 uppercase text-xs mb-1">Developer Cheat Sheet</h4>
+                <div className="text-gray-400 text-[9px] space-y-1">
+                    <div className="bg-gray-900/50 p-1 rounded">
+                        <span className="text-yellow-400">All Node IPs:</span>
+                        <div className="pl-2">
+                            {gameState.nodes.map(n => (
+                                <div key={n.id}>{n.hostname}: {n.ip}</div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="bg-gray-900/50 p-1 rounded">
+                        <span className="text-yellow-400">All Root Passwords:</span>
+                        <div className="pl-2">
+                            {gameState.nodes.map(n => (
+                                <div key={n.id}>{n.hostname}: <span className="text-green-400">{n.rootPassword}</span></div>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="bg-gray-900/50 p-1 rounded">
+                        <span className="text-yellow-400">Quick Test:</span>
+                        <div className="pl-2 text-cyan-300">
+                            1. cat /etc/hosts (see all IPs)
+                            <br />
+                            2. cat /var/log/auth.log (find real clue)
+                            <br />
+                            3. cat ~/.bash_history (find ssh command)
+                            <br />
+                            4. ssh user@[next-ip] (use root pwd from above)
+                            <br />
+                            5. sudo (use root pwd from above)
+                        </div>
+                    </div>
+                    <div className="bg-gray-900/50 p-1 rounded">
+                        <span className="text-yellow-400">Honeypot Files:</span>
+                        <div className="pl-2">
+                            /var/log/fake_auth.log (200-300 fake entries)
+                            <br />
+                            /tmp/password_dump.txt (200-300 fake passwords)
+                            <br />
+                            /tmp/ip_scan_results.txt (50 fake IPs)
+                            <br />
+                            /tmp/leaked_tokens.txt (fake tokens)
+                        </div>
+                    </div>
+                    <div className="bg-gray-900/50 p-1 rounded">
+                        <span className="text-yellow-400">Real Clue Files:</span>
+                        <div className="pl-2">
+                            /var/log/auth.log (real IP buried in logs)
+                            <br />
+                            ~/.bash_history (ssh commands to next node)
+                            <br />
+                            /home/user/* (password puzzle components)
+                        </div>
+                    </div>
                 </div>
             </div>
 

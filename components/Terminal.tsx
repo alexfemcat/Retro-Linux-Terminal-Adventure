@@ -273,8 +273,17 @@ nmap         nmap [ip] [-sV]         Scan for open ports/services.
 grep         grep [term] [file]      Search in file.
 ps           ps aux                  List processes.
 env          env                     List environment variables.
+uptime       uptime                  Show system uptime.
+date         date                    Show current date/time.
 clear        clear                   Clear screen.
-exit         exit                    Disconnect/Logout.`}
+exit         exit                    Disconnect/Logout.
+
+TIPS:
+- Clues are fragmented across files and nodes.
+- Use 'cat' on log files to find IPs and usernames.
+- Check .bash_history for ssh commands.
+- WARNING: Logs contain honeypot data. Real clues are buried.
+- Use 'nmap' to discover services, 'ssh' to pivot between nodes.`}
                     </div>
                 );
                 break;
@@ -455,8 +464,10 @@ exit         exit                    Disconnect/Logout.`}
                         }
                     });
                 } else {
+                    // For regular user login, use same password as root (simplified)
+                    // In a real system, each user would have their own password
                     promptPassword((pwd) => {
-                        if (pwd === 'user' || pwd === 'password' || pwd === 'admin') {
+                        if (pwd === sshTarget.rootPassword) {
                             attemptLogin(false);
                         } else {
                             setHistory(prev => [...prev, <div className="text-red-500">Permission denied, please try again.</div>]);
@@ -522,6 +533,23 @@ exit         exit                    Disconnect/Logout.`}
                 break;
             case 'pwd':
                 output = `/${currentPath.join('/')}`;
+                break;
+            case 'uptime':
+                const uptimeMs = Date.now() - gameState.bootTime;
+                const uptimeSec = Math.floor(uptimeMs / 1000);
+                const days = Math.floor(uptimeSec / 86400);
+                const hours = Math.floor((uptimeSec % 86400) / 3600);
+                const minutes = Math.floor((uptimeSec % 3600) / 60);
+                const bootDate = new Date(gameState.bootTime);
+                output = (
+                    <div>
+                        {bootDate.toLocaleTimeString()} up {days > 0 ? `${days} day${days > 1 ? 's' : ''}, ` : ''}{hours}:{minutes.toString().padStart(2, '0')}, 1 user, load average: 0.15, 0.10, 0.05
+                    </div>
+                );
+                break;
+            case 'date':
+                const now = new Date();
+                output = now.toString();
                 break;
             default:
                 output = `command not found: ${cmd}`;
