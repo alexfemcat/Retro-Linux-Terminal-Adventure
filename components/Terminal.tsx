@@ -1,11 +1,15 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { GameState, VFSNode, NetworkNode } from '../types';
+import type { GameState, VFSNode, NetworkNode, PlayerState } from '../types';
 
-interface TerminalProps {
+export interface TerminalProps {
     gameState: GameState;
     activeNode: NetworkNode;
+    playerState: PlayerState;
+    isMissionActive: boolean;
     onNodeChange: (index: number) => void;
     onWin: () => void;
+    onMissionAccept: (mission: any) => void;
+    onMissionAbort: () => void;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
     currentUser: 'user' | 'root';
@@ -123,8 +127,12 @@ const InputLine: React.FC<{
 export const Terminal: React.FC<TerminalProps> = ({
     gameState,
     activeNode,
+    playerState,
+    isMissionActive,
     onNodeChange,
     onWin,
+    onMissionAccept,
+    onMissionAbort,
     currentPath,
     setCurrentPath,
     currentUser,
@@ -149,9 +157,9 @@ export const Terminal: React.FC<TerminalProps> = ({
     // Helper to generate welcome message
     const getWelcomeLines = useCallback(() => {
         const welcomeLines = scenario.welcomeMessage.split('\n').map((line: string, i: number) => <div key={`welcome-${i}`}>{line}</div>);
-        const motd = activeNode.id === 'local' ? "Local Workstation" : `Connected to ${activeNode.hostname} (${activeNode.ip})`;
+        const motd = !isMissionActive ? "Homebase - Operating System v2.0" : `Connected to ${activeNode.hostname} (${activeNode.ip})`;
 
-        if (activeNode.id === 'local') {
+        if (!isMissionActive) {
             return [...welcomeLines, <div key="motd" className="text-gray-500 mb-2 mt-2 border-b border-gray-700">{motd}</div>];
         } else {
             return [<div key="motd" className="text-gray-500 mb-2 mt-2 border-b border-gray-700">{motd}</div>];
@@ -266,6 +274,8 @@ cd           cd [dir]                Changes directory.
 cat          cat [file]              Reads file content.
 pwd          pwd                     Current directory path.
 whoami       whoami                  Current user.
+jobs         jobs [accept <id>]      Browse/Accept missions (Homebase only).
+market       market [buy <id>]       Browse/Buy upgrades (Homebase only).
 sudo         sudo                    Gain root access.
 ssh          ssh [user]@[ip]         Connect to remote host.
 ping         ping [ip]               Check host availability.
@@ -278,6 +288,8 @@ uptime       uptime                  Show system uptime.
 date         date                    Show current date/time.
 clear        clear                   Clear screen.
 exit         exit                    Disconnect/Logout.
+abort        abort                   Abandon current mission (Remote only).
+disconnect   disconnect              Alias for abort.
 
 TIPS:
 - Clues are fragmented across files and nodes.
@@ -287,6 +299,53 @@ TIPS:
 - Use 'nmap' to discover services, 'ssh' to pivot between nodes.`}
                     </div>
                 );
+                break;
+            case 'jobs':
+                if (isMissionActive) {
+                    output = "Error: Jobs system unavailable while on remote mission.";
+                } else {
+                    if (args[0] === 'accept') {
+                        // For now, accept the first dummy mission
+                        output = "Mission accepted. Initiating connection...";
+                        setTimeout(() => onMissionAccept({}), 1000);
+                    } else {
+                        output = (
+                            <div className="text-yellow-400">
+                                <div>AVAILABLE CONTRACTS:</div>
+                                <div>----------------------------</div>
+                                <div>[1] OMNICORP_DATA_RECOVERY (Diff: 1, Reward: 500c)</div>
+                                <div>Usage: jobs accept 1</div>
+                            </div>
+                        );
+                    }
+                }
+                break;
+            case 'market':
+                if (isMissionActive) {
+                    output = "Error: Market unavailable while on remote mission.";
+                } else {
+                    output = (
+                        <div className="text-yellow-400">
+                            <div>SOFTWARE MARKET:</div>
+                            <div>----------------------------</div>
+                            <div>nmap: 500c - Network scanner</div>
+                            <div>hydra: 1500c - Brute force tool</div>
+                            <div className="mt-2">HARDWARE MARKET:</div>
+                            <div>----------------------------</div>
+                            <div>CPU_V2: 1000c - Faster execution</div>
+                            <div className="text-gray-500 italic mt-2">Usage: market buy [item_id] (Coming soon in Phase 2)</div>
+                        </div>
+                    );
+                }
+                break;
+            case 'abort':
+            case 'disconnect':
+                if (!isMissionActive) {
+                    output = "Error: You are already at your Homebase.";
+                } else {
+                    output = "Aborting mission... disconnecting...";
+                    setTimeout(() => onMissionAbort(), 1000);
+                }
                 break;
             case 'clear':
                 setHistory(getWelcomeLines());
@@ -651,6 +710,20 @@ TIPS:
                 }
             }}
         >
+            {/* System Status Bar */}
+            <div className="flex justify-between items-center border-b border-green-900/30 pb-2 mb-4 font-mono text-xs tracking-widest uppercase opacity-70">
+                <div className="flex gap-6">
+                    <span className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                        SYS: ONLINE
+                    </span>
+                    <span>MODE: {isMissionActive ? 'MISSION_OPS' : 'HOMEBASE'}</span>
+                </div>
+                <div className="text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                    BAL: {playerState.credits.toLocaleString()} CR
+                </div>
+            </div>
+
             <div className="flex-grow overflow-y-auto pr-2 pl-2 custom-scrollbar">
                 {history.map((line, i) => <div key={i} className="mb-1 leading-tight break-words">{line}</div>)}
                 <div ref={terminalEndRef} />

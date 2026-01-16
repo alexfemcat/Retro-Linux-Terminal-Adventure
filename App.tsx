@@ -1,46 +1,59 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './components/Terminal';
 import { puzzleGenerator } from './services/puzzleGenerator';
 import { DebugOverlay } from './components/DebugOverlay';
-import type { GameState } from './types';
+import TitleScreen from './components/TitleScreen';
+import type { GameState, PlayerState } from './types';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
+    const [playerState, setPlayerState] = useState<PlayerState | null>(null);
     const [gameId, setGameId] = useState<number>(1);
     const [gameWon, setGameWon] = useState<boolean>(false);
     const [winMessage, setWinMessage] = useState<React.ReactNode[]>([]);
-
-    // Path and User are now derived from the VALID Active Node, but for local state we
-    // might need to track them if they can change *per node*. 
-    // Actually, 'currentUser' and 'currentPath' are specific to the user's session 
-    // on that specific node.
-    // For simplicity, let's keep them as React state, but they reset when node changes?
-    // OR we store them IN the node state in GameState? 
-    // The plan said "Game Generation" creates nodes.
-    // Let's assume we maintain 'currentPath' and 'currentUser' for the *active view*.
+    const [showTitleScreen, setShowTitleScreen] = useState<boolean>(true);
+    const [isMissionActive, setIsMissionActive] = useState<boolean>(false);
 
     const [currentPath, setCurrentPath] = useState<string[]>(['home', 'user']);
     const [currentUser, setCurrentUser] = useState<'user' | 'root'>('user');
 
     const [showDebug, setShowDebug] = useState<boolean>(false);
 
-    const startNewGame = useCallback(() => {
-        const newGameState = puzzleGenerator.generateNewGame();
+    const startNewGame = useCallback((initialPlayerState: PlayerState) => {
+        // By default, start at Homebase
+        const newGameState = puzzleGenerator.generateHomebase(initialPlayerState);
         setGameState(newGameState);
+        setPlayerState(initialPlayerState);
+        setIsMissionActive(false);
 
-        // Reset view to local node (Index 0)
-        const localNode = newGameState.nodes[0];
         setCurrentPath(['home', 'user']);
-        setCurrentUser(localNode.currentUser || 'user');
+        setCurrentUser('user');
 
         setGameWon(false);
         setWinMessage([]);
         setGameId(id => id + 1);
     }, []);
 
-    useEffect(() => {
-        startNewGame();
+    const handleMissionAccept = useCallback((_missionConfig: any) => {
+        // Transition to Mission Mode
+        const missionGameState = puzzleGenerator.generateNetwork(); // For now, use existing generator
+        setGameState(missionGameState);
+        setIsMissionActive(true);
+
+        setCurrentPath(['home', 'user']);
+        setCurrentUser('user');
+        setGameId(id => id + 1); // Reset terminal history for mission
+    }, []);
+
+    const handleMissionAbort = useCallback(() => {
+        if (playerState) {
+            startNewGame(playerState);
+        }
+    }, [playerState, startNewGame]);
+
+    const handleGameLoad = useCallback((loadedPlayerState: PlayerState) => {
+        startNewGame(loadedPlayerState);
+        setShowTitleScreen(false);
     }, [startNewGame]);
 
     useEffect(() => {
@@ -53,7 +66,6 @@ const App: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
-    // Effect to handle Node Switching (e.g. if we add a callback for SSH later)
     useEffect(() => {
         if (gameState) {
             // In a real app we might want to persits path per node, but for now
@@ -86,7 +98,11 @@ const App: React.FC = () => {
         }, 300);
     };
 
-    if (!gameState) {
+    if (showTitleScreen) {
+        return <TitleScreen onGameLoad={handleGameLoad} />;
+    }
+
+    if (!gameState || !playerState) {
         return (
             <div className="flex items-center justify-center h-screen text-2xl">
                 Loading Retro Terminal Adventure...
@@ -120,7 +136,11 @@ const App: React.FC = () => {
                                 key={gameId}
                                 gameState={gameState} // Pass FULL gameState so Terminal can see all nodes for SSH/Ping
                                 activeNode={activeNode} // Explicitly pass active node
+                                playerState={playerState!}
+                                isMissionActive={isMissionActive}
                                 onWin={handleWin}
+                                onMissionAccept={handleMissionAccept}
+                                onMissionAbort={handleMissionAbort}
                                 currentPath={currentPath}
                                 setCurrentPath={setCurrentPath}
                                 currentUser={currentUser}
@@ -147,7 +167,7 @@ const App: React.FC = () => {
                         {winMessage}
                     </div>
                     <button
-                        onClick={startNewGame}
+                        onClick={() => startNewGame(playerState!)}
                         className="mt-8 px-6 py-2 border-2 border-[#33ff00] hover:bg-[#33ff00] hover:text-black transition-colors duration-300 text-xl font-bold uppercase tracking-wider"
                     >
                         Reboot System

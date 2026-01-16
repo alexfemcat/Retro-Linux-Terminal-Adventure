@@ -1,4 +1,4 @@
-import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition } from '../types';
+import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState } from '../types';
 import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens } from '../data/gameData';
 
 class PuzzleGenerator {
@@ -301,18 +301,18 @@ class PuzzleGenerator {
 
     private placeClues(node: NetworkNode, clues: { file: string, content: string }[]): void {
         const home = ((node.vfs.children['home'] as Directory).children['user'] as Directory);
-        
+
         // Create Documents/network_intel if needed
         if (!home.children['Documents']) {
-             home.children['Documents'] = { type: 'directory', name: 'Documents', children: {} };
+            home.children['Documents'] = { type: 'directory', name: 'Documents', children: {} };
         }
         const docs = home.children['Documents'] as Directory;
-        
+
         if (!docs.children['network_intel']) {
-             docs.children['network_intel'] = { type: 'directory', name: 'network_intel', children: {} };
+            docs.children['network_intel'] = { type: 'directory', name: 'network_intel', children: {} };
         }
         const intelDir = docs.children['network_intel'] as Directory;
-        
+
         clues.forEach(clue => {
             intelDir.children[clue.file] = { type: 'file', name: clue.file, content: clue.content };
         });
@@ -463,7 +463,7 @@ class PuzzleGenerator {
             ];
             this.generateBashHistory(userHome, clues);
         }
-        
+
         // For the last node, we still need bash history, but no next node clues
         const lastNode = nodes[nodes.length - 1];
         const lastUserHome = ((lastNode.vfs.children.home as Directory).children['user'] as Directory);
@@ -499,6 +499,80 @@ class PuzzleGenerator {
             activeNodeIndex: 0,
             winCondition,
             scenario: { ...scenario, welcomeMessage },
+            bootTime: Date.now()
+        };
+    }
+
+    public generateHomebase(playerState: PlayerState): GameState {
+        const homeNode: NetworkNode = {
+            id: 'localhost',
+            hostname: 'homebase',
+            ip: '127.0.0.1',
+            osVersion: 'RetroOS 2.0-stable',
+            themeColor: 'text-green-400',
+            vfs: {
+                type: 'directory',
+                name: '',
+                children: {
+                    home: {
+                        type: 'directory',
+                        name: 'home',
+                        children: {
+                            user: {
+                                type: 'directory',
+                                name: 'user',
+                                children: {
+                                    bin: { type: 'directory', name: 'bin', children: {} },
+                                    jobs: { type: 'directory', name: 'jobs', children: {} },
+                                    market: { type: 'directory', name: 'market', children: {} },
+                                    loot: { type: 'directory', name: 'loot', children: {} }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            processes: [],
+            envVars: {
+                USER: 'user',
+                HOME: '/home/user',
+                PATH: '/home/user/bin:/usr/bin:/bin',
+                SHELL: '/bin/bash'
+            },
+            ports: [],
+            isDiscovered: true,
+            currentUser: 'user'
+        };
+
+        // Fill ~/bin based on installed software
+        const userHome = ((homeNode.vfs.children.home as Directory).children.user as Directory);
+        const binDir = userHome.children.bin as Directory;
+        const software = playerState.installedSoftware || ['ls', 'cd', 'help', 'market', 'exit'];
+        software.forEach((soft: string) => {
+            binDir.children[soft] = { type: 'file', name: soft, content: '[BINARY]' };
+        });
+
+        // Add some dummy jobs for now (Phase 3 will generate these properly)
+        const jobsDir = userHome.children.jobs as Directory;
+        jobsDir.children['readme.txt'] = {
+            type: 'file',
+            name: 'readme.txt',
+            content: 'Check here for available contracts.\nUse "jobs" command to list active offers.'
+        };
+
+        return {
+            nodes: [homeNode],
+            activeNodeIndex: 0,
+            winCondition: { type: 'root_access', nodeId: 'none' }, // No win condition in homebase
+            scenario: {
+                theme: 'Homebase',
+                welcomeMessage: 'WELCOME TO RETRO-TERM v2.0\nType "help" for a list of commands.',
+                clueTemplate: () => '',
+                starterClueTemplate: () => '',
+                clueFileNameOptions: [],
+                distractionFiles: {},
+                distractionDirs: []
+            },
             bootTime: Date.now()
         };
     }

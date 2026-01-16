@@ -77,3 +77,35 @@ export interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
 }
+
+export interface HardwareSpecs {
+  cpu: { id: string; level: number; clockSpeed: number; cores: number };
+  ram: { id: string; level: number; capacity: number };
+  network: { id: string; level: number; bandwidth: number };
+  storage: { id: string; level: number; capacity: number };
+  cooling: { id: string; level: number; heatDissipation: number };
+}
+
+export interface PlayerState {
+  credits: number;
+  reputation: number; // XP / Security Clearance
+  installedSoftware: string[]; // List of binary IDs/names
+  inventory: VFSNode[]; // Stolen files/items
+  hardware: HardwareSpecs;
+  activeMissionId: string | null;
+}
+
+export interface SaveSlot {
+  id: string;
+  isEmpty: boolean;
+  playerState?: PlayerState; // Optional, present if not empty
+}
+
+export interface DatabaseSchema {
+  meta: {
+    version: string;
+  };
+  saves: {
+    [key: string]: SaveSlot;
+  };
+}
