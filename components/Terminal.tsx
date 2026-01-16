@@ -1,9 +1,10 @@
-
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { GameState, VFSNode } from '../types';
+import type { GameState, VFSNode, NetworkNode } from '../types';
 
 interface TerminalProps {
     gameState: GameState;
+    activeNode: NetworkNode;
+    onNodeChange: (index: number) => void;
     onWin: () => void;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
@@ -18,83 +19,17 @@ const getPathDisplay = (currentPath: string[]) => {
     return path;
 };
 
-const OverdriveSequence: React.FC<{
-    requirements: { type: string, label: string, target: string, provided: string, success: boolean, failReason: string }[],
-    onResult: (success: boolean) => void
-}> = ({ requirements, onResult }) => {
-    const [lines, setLines] = useState<string[]>([]);
-
-    useEffect(() => {
-        let isCancelled = false;
-        const run = async () => {
-            setLines(["INITIALIZING OVERDRIVE BYPASS..."]);
-            await new Promise(r => setTimeout(r, 800));
-            if (isCancelled) return;
-
-            for (let i = 0; i < requirements.length; i++) {
-                const req = requirements[i];
-
-                for (let j = 0; j < 6; j++) {
-                    const randomHex = Math.floor(Math.random() * 0xFFFFFF).toString(16).toUpperCase().padStart(6, '0');
-                    setLines(prev => {
-                        const next = [...prev];
-                        next[i + 1] = `SYNCING ${req.label} STREAM: 0x${randomHex}`;
-                        return next;
-                    });
-                    await new Promise(r => setTimeout(r, 100));
-                    if (isCancelled) return;
-                }
-
-                if (req.success) {
-                    setLines(prev => {
-                        const next = [...prev];
-                        const hexVal = isNaN(parseInt(req.target)) ? 'DATA' : `0x${parseInt(req.target).toString(16).toUpperCase().padStart(6, '0')}`;
-                        next[i + 1] = `SYNCING ${req.label} STREAM: [OK] - ${hexVal}`;
-                        return next;
-                    });
-                    await new Promise(r => setTimeout(r, 500));
-                } else {
-                    setLines(prev => {
-                        const next = [...prev];
-                        next[i + 1] = `SYNCING ${req.label} STREAM: [FAILED]`;
-                        next.push(`CRITICAL ERROR: ${req.failReason}`);
-                        return next;
-                    });
-                    await new Promise(r => setTimeout(r, 1000));
-                    onResult(false);
-                    return;
-                }
-            }
-
-            setLines(prev => [...prev, "PHASE SHIFT COMPLETED. BREAKING ENCRYPTION..."]);
-            await new Promise(r => setTimeout(r, 1000));
-            onResult(true);
-        };
-
-        run();
-        return () => { isCancelled = true; };
-    }, [requirements, onResult]);
-
-    return (
-        <div className="font-mono text-sm border-l-2 border-yellow-500/50 pl-4 py-2 bg-yellow-500/5 my-2">
-            {lines.map((l, i) => (
-                <div key={i} className={l.includes('[OK]') ? 'text-green-400' : (l.includes('[FAILED]') || l.includes('ERROR') ? 'text-red-500' : 'text-yellow-400')}>
-                    {l}
-                </div>
-            ))}
-        </div>
-    );
-};
-
 const InputLine: React.FC<{
     currentPath: string[];
     currentUser: 'user' | 'root';
+    hostname: string;
     onSubmit: (command: string) => void;
     onTab: (value: string, setValue: (v: string) => void) => void;
     getCompletion: (value: string) => string | null;
     inputRef: React.RefObject<HTMLInputElement>;
     commandHistory: string[];
-}> = ({ currentPath, currentUser, onSubmit, onTab, getCompletion, inputRef, commandHistory }) => {
+    isPasswordInput: boolean;
+}> = ({ currentPath, currentUser, hostname, onSubmit, onTab, getCompletion, inputRef, commandHistory, isPasswordInput }) => {
     const [value, setValue] = useState('');
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -111,21 +46,21 @@ const InputLine: React.FC<{
     };
 
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === 'Tab') {
+        if (e.key === 'Tab' && !isPasswordInput) {
             e.preventDefault();
             if (suggestion) {
                 setValue(suggestion + (suggestion.endsWith('/') ? '' : ' '));
             } else {
                 onTab(value, setValue);
             }
-        } else if (e.key === 'ArrowUp') {
+        } else if (e.key === 'ArrowUp' && !isPasswordInput) {
             e.preventDefault();
             if (commandHistory.length > 0) {
                 const newIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
                 setHistoryIndex(newIndex);
                 setValue(commandHistory[commandHistory.length - 1 - newIndex]);
             }
-        } else if (e.key === 'ArrowDown') {
+        } else if (e.key === 'ArrowDown' && !isPasswordInput) {
             e.preventDefault();
             if (historyIndex > 0) {
                 const newIndex = historyIndex - 1;
@@ -142,16 +77,23 @@ const InputLine: React.FC<{
 
     return (
         <form onSubmit={handleSubmit} className="flex w-full">
-            <label htmlFor="command-input" className="flex-shrink-0">
-                <span className="text-green-400">{currentUser}@localhost</span>
-                <span className="text-gray-400">:</span>
-                <span className="text-blue-400">{pathString}</span>
-                <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
-            </label>
+            {!isPasswordInput && (
+                <label htmlFor="command-input" className="flex-shrink-0 mr-2">
+                    <span className="text-green-400">{currentUser}@{hostname}</span>
+                    <span className="text-gray-400">:</span>
+                    <span className="text-blue-400">{pathString}</span>
+                    <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
+                </label>
+            )}
+            {isPasswordInput && (
+                <label htmlFor="command-input" className="flex-shrink-0 mr-2">
+                    <span className="text-white">Password: </span>
+                </label>
+            )}
             <div className="flex-grow relative overflow-hidden h-6">
-                {suggestion && suggestion.startsWith(value) && value.length > 0 && (
+                {!isPasswordInput && suggestion && suggestion.startsWith(value) && value.length > 0 && (
                     <div
-                        className="absolute left-0 top-0 pl-2 text-gray-500 pointer-events-none whitespace-pre z-0"
+                        className="absolute left-0 top-0 pl-0 text-gray-500 pointer-events-none whitespace-pre z-0"
                         style={{ textShadow: 'none' }}
                     >
                         {suggestion}
@@ -160,8 +102,8 @@ const InputLine: React.FC<{
                 <input
                     ref={inputRef}
                     id="command-input"
-                    type="text"
-                    className="absolute left-0 top-0 w-full bg-transparent border-none outline-none pl-2 text-inherit z-10"
+                    type={isPasswordInput ? "password" : "text"}
+                    className="absolute left-0 top-0 w-full bg-transparent border-none outline-none pl-0 text-inherit z-10"
                     value={value}
                     onChange={(e) => setValue(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -171,7 +113,7 @@ const InputLine: React.FC<{
                     autoCorrect="off"
                 />
             </div>
-            <div className="w-2 h-6 bg-[#33ff00] blinking-cursor shrink-0"></div>
+            {!isPasswordInput && <div className="w-2 h-6 bg-[#33ff00] blinking-cursor shrink-0"></div>}
         </form >
     );
 };
@@ -179,6 +121,8 @@ const InputLine: React.FC<{
 
 export const Terminal: React.FC<TerminalProps> = ({
     gameState,
+    activeNode,
+    onNodeChange,
     onWin,
     currentPath,
     setCurrentPath,
@@ -187,89 +131,73 @@ export const Terminal: React.FC<TerminalProps> = ({
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
-    const [isSudoEntering, setIsSudoEntering] = useState<boolean>(false);
-    const [failedAttempts, setFailedAttempts] = useState<number>(0);
-    const [isLockedOut, setIsLockedOut] = useState<boolean>(false);
+
+    // Generalized Input State
+    const [inputMode, setInputMode] = useState<'command' | 'password'>('command');
+    const [passwordCallback, setPasswordCallback] = useState<((pwd: string) => void) | null>(null);
+
+    const [isLockedOut] = useState<boolean>(false);
+    const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
-    const { vfs, scenario, objective, rootPassword, bootTime, processes, envVars } = gameState;
+    const { vfs, processes, envVars, hostname, themeColor } = activeNode;
+    const { scenario } = gameState;
 
+    // Helper to generate welcome message
+    const getWelcomeLines = useCallback(() => {
+        const welcomeLines = scenario.welcomeMessage.split('\n').map((line: string, i: number) => <div key={`welcome-${i}`}>{line}</div>);
+        const motd = activeNode.id === 'local' ? "Local Workstation" : `Connected to ${activeNode.hostname} (${activeNode.ip})`;
+
+        if (activeNode.id === 'local') {
+            return [...welcomeLines, <div key="motd" className="text-gray-500 mb-2 mt-2 border-b border-gray-700">{motd}</div>];
+        } else {
+            return [<div key="motd" className="text-gray-500 mb-2 mt-2 border-b border-gray-700">{motd}</div>];
+        }
+    }, [activeNode.id, activeNode.hostname, activeNode.ip, scenario.welcomeMessage]);
+
+    // Initial Welcome
     useEffect(() => {
-        const welcomeLines = scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-${i}`}>{line}</div>);
-        setHistory(welcomeLines);
-    }, [scenario.welcomeMessage]);
+        if (history.length === 0) {
+            setHistory(getWelcomeLines());
+        }
+    }, [getWelcomeLines]);
 
     useEffect(() => {
         terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [history, isLockedOut]);
-
-    const handleLockout = useCallback(() => {
-        setIsLockedOut(true);
-        setHistory(prev => [...prev, <div key={Date.now()} className="text-red-600 font-bold blink">{">>>"} TERMINAL LOCKOUT INITIATED. TOO MANY FAILED OVERDRIVES. REBOOTING...</div>]);
-        setTimeout(() => {
-            setHistory([]);
-            setIsLockedOut(false);
-            setFailedAttempts(0);
-            setHistory([<div key="reboot">SYSTEM REBOOT... OK.</div>, ...scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-re-${i}`}>{line}</div>)]);
-        }, 10000);
-    }, [scenario.welcomeMessage]);
+    }, [history, isLockedOut, inputMode]);
 
     const resolvePath = useCallback((pathStr: string): string[] | null => {
         if (!pathStr) return currentPath;
-
         let effectivePathStr = pathStr;
         if (pathStr.startsWith('~')) {
             effectivePathStr = pathStr.replace('~', '/home/user');
         }
-
         const parts = effectivePathStr.split('/').filter(p => p);
-        let newPath: string[] = [];
-
-        if (effectivePathStr.startsWith('/')) {
-            newPath = [];
-        } else {
-            newPath = [...currentPath];
-        }
+        let newPath: string[] = effectivePathStr.startsWith('/') ? [] : [...currentPath];
 
         for (const part of parts) {
-            if (part === '.') {
-                continue;
-            } else if (part === '..') {
-                if (newPath.length > 0) {
-                    newPath.pop();
-                }
+            if (part === '.') continue;
+            else if (part === '..') {
+                if (newPath.length > 0) newPath.pop();
             } else {
                 newPath.push(part);
             }
         }
-
-        // Validate path
-        // Validate path and resolve case-insensitivity
+        // Validate
         let node: VFSNode = vfs;
         const validPath: string[] = [];
-
         for (const part of newPath) {
             if (node.type !== 'directory') return null;
-
             if (node.children[part]) {
                 node = node.children[part];
                 validPath.push(part);
             } else {
-                // Try case-insensitive match
-                const lowerPart = part.toLowerCase();
-                const match: string | undefined = Object.keys(node.children).find(k => k.toLowerCase() === lowerPart);
-                if (match) {
-                    node = node.children[match];
-                    validPath.push(match);
-                } else {
-                    return null; // Invalid path
-                }
+                return null; // Strict for now, or add case-insensitivity back if needed
             }
         }
-
         return validPath;
-
     }, [currentPath, vfs]);
 
     const getNodeByPath = useCallback((path: string[]): VFSNode | null => {
@@ -284,342 +212,327 @@ export const Terminal: React.FC<TerminalProps> = ({
         return node;
     }, [vfs]);
 
-    const processCommand = (command: string) => {
-        if (isLockedOut) return;
+    const promptPassword = (callback: (pwd: string) => void) => {
+        setInputMode('password');
+        setPasswordCallback(() => callback);
+    };
 
-        const trimmedCommand = command.trim();
-        if (!isSudoEntering && trimmedCommand) {
-            setCommandHistory(prev => [...prev, trimmedCommand]);
-        }
+    const processCommand = async (command: string) => {
+        if (isLockedOut || isTransitioning) return;
 
-        if (isSudoEntering) {
-            setIsSudoEntering(false);
-            if (trimmedCommand === rootPassword) {
-                setCurrentUser('root');
-                setHistory(prev => [...prev, <div key={Date.now() + 1} className="text-yellow-400">Access granted. You are now root.</div>]);
-            } else {
-                setHistory(prev => [...prev, <div key={Date.now() + 1} className="text-red-500">Sorry, try again.</div>]);
+        // Handle Password Input
+        if (inputMode === 'password') {
+            if (passwordCallback) {
+                setInputMode('command');
+                setPasswordCallback(null);
+                passwordCallback(command);
             }
             return;
         }
 
-        const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
-        let output: React.ReactNode = `command not found: ${cmd}`;
-
-        if (!cmd) {
-            output = null;
+        const trimmedCommand = command.trim();
+        if (trimmedCommand) {
+            setCommandHistory(prev => [...prev, trimmedCommand]);
+            // Echo the command
+            const pathString = getPathDisplay(currentPath);
+            setHistory(prev => [...prev, (
+                <div key={Date.now()} className="flex">
+                    <span className="text-green-400">{currentUser}@{hostname}</span>
+                    <span className="text-gray-400">:</span>
+                    <span className="text-blue-400">{pathString}</span>
+                    <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
+                    <span className="pl-2">{trimmedCommand}</span>
+                </div>
+            )]);
         } else {
-            switch (cmd) {
-                case 'help':
-                    const helpText = `
+            return;
+        }
+
+        const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
+        let output: React.ReactNode | null = null;
+
+
+        switch (cmd) {
+            case 'help':
+                output = (
+                    <div className="whitespace-pre-wrap text-yellow-300">
+                        {`
 COMMAND      USAGE                   DESCRIPTION
 ----------------------------------------------------------------------------
-help         help                    Shows this list of commands.
-ls           ls [-a]                 Lists files and directories.
-cd           cd [directory]          Changes directory.
-cat          cat [file]              Displays the content of a file.
-pwd          pwd                     Prints the current working directory.
-whoami       whoami                  Print the current user name.
-sudo         sudo                    Gain root privileges.
-grep         grep [term] [file]      Searches for a specific 'term'.
-ps           ps aux                  Lists running processes.
-env          env                     Lists environment variables.
-uptime       uptime                  Shows system running time.
-date         date                    Shows current system date.
-overdrive    overdrive [file] [flags] Attempts to decrypt a file using system state.
-             --use-pid [PID]         Decrypt using a Process ID.
-             --use-time [VAL]        Decrypt using a Time value.
-             --use-env [VAL]         Decrypt using an Env Var value.
-clear        clear                   Clears the terminal screen.`;
-                    output = <div className="whitespace-pre-wrap">{helpText.trim()}</div>;
-                    break;
-                case 'whoami':
-                    output = currentUser;
-                    break;
-                case 'sudo':
-                    setIsSudoEntering(true);
-                    output = "[sudo] password for user: ";
-                    break;
-                case 'clear':
-                    setHistory(scenario.welcomeMessage.split('\n').map((line, i) => <div key={`welcome-clr-${i}-${Date.now()}`}>{line}</div>));
-                    output = null;
-                    break;
-                case 'pwd':
-                    output = `/${currentPath.join('/')}`;
-                    break;
-                case 'date':
-                    output = new Date().toString();
-                    break;
-                case 'uptime':
-                    const diff = Date.now() - (bootTime || Date.now());
-                    const hours = Math.floor(diff / 3600000);
-                    const minutes = Math.floor((diff % 3600000) / 60000);
-                    output = `up ${hours} hours, ${minutes} minutes`;
-                    break;
-                case 'ps':
-                    if (args[0] === 'aux' || args.length === 0) {
+help         help                    Shows this list.
+ls           ls [-a]                 Lists files.
+cd           cd [dir]                Changes directory.
+cat          cat [file]              Reads file content.
+pwd          pwd                     Current directory path.
+whoami       whoami                  Current user.
+sudo         sudo                    Gain root access.
+ssh          ssh [user]@[ip]         Connect to remote host.
+ping         ping [ip]               Check host availability.
+ip           ip a                    Show network interfaces.
+nmap         nmap [ip] [-sV]         Scan for open ports/services.
+grep         grep [term] [file]      Search in file.
+ps           ps aux                  List processes.
+env          env                     List environment variables.
+clear        clear                   Clear screen.
+exit         exit                    Disconnect/Logout.`}
+                    </div>
+                );
+                break;
+            case 'clear':
+                setHistory(getWelcomeLines());
+                return;
+            case 'ls':
+                const lsNode = getNodeByPath(currentPath);
+                if (lsNode?.type === 'directory') {
+                    if (lsNode.permissions === 'root' && currentUser !== 'root') {
+                        output = `ls: cannot open directory '.': Permission denied`;
+                    } else {
+                        const showHidden = args.includes('-a');
+                        const children = Object.keys(lsNode.children).filter(name => showHidden || !name.startsWith('.'));
                         output = (
-                            <div className="whitespace-pre-wrap">
-                                <div className="text-gray-400 border-b border-gray-600 mb-1">USER       PID %CPU %MEM    START   COMMAND</div>
-                                {(processes || []).map(p => (
-                                    <div key={p.pid} className="grid grid-cols-[80px_60px_60px_60px_80px_1fr]">
-                                        <span>{p.user}</span>
-                                        <span>{p.pid}</span>
-                                        <span>{p.cpu.toFixed(1)}</span>
-                                        <span>{p.mem.toFixed(1)}</span>
-                                        <span>{p.start}</span>
-                                        <span>{p.command}</span>
-                                    </div>
-                                ))}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-sm">
+                                {children.map(name => {
+                                    const child = (lsNode as any).children[name];
+                                    const isDir = child.type === 'directory';
+                                    return (
+                                        <div key={name} style={{ textShadow: 'none' }} className={`${isDir ? 'text-blue-400 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70' : ''}`}>
+                                            {name}{isDir ? '/' : ''}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         );
-                    } else {
-                        output = `ps: unsupported option '${args[0]}'. Try 'ps aux'`;
                     }
-                    break;
-                case 'env':
+                }
+                break;
+            case 'cd':
+                const targetPath = resolvePath(args[0] || '/home/user');
+                if (targetPath) {
+                    const tNode = getNodeByPath(targetPath);
+                    if (tNode?.type === 'directory') {
+                        if (tNode.permissions === 'root' && currentUser !== 'root') {
+                            output = `-bash: cd: ${args[0]}: Permission denied`;
+                        } else {
+                            setCurrentPath(targetPath);
+                        }
+                    } else {
+                        output = `-bash: cd: ${args[0]}: Not a directory`;
+                    }
+                } else {
+                    output = `-bash: cd: ${args[0]}: No such file or directory`;
+                }
+                break;
+            case 'cat':
+                const catPath = resolvePath(args[0]);
+                if (catPath) {
+                    const fNode = getNodeByPath(catPath);
+                    if (fNode?.type === 'file') {
+                        if (fNode.permissions === 'root' && currentUser !== 'root') {
+                            output = `cat: ${args[0]}: Permission denied`;
+                        } else {
+                            output = <div className="whitespace-pre-wrap">{fNode.content}</div>;
+                            // Check Win Condition: File Found
+                            if (gameState.winCondition.type === 'file_found' &&
+                                activeNode.id === gameState.winCondition.nodeId &&
+                                fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
+                                // Verify full path if strictly required, but usually filename in correct node is enough if uniques
+                                onWin();
+                            }
+                        }
+                    } else {
+                        output = `cat: ${args[0]}: Is a directory`;
+                    }
+                } else {
+                    output = `cat: ${args[0]}: No such file or directory`;
+                }
+                break;
+            case 'ping':
+                if (!args[0]) { output = "usage: ping [ip]"; break; }
+                const targetIp = args[0];
+                const targetNode = gameState.nodes.find(n => n.ip === targetIp);
+                if (targetNode) {
+                    output = (
+                        <div>
+                            PING {targetIp} ({targetIp}) 56(84) bytes of data.<br />
+                            64 bytes from {targetIp}: icmp_seq=1 ttl=64 time=0.045 ms<br />
+                            64 bytes from {targetIp}: icmp_seq=2 ttl=64 time=0.032 ms<br />
+                            64 bytes from {targetIp}: icmp_seq=3 ttl=64 time=0.038 ms<br />
+                            --- {targetIp} ping statistics ---<br />
+                            3 packets transmitted, 3 received, 0% packet loss, time 2048ms
+                        </div>
+                    );
+                } else {
+                    output = `ping: use_of_closed_network_range: Destination Host Unreachable`;
+                }
+                break;
+            case 'ip':
+                if (args[0] === 'a' || args[0] === 'addr') {
                     output = (
                         <div className="whitespace-pre-wrap">
-                            {Object.entries(envVars || {}).map(([k, v]) => (
-                                <div key={k}>{k}={v}</div>
-                            ))}
+                            {`1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+2: eth0: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc fq_codel state UP group default qlen 1000
+    link/ether 52:54:00:12:34:56 brd ff:ff:ff:ff:ff:ff
+    inet ${activeNode.ip}/24 brd 192.168.1.255 scope global dynamic eth0
+       valid_lft 86324sec preferred_lft 86324sec`}
                         </div>
                     );
-                    break;
-                case 'ls':
-                    const node = getNodeByPath(currentPath);
-                    if (node?.type === 'directory') {
-                        if (node.permissions === 'root' && currentUser !== 'root') {
-                            output = `ls: cannot open directory '.': Permission denied`;
-                            break;
-                        }
+                } else {
+                    output = "Usage: ip a";
+                }
+                break;
+            case 'nmap':
+                if (!args[0]) { output = "usage: nmap [ip]"; break; }
+                const nmapIp = args[0];
+                const nmapTarget = gameState.nodes.find(n => n.ip === nmapIp);
 
-                        const showHidden = args.includes('-a');
-                        let children = (Object.values(node.children) as VFSNode[]);
+                if (nmapTarget) {
+                    setHistory(prev => [...prev, <div key="scan">Starting Nmap 7.92 ( https://nmap.org ) at {new Date().toISOString()}...</div>]);
 
-                        if (showHidden) {
-                            const hiddenEntries: VFSNode[] = [
-                                { name: '.', type: 'directory', children: {} },
-                                { name: '..', type: 'directory', children: {} },
-                            ];
-                            children = [...hiddenEntries, ...children];
-                        } else {
-                            children = children.filter(child => !child.name.startsWith('.'));
-                        }
-
-                        output = (
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 w-full">
-                                {children.map(child => (
-                                    <div
-                                        key={child.name}
-                                        className={`${child.type === 'directory' ? 'text-cyan-300 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70 italic' : ''} break-all`}
-                                        title={child.name}
-                                        style={{ textShadow: child.type === 'directory' ? '0 0 5px currentColor' : '0 0 5px rgba(255,255,255,0.5)' }}
-                                    >
-                                        {child.name}{child.type === 'directory' ? '/' : ''}{child.permissions === 'root' ? '*' : ''}
-                                    </div>
-                                ))}
+                    setTimeout(() => {
+                        const portLines = nmapTarget.ports.map(p =>
+                            `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${args.includes('-sV') ? p.version : ''}`
+                        );
+                        const result = (
+                            <div className="whitespace-pre-wrap text-blue-300">
+                                {`Nmap scan report for ${nmapTarget.hostname} (${nmapIp})`}
+                                <br />Host is up (0.0003s latency).
+                                <br />PORT     STATE SERVICE      VERSION
+                                <br />{portLines.join('\n')}
+                                <br /><br />Nmap done: 1 IP address (1 host up) scanned in 1.52 seconds
                             </div>
                         );
-                    } else {
-                        output = `ls: cannot access '${currentPath.join('/')}': Not a directory`;
-                    }
+                        setHistory(prev => [...prev, result]);
+                    }, 1500);
+                    return; // Async handled above
+                } else {
+                    output = `Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn`;
+                }
+                break;
+            case 'ssh':
+                if (!args[0]) { output = "usage: ssh [user]@[ip]"; break; }
+                const [userStr, ipStr] = args[0].split('@');
+                if (!userStr || !ipStr) { output = "usage: ssh [user]@[ip]"; break; }
+
+                const sshTarget = gameState.nodes.find(n => n.ip === ipStr);
+                const sshTargetIndex = gameState.nodes.findIndex(n => n.ip === ipStr);
+
+                if (!sshTarget) {
+                    output = `ssh: connect to host ${ipStr} port 22: Connection refused`;
                     break;
-                case 'cd':
-                    // Update resolvePath inside the component or its definition to handle case-insensitivity
-                    // Note: Since I can only edit this block, I will assume resolvePath is updated in the next separate edit or I must update the function definition above.
-                    // Wait, I am editing the 'ls' command block here.
-                    const targetPath = resolvePath(args[0] || '/home/user');
-                    if (targetPath) {
-                        const targetNode = getNodeByPath(targetPath);
-                        if (targetNode && targetNode.type === 'directory') {
-                            if (targetNode.permissions === 'root' && currentUser !== 'root') {
-                                output = `-bash: cd: ${args[0]}: Permission denied`;
+                }
+
+                if (!sshTarget.ports.some(p => p.port === 22 && p.isOpen)) {
+                    output = `ssh: connect to host ${ipStr} port 22: Connection refused`;
+                    break;
+                }
+
+                setHistory(prev => [...prev, <div>The authenticity of host '{ipStr}' can't be established.<br />ED25519 key fingerprint is SHA256:randomHashesHere...<br />Connecting...</div>]);
+
+                const attemptLogin = (_isRoot: boolean) => {
+                    // Start glitch animation
+                    setIsTransitioning(true);
+                    setTimeout(() => {
+                        setIsTransitioning(false);
+                        onNodeChange(sshTargetIndex);
+                        setHistory([]);
+                    }, 1000);
+                };
+
+                if (userStr === 'root') {
+                    // Prompt for root password
+                    promptPassword((pwd) => {
+                        if (pwd === sshTarget.rootPassword) {
+                            if (gameState.winCondition.type === 'root_access' && gameState.winCondition.nodeId === sshTarget.id) {
+                                onWin();
                             } else {
-                                setCurrentPath(targetPath);
-                                output = null;
+                                attemptLogin(true);
                             }
                         } else {
-                            output = `cd: no such file or directory: ${args[0]}`;
+                            setHistory(prev => [...prev, <div className="text-red-500">Permission denied, please try again.</div>]);
                         }
-                    } else {
-                        output = `cd: no such file or directory: ${args[0]}`;
-                    }
-                    break;
-                case 'cat':
-                    const catPath = resolvePath(args[0]);
-                    if (catPath) {
-                        const fileNode = getNodeByPath(catPath);
-                        if (fileNode?.type === 'file') {
-                            if (fileNode.permissions === 'root' && currentUser !== 'root') {
-                                output = `cat: ${args[0]}: Permission denied`;
-                            } else if (fileNode.isEncrypted) {
-                                const hints = fileNode.encryption?.requirements.map(r => r.hint).filter(Boolean);
-                                output = (
-                                    <div className="text-red-400">
-                                        <div>Error: File '${args[0]}' is encrypted.</div>
-                                        <div>Access Control: ACTIVE</div>
-                                        <div className="mt-2 text-gray-400">
-                                            {hints?.map((h, i) => <div key={i}>- {h}</div>)}
-                                        </div>
-                                        <div className="mt-2 italic">Use 'overdrive' to attempt decryption.</div>
-                                    </div>
-                                );
-                            } else {
-                                output = <div className="whitespace-pre-wrap">{fileNode.content}</div>;
-                                const isWin = fileNode.name === objective.fileName && JSON.stringify(catPath.slice(0, -1)) === JSON.stringify(objective.filePath);
-                                if (isWin) {
-                                    onWin();
-                                }
-                            }
-                        } else {
-                            output = `cat: ${args[0]}: Is a directory or does not exist`;
-                        }
-                    } else {
-                        output = `cat: ${args[0]}: No such file or directory`;
-                    }
-                    break;
-                case 'overdrive':
-                    if (args.length < 2) {
-                        output = "Usage: overdrive [file] [--use-pid <PID> | --use-time <VAL> | --use-env <VAL>]";
-                        break;
-                    }
-
-                    const odFilePath = resolvePath(args[0]);
-                    if (!odFilePath) {
-                        output = `overdrive: ${args[0]}: No such file or directory.`;
-                        break;
-                    }
-
-                    const fileNode = getNodeByPath(odFilePath);
-                    if (fileNode?.type !== 'file' || !fileNode.isEncrypted || !fileNode.encryption) {
-                        output = `overdrive: ${args[0]}: File is not encrypted or is not a processable data stream.`;
-                        break;
-                    }
-
-                    // Extract all flags
-                    const providedFlags: Record<string, string> = {};
-                    for (let i = 1; i < args.length; i++) {
-                        if (args[i].startsWith('--use-') && args[i + 1]) {
-                            providedFlags[args[i]] = args[i + 1];
-                        }
-                    }
-
-                    const reqs = fileNode.encryption.requirements;
-                    const results = reqs.map(req => {
-                        const flag = `--use-${req.type}`;
-                        const providedValue = providedFlags[flag];
-                        const isMatch = providedValue?.toString() === req.targetValue.toString();
-
-                        let failReason = "KEY_MISMATCH";
-                        // Custom logic for "Almost correct" feedback
-                        if (!isMatch && providedValue) {
-                            if (req.transformation?.type === 'offset') {
-                                // Check if they provided the base PID instead of transformed
-                                const basePid = (req.targetValue as number) - (req.transformation.value as number);
-                                if (providedValue === basePid.toString()) failReason = "OFFSET_ERROR_DETECTED: STACK_POINTER_MISMATCH";
-                            } else if (req.transformation?.type === 'slice') {
-                                // Check if they provided the whole env var
-                                const fullEnv = Object.values(envVars).find(v => v === providedValue);
-                                if (fullEnv && fullEnv.startsWith(req.targetValue as string)) failReason = "SLICE_ERROR: BUFFER_LENGTH_EXCEEDED";
-                            }
-                        }
-
-                        return {
-                            type: req.type,
-                            label: req.type.toUpperCase(),
-                            target: req.targetValue.toString(),
-                            provided: providedValue || "",
-                            success: isMatch,
-                            failReason
-                        };
                     });
-
-                    // Start Animation sequence
-                    output = (
-                        <div className="mt-2">
-                            <OverdriveSequence
-                                requirements={results}
-                                onResult={(success) => {
-                                    if (success) {
-                                        fileNode.isEncrypted = false;
-                                        setFailedAttempts(0);
-                                        setHistory(prev => [...prev, (
-                                            <div className="text-green-400 font-bold mb-4">
-                                                {">>>"} CRITICAL OVERRIDE SUCCESSFUL. DATA STREAM DECRYPTED.
-                                                <div className="whitespace-pre-wrap pl-4 border-l-2 border-green-500 mt-2 text-white font-normal">
-                                                    {fileNode.content}
-                                                </div>
-                                            </div>
-                                        )]);
-                                        const isWin = fileNode.name === objective.fileName && JSON.stringify(odFilePath.slice(0, -1)) === JSON.stringify(objective.filePath);
-                                        if (isWin) onWin();
-                                    } else {
-                                        const newFails = failedAttempts + 1;
-                                        setFailedAttempts(newFails);
-                                        const firstFail = results.find(r => !r.success);
-                                        setHistory(prev => [...prev, (
-                                            <div className="text-red-500 mb-4">
-                                                {">>>"} OVERDRIVE FAILURE: {firstFail?.failReason || "CORE_SYNC_LOST"}
-                                                <div className="text-sm italic">Attempt {newFails}/3 before lockout.</div>
-                                            </div>
-                                        )]);
-                                        if (newFails >= 3) handleLockout();
-                                    }
-                                }}
-                            />
-                        </div>
-                    );
-                    break;
-                case 'grep':
-                    if (args.length < 2) {
-                        output = 'usage: grep [term] [file]';
-                        break;
-                    }
-                    const [term, ...fileParts] = args;
-                    const grepPath = resolvePath(fileParts.join(' '));
-                    if (grepPath) {
-                        const fileNode = getNodeByPath(grepPath);
-                        if (fileNode?.type === 'file') {
-                            if (fileNode.permissions === 'root' && currentUser !== 'root') {
-                                output = `grep: ${fileParts.join(' ')}: Permission denied`;
-                            } else if (fileNode.isEncrypted) {
-                                output = `grep: ${fileParts.join(' ')}: Binary file (encrypted) matches`;
-                            } else {
-                                const matchingLines = fileNode.content.split('\n').filter(line => line.includes(term));
-                                output = <div className="whitespace-pre-wrap">{matchingLines.join('\n')}</div>;
-                            }
+                } else {
+                    promptPassword((pwd) => {
+                        if (pwd === 'user' || pwd === 'password' || pwd === 'admin') {
+                            attemptLogin(false);
                         } else {
-                            output = `grep: ${fileParts.join(' ')}: Is a directory or does not exist`;
+                            setHistory(prev => [...prev, <div className="text-red-500">Permission denied, please try again.</div>]);
+                        }
+                    });
+                }
+                return;
+            case 'exit':
+                if (activeNode.id !== 'local') {
+                    // Return to local
+                    setIsTransitioning(true);
+                    setTimeout(() => {
+                        setIsTransitioning(false);
+                        onNodeChange(0); // 0 is always local
+                        setHistory([]);
+                    }, 800);
+                } else {
+                    output = "logout";
+                }
+                break;
+            case 'sudo':
+                promptPassword((pwd) => {
+                    if (pwd === activeNode.rootPassword) {
+                        setCurrentUser('root');
+                        if (gameState.winCondition.type === 'root_access' && gameState.winCondition.nodeId === activeNode.id) {
+                            onWin();
+                        } else {
+                            setHistory(prev => [...prev, <div className="text-yellow-400">sudo: root access granted.</div>]);
                         }
                     } else {
-                        output = `grep: ${fileParts.join(' ')}: No such file or directory`;
+                        setHistory(prev => [...prev, <div className="text-red-500">Sorry, try again.</div>]);
                     }
-                    break;
-            }
+                });
+                return;
+            case 'ps':
+                output = (
+                    <div className="whitespace-pre-wrap">
+                        <div className="text-gray-400 border-b border-gray-600 mb-1">USER       PID %CPU %MEM    START   COMMAND</div>
+                        {(processes || []).map(p => (
+                            <div key={p.pid} className="grid grid-cols-[80px_60px_60px_60px_80px_1fr]">
+                                <span>{p.user}</span>
+                                <span>{p.pid}</span>
+                                <span>{p.cpu.toFixed(1)}</span>
+                                <span>{p.mem.toFixed(1)}</span>
+                                <span>{p.start}</span>
+                                <span>{p.command}</span>
+                            </div>
+                        ))}
+                    </div>
+                );
+                break;
+            case 'env':
+                output = (
+                    <div className="whitespace-pre-wrap">
+                        {Object.entries(envVars || {}).map(([k, v]) => (
+                            <div key={k}>{k}={v}</div>
+                        ))}
+                    </div>
+                );
+                break;
+            case 'whoami':
+                output = currentUser;
+                break;
+            case 'pwd':
+                output = `/${currentPath.join('/')}`;
+                break;
+            default:
+                output = `command not found: ${cmd}`;
         }
 
-        const pathString = getPathDisplay(currentPath);
-        const inputHistory = (
-            <div className="flex">
-                <span className="text-green-400">{currentUser}@localhost</span>
-                <span className="text-gray-400">:</span>
-                <span className="text-blue-400">{pathString}</span>
-                <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
-                <span className="pl-2">{isSudoEntering ? '********' : trimmedCommand}</span>
-            </div>
-        );
-
-        setHistory(prev => [...prev, inputHistory, ...(output ? [output] : [])]);
-    };
-
-    const handleTab = (currentValue: string, setValue: (v: string) => void) => {
-        const completed = getCompletion(currentValue);
-        if (completed) {
-            setValue(completed);
+        if (output) {
+            setHistory(prev => [...prev, output]);
         }
     };
 
+    // Auto-completion logic
     const getCommonPrefix = (strings: string[]): string => {
         if (strings.length === 0) return '';
         let prefix = strings[0];
@@ -634,83 +547,61 @@ clear        clear                   Clears the terminal screen.`;
 
     const getCompletion = useCallback((currentValue: string): string | null => {
         if (!currentValue) return null;
-
         const parts = currentValue.trimStart().split(/\s+/);
         const lastPart = parts[parts.length - 1];
         const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
 
         if (isCommand) {
-            const availableCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'grep', 'clear', 'overdrive', 'ps', 'env', 'uptime', 'date'];
-            const matches = availableCommands.filter(c => c.startsWith(currentValue));
-            if (matches.length > 0) {
-                const common = getCommonPrefix(matches);
-                const suffix = (matches.length === 1 && common === matches[0]) ? ' ' : '';
-                return common + suffix;
-            }
+            const cmds = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'sudo', 'ssh', 'ping', 'nmap', 'ip', 'grep', 'clear', 'exit'];
+            const matches = cmds.filter(c => c.startsWith(currentValue));
+            if (matches.length > 0) return getCommonPrefix(matches) + (matches.length === 1 ? ' ' : '');
         } else {
-            if (currentValue.endsWith(' ')) return null;
-
-            let searchDir: string[] = [...currentPath];
-            let prefix = lastPart;
-            let pathPrefix = '';
-
-            if (lastPart.includes('/')) {
-                const lastSlashIdx = lastPart.lastIndexOf('/');
-                pathPrefix = lastPart.substring(0, lastSlashIdx + 1);
-                prefix = lastPart.substring(lastSlashIdx + 1);
-
-                const resolved = resolvePath(pathPrefix);
-                if (resolved) {
-                    searchDir = resolved;
-                } else {
-                    return null;
-                }
-            }
-
-            const node = getNodeByPath(searchDir);
+            const node = getNodeByPath(currentPath);
             if (node?.type === 'directory') {
                 const matches = Object.keys(node.children)
-                    .filter(name => name.startsWith(prefix))
+                    .filter(name => name.startsWith(lastPart))
                     .map(name => {
                         const child = node.children[name];
                         return child.type === 'directory' ? `${name}/` : name;
                     });
-
                 if (matches.length > 0) {
                     const common = getCommonPrefix(matches);
-                    const isUnique = matches.length === 1;
-                    const reconstructedLastPart = pathPrefix + common;
                     const rest = currentValue.substring(0, currentValue.lastIndexOf(lastPart));
-                    const suffix = (isUnique && !common.endsWith('/')) ? ' ' : '';
-                    return rest + reconstructedLastPart + suffix;
+                    return rest + common;
                 }
             }
         }
         return null;
-    }, [currentPath, getNodeByPath, resolvePath]);
+    }, [currentPath, getNodeByPath]);
+
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-6 text-lg text-[#33ff00] font-vt323 crt-screen relative overflow-hidden ${isLockedOut ? 'grayscale blur-sm' : ''}`}
+            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning ? 'animate-pulse blur-sm' : ''}`}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();
                 }
             }}
         >
-            <div className="flex-grow overflow-y-auto pr-2 custom-scrollbar">
-                {history.map((line, i) => <div key={i} className="mb-1 leading-tight">{line}</div>)}
+            <div className="flex-grow overflow-y-auto pr-2 pl-2 custom-scrollbar">
+                {history.map((line, i) => <div key={i} className="mb-1 leading-tight break-words">{line}</div>)}
                 <div ref={terminalEndRef} />
             </div>
             {!isLockedOut && (
                 <InputLine
                     currentPath={currentPath}
                     currentUser={currentUser}
+                    hostname={activeNode.hostname}
                     onSubmit={processCommand}
-                    onTab={handleTab}
+                    onTab={(val, setVal) => {
+                        const comp = getCompletion(val);
+                        if (comp) setVal(comp);
+                    }}
                     getCompletion={getCompletion}
                     inputRef={inputRef}
                     commandHistory={commandHistory}
+                    isPasswordInput={inputMode === 'password'}
                 />
             )}
         </div>
