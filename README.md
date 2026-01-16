@@ -66,27 +66,6 @@ Once you've pieced together a password, use `ssh root@<ip>` to infiltrate remote
 
 ---
 
-## 🛠️ Quick Start (Development Version)
-
-1. **Clone & Enter**
-   ```bash
-   git clone https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure.git
-   cd Retro-Linux-Terminal-Adventure
-   ```
-
-2. **Configure Credentials**
-   Create a `.env` file and add your [Gemini API Key](https://aistudio.google.com/app/apikey):
-   ```env
-   API_KEY=YOUR_GEMINI_API_KEY
-   ```
-
-3. **Deploy**
-   ```bash
-   npm install && npm run dev
-   ```
-
----
-
 ## 📜 Repository Guidelines
 
 - **Looking for a specific version?** Check the [Releases](https://github.com/alexfemcat/Retro-Linux-Terminal-Adventure/releases) section.
