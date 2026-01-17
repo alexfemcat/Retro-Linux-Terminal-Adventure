@@ -92,6 +92,13 @@ const App: React.FC = () => {
 
     const handleGameLoad = useCallback((loadedPlayerState: PlayerState, slotId: string) => {
         localStorage.setItem('active-save-slot', slotId);
+
+        // If the player is in a tutorial, don't persist that state on refresh.
+        if (loadedPlayerState.activeMissionId === 'tutorial') {
+            loadedPlayerState.activeMissionId = null;
+            delete loadedPlayerState.tutorialStep;
+        }
+
         setBootingPlayerState(loadedPlayerState);
         setIsBooting(true);
     }, []);

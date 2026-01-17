@@ -386,13 +386,22 @@ export const Terminal: React.FC<TerminalProps> = ({
                 const nextStep = nextIndex < TUTORIAL_STEPS.length ? TUTORIAL_STEPS[nextIndex] : null;
 
                 // Update State
+                // Update State
                 const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
 
                 if (!nextStep) {
                     // Tutorial Finished
                     updatedState.activeMissionId = null;
                     updatedState.tutorialStep = undefined;
-                    // Could add a completion bonus here
+
+                    // Save and Reboot to restore normal game state
+                    writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                    onPlayerStateChange(updatedState);
+
+                    if (onReboot) {
+                        setTimeout(() => onReboot(updatedState), 1500);
+                    }
+                    return; // Stop processing command to prevent weird state mismatch
                 }
 
                 onPlayerStateChange(updatedState);
@@ -424,7 +433,8 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const tutorialPlayerState = {
                         ...playerState,
                         activeMissionId: 'tutorial',
-                        tutorialStep: 0
+                        tutorialStep: 0,
+                        installedSoftware: Array.from(new Set([...playerState.installedSoftware, 'nmap']))
                     };
                     if (onGameStateChange) onGameStateChange(tutorialState);
                     onPlayerStateChange(tutorialPlayerState);
@@ -439,7 +449,8 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const tutorialPlayerState = {
                         ...playerState,
                         activeMissionId: 'tutorial',
-                        tutorialStep: 0
+                        tutorialStep: 0,
+                        installedSoftware: Array.from(new Set([...playerState.installedSoftware, 'nmap']))
                     };
 
                     if (onGameStateChange) onGameStateChange(tutorialState);
@@ -1580,6 +1591,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                 setHistory(prev => [...prev, <div>The authenticity of host '{ipStr}' can't be established.<br />ED25519 key fingerprint is SHA256:randomHashesHere...<br />Connecting...</div>]);
 
                 const attemptLogin = (_isRoot: boolean) => {
+                    // Tutorial Logic: SSH success is a step completion
+                    if (isTutorialActive && tutorialStepIndex === 5) {
+                        const nextIndex = tutorialStepIndex + 1;
+                        const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
+                        onPlayerStateChange(updatedState);
+                        writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                    }
+
                     // Start glitch animation
                     setIsTransitioning(true);
                     setTimeout(() => {
@@ -1589,30 +1608,28 @@ export const Terminal: React.FC<TerminalProps> = ({
                     }, 1000);
                 };
 
-                if (userStr === 'root') {
-                    // Prompt for root password
-                    promptPassword((pwd) => {
-                        if (pwd === sshTarget.rootPassword) {
-                            if (gameState.winCondition.type === 'root_access' && gameState.winCondition.nodeId === sshTarget.id) {
-                                onWin();
-                            } else {
-                                attemptLogin(true);
-                            }
+                const handlePasswordPrompt = (pwd: string) => {
+                    if (pwd === sshTarget.rootPassword) {
+                        attemptLogin(userStr === 'root');
+                    } else {
+                        if (isTutorialActive && tutorialStepIndex === 5) {
+                            setHistory(prev => [...prev, <div className="text-cyan-400">[THE ARCHITECT]: Incorrect. The training password is 'training'. Try again.</div>]);
                         } else {
                             setHistory(prev => [...prev, <div className="text-red-500">Permission denied, please try again.</div>]);
                         }
-                    });
-                } else {
-                    // For regular user login, use same password as root (simplified)
-                    // In a real system, each user would have their own password
-                    promptPassword((pwd) => {
-                        if (pwd === sshTarget.rootPassword) {
-                            attemptLogin(false);
-                        } else {
-                            setHistory(prev => [...prev, <div className="text-red-500">Permission denied, please try again.</div>]);
-                        }
-                    });
+                    }
+                };
+
+                // This is the SSH step, but the actual step completion is handled in attemptLogin.
+                // We just let it proceed to the password prompt.
+                if (isTutorialActive && currentTutorialStep && currentTutorialStep.id === 'ssh_connect') {
+                    if (cmd === 'ssh' && args[0] === 'user@192.168.1.55') {
+                        promptPassword(handlePasswordPrompt);
+                        return;
+                    }
                 }
+
+                promptPassword(handlePasswordPrompt);
                 return;
             case 'exit':
                 if (playerState.isDevMode) {

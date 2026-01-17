@@ -95,7 +95,7 @@ export function checkCommandAvailability(command: string, context: CommandContex
     }
 
     // 2. Check if Remote Only
-    if (def.isRemoteOnly && !context.isMissionActive) {
+    if (def.isRemoteOnly && !context.isMissionActive && context.playerState.activeMissionId !== 'tutorial') {
         return { available: false, error: `Error: You are already at your Homebase.` };
     }
 

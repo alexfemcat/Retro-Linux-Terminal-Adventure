@@ -11,17 +11,17 @@ export const TutorialOverlay: React.FC<TutorialOverlayProps> = ({ message }) => 
     useEffect(() => {
         setDisplayedText('');
         setIsTyping(true);
-        let i = 0;
         const speed = 20; // ms per char
 
         const interval = setInterval(() => {
-            if (i < message.length) {
-                setDisplayedText(prev => prev + message.charAt(i));
-                i++;
-            } else {
+            setDisplayedText(prev => {
+                if (prev.length < message.length) {
+                    return prev + message.charAt(prev.length);
+                }
                 setIsTyping(false);
                 clearInterval(interval);
-            }
+                return prev;
+            });
         }, speed);
 
         return () => clearInterval(interval);

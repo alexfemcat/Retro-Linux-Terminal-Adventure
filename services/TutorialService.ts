@@ -21,7 +21,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'change_dir',
-        message: "[THE ARCHITECT]: Excellent. The file system is a tree of directories. We need to move deeper.\nUse 'cd' (Change Directory) to enter the 'bin' folder.\n\nType 'cd bin'.",
+        message: "[THE ARCHITECT]: Excellent. The file system is a tree of directories. We need to move deeper.\nUse the 'cd' command (Change Directory) to enter the 'bin' folder.\n\nType 'cd bin'.",
         check: (cmd, args) => cmd === 'cd' && args[0] === 'bin'
     },
     {
@@ -36,13 +36,18 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'ssh_connect',
-        message: "[THE ARCHITECT]: Analysis: Port 22 is open. This indicates an SSH (Secure Shell) service, allowing remote control.\nConnect to the target using the standard user protocol.\n\nType 'ssh user@192.168.1.55'.\n(Hint: The training password is 'training')",
-        check: (cmd, args) => cmd === 'ssh' && args[0] === 'user@192.168.1.55'
+        message: "[THE ARCHITECT]: Analysis: Port 22 is open. This indicates an SSH (Secure Shell) service, allowing remote control.\nConnect to the target using the standard user protocol.\n\nType 'ssh user@192.168.1.55'. The password is 'training' ",
+        check: () => false, // This step is completed programmatically in Terminal.tsx on successful login
+        onComplete: (_gameState, _playerState) => {
+            // This step completes upon successful login, which is handled in Terminal.tsx
+        }
     },
     {
         id: 'infiltrate_docs',
         message: "[THE ARCHITECT]: Access Granted. You are now inside the remote system.\nOur objective is the training data. It is likely in the Documents folder.\n\nNavigate there: Type 'cd Documents'.",
-        check: (cmd, args, gameState) => cmd === 'cd' && args[0] === 'Documents' && gameState.nodes[gameState.activeNodeIndex].id === 'tutorial-target'
+        check: (cmd, args, gameState) => {
+            return cmd === 'cd' && args[0].startsWith('Documents') && gameState.nodes[gameState.activeNodeIndex].id === 'tutorial-target';
+        }
     },
     {
         id: 'download_file',
@@ -63,6 +68,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'check_market',
         message: "[THE ARCHITECT]: Successful operations yield Credits. You use these to upgrade your rig or buy software tools.\nOpen the exchange.\n\nType 'market'.",
         check: (cmd) => cmd === 'market'
+    },
+    {
+        id: 'complete_tutorial',
+        message: "[THE ARCHITECT]: Training Module Complete. You have proven yourself capable.\n\nUse 'help' to access the full command database.\nUse 'jobs' to find work and start your career.\n\nType 'exit' to close the simulation.",
+        check: (cmd) => cmd === 'exit'
     }
 ];
 
