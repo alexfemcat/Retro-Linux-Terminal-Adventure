@@ -33,6 +33,8 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'kill': { id: 'kill', description: 'Terminate a process by PID.', usage: 'kill [pid]', isDefaultCommand: true, isLocalOnly: false },
     'echo': { id: 'echo', description: 'Write text to a file.', usage: 'echo "text" > [file]', isDefaultCommand: true, isLocalOnly: false },
     'sell': { id: 'sell', description: 'Sell a file from your inventory.', usage: 'sell [file]', isDefaultCommand: true, isLocalOnly: true },
+    'tar': { id: 'tar', description: 'Archive files/directories.', usage: 'tar -cvf [archive.tar] [target]', isDefaultCommand: true, isLocalOnly: false },
+    'zip': { id: 'zip', description: 'Compress files/directories.', usage: 'zip [archive.zip] [target]', isDefaultCommand: true, isLocalOnly: false },
 
     'alias': { id: 'alias', description: 'Create a command alias.', usage: 'alias [name]="[command]"', isDefaultCommand: true, isLocalOnly: false },
     'sh': { id: 'sh', description: 'Execute a script.', usage: 'sh [file]', isDefaultCommand: true, isLocalOnly: false },
@@ -78,6 +80,7 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'env': { id: 'env', description: 'List environment variables.', usage: 'env', isDefaultCommand: true, isLocalOnly: false },
     'uptime': { id: 'uptime', description: 'Show system uptime.', usage: 'uptime', isDefaultCommand: true, isLocalOnly: false },
     'date': { id: 'date', description: 'Show current date/time.', usage: 'date', isDefaultCommand: true, isLocalOnly: false },
+    'sleep': { id: 'sleep', description: 'Advance time by 1 day.', usage: 'sleep', isDefaultCommand: true, isLocalOnly: true },
 };
 
 export function checkCommandAvailability(command: string, context: CommandContext): { available: boolean; error?: string } {

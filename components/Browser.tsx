@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
-import { PlayerState, Mission, WorldEvent } from '../types';
-import { MARKET_CATALOG } from '../data/marketData';
-import { blackmailTemplates } from '../data/gameData';
-import { buyItem } from '../services/MarketSystem';
+import { PlayerState, Mission, WorldEvent, Email } from '../types';
+import { blackmailTemplates, leakNewsTemplates } from '../data/gameData';
 import { writeSave } from '../services/PersistenceService';
 
 interface BrowserProps {
@@ -15,13 +13,14 @@ interface BrowserProps {
     initialUrl?: string;
 }
 
-export const Browser: React.FC<BrowserProps> = ({
+export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
     playerState,
     onMissionAccept,
     onClose,
     worldEvents,
     onPlayerStateChange,
     onRefreshMissions,
+    isMissionActive,
     initialUrl = 'home://new-tab'
 }) => {
     const [url, setUrl] = useState(initialUrl);
@@ -50,16 +49,6 @@ export const Browser: React.FC<BrowserProps> = ({
         }
     };
 
-    const handlePurchase = (itemId: string) => {
-        const result = buyItem(itemId, playerState);
-        if (result.success && result.updatedPlayerState) {
-            onPlayerStateChange(result.updatedPlayerState);
-            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
-            writeSave(slotId, result.updatedPlayerState);
-        } else {
-            alert(`[ERROR] ${result.error}`);
-        }
-    };
 
     const renderContent = () => {
         if (url === 'home://new-tab') {
@@ -126,7 +115,10 @@ export const Browser: React.FC<BrowserProps> = ({
                                 <div className="flex justify-between items-center">
                                     <span className="text-green-500 font-mono">{mission.reward}c</span>
                                     <button
-                                        onClick={() => onMissionAccept(mission)}
+                                        onClick={() => {
+                                            onMissionAccept(mission);
+                                            onClose();
+                                        }}
                                         className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1 text-sm font-bold uppercase tracking-widest"
                                     >
                                         Accept Contract
@@ -176,33 +168,119 @@ export const Browser: React.FC<BrowserProps> = ({
 
         if (url.startsWith('mail://homebase/')) {
             const emailId = url.split('/').pop();
-            const email = playerState.emails.find(e => e.id === emailId);
-            if (!email) return <div className="p-6 text-red-500">Email not found.</div>;
+            const currentEmail = playerState.emails.find(e => e.id === emailId);
+            if (!currentEmail) return <div className="p-6 text-red-500">Email not found.</div>;
 
             return (
                 <div className="p-6 h-full flex flex-col">
                     <button onClick={() => navigate('mail://homebase')} className="text-blue-400 mb-4 hover:underline">← Back to Inbox</button>
                     <div className="bg-gray-900/40 border border-gray-800 p-6 flex-grow overflow-y-auto">
                         <div className="mb-6 border-b border-gray-800 pb-4">
-                            <div className="text-sm text-gray-500">From: <span className="text-blue-400">{email.sender}</span></div>
-                            <div className="text-sm text-gray-500">Subject: <span className="text-white font-bold">{email.subject}</span></div>
-                            <div className="text-sm text-gray-500">Date: {email.timestamp}</div>
+                            <div className="text-sm text-gray-500">From: <span className="text-blue-400">{currentEmail.sender}</span></div>
+                            <div className="text-sm text-gray-500">Subject: <span className="text-white font-bold">{currentEmail.subject}</span></div>
+                            <div className="text-sm text-gray-500">Date: {currentEmail.timestamp}</div>
                         </div>
                         <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {email.body}
+                            {currentEmail.body}
                         </div>
-                        {email.missionId && (
+                        {currentEmail.missionId && (
                             <div className="mt-8 p-4 border border-green-900 bg-green-900/10">
                                 <p className="text-sm text-green-400 mb-2">This email contains a direct contract offer.</p>
                                 <button
                                     onClick={() => {
-                                        const mission = playerState.availableMissions.find(m => m.id === email.missionId);
-                                        if (mission) onMissionAccept(mission);
+                                        const mission = playerState.availableMissions.find(m => m.id === currentEmail.missionId);
+                                        if (mission) {
+                                            onMissionAccept(mission);
+                                            onClose();
+                                        }
                                     }}
                                     className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 font-bold uppercase"
                                 >
                                     Accept Direct Offer
                                 </button>
+                            </div>
+                        )}
+                        {currentEmail.type === 'ransom' && currentEmail.ransomData && (
+                            <div className="mt-8 p-4 border border-purple-900 bg-purple-900/10">
+                                <h4 className="text-purple-400 font-bold mb-2 uppercase tracking-widest">Ransom Management</h4>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="text-xs text-gray-500">
+                                        Target: <span className="text-white">{currentEmail.ransomData.file.name}</span><br />
+                                        Current Status: <span className="text-yellow-500 uppercase">{currentEmail.ransomData.status}</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-green-500 font-mono">{currentEmail.ransomData.payout}c</span>
+                                    </div>
+                                </div>
+
+                                <div className="mt-4 flex gap-2">
+                                    {currentEmail.ransomData.status === 'refused' && (
+                                        <button
+                                            onClick={() => {
+                                                const roll = Math.random() * 100;
+                                                const success = roll > 50;
+                                                const updatedEmails: Email[] = playerState.emails.map(e => {
+                                                    if (e.id === currentEmail.id) {
+                                                        return {
+                                                            ...e,
+                                                            ransomData: {
+                                                                ...e.ransomData!,
+                                                                status: (success ? 'paid' : 'threatened') as any
+                                                            },
+                                                            body: e.body + `\n\n[SYSTEM: You have threatened the victim.]\n\n${success ? `[VICTIM]: OKAY! OKAY! I'll pay! Just please don't leak it! Authorized ${Math.floor(currentEmail.ransomData!.payout * 1.5)}c.` : `[VICTIM]: I don't negotiate with terrorists. Do your worst.`}`
+                                                        };
+                                                    }
+                                                    return e;
+                                                });
+                                                onPlayerStateChange({
+                                                    ...playerState,
+                                                    emails: updatedEmails,
+                                                    credits: playerState.credits + (success ? Math.floor(currentEmail.ransomData!.payout * 1.5) : 0),
+                                                    reputation: playerState.reputation + (success ? 150 : 50)
+                                                });
+                                            }}
+                                            className="bg-yellow-600 hover:bg-yellow-500 text-black px-4 py-1 text-xs font-bold uppercase"
+                                        >
+                                            Threaten Victim
+                                        </button>
+                                    )}
+                                    {currentEmail.ransomData.status === 'threatened' && (
+                                        <button
+                                            onClick={() => {
+                                                const file = currentEmail.ransomData!.file;
+                                                const category = file.name.includes('tax') ? 'financial' : file.name.includes('nudes') || file.name.includes('diary') ? 'personal' : 'sensitive';
+                                                const templates = leakNewsTemplates[category as keyof typeof leakNewsTemplates] || leakNewsTemplates.sensitive;
+                                                const headline = templates[Math.floor(Math.random() * templates.length)].replace('[Company]', currentEmail.sender);
+
+                                                const updatedEmails: Email[] = playerState.emails.map(e => {
+                                                    if (e.id === currentEmail.id) {
+                                                        return {
+                                                            ...e,
+                                                            ransomData: {
+                                                                ...e.ransomData!,
+                                                                status: 'leaked' as any
+                                                            },
+                                                            body: e.body + `\n\n[SYSTEM: DATA LEAKED TO DARK WEB]`
+                                                        };
+                                                    }
+                                                    return e;
+                                                });
+
+                                                const repGain = 100 + Math.floor(Math.random() * 200);
+                                                onPlayerStateChange({
+                                                    ...playerState,
+                                                    emails: updatedEmails,
+                                                    reputation: playerState.reputation + repGain,
+                                                    inventory: playerState.inventory.filter(i => i.name !== file.name)
+                                                });
+                                                alert(`[BREAKING NEWS] ${headline}\n\nReputation increased by ${repGain}.`);
+                                            }}
+                                            className="bg-red-600 hover:bg-red-500 text-white px-4 py-1 text-xs font-bold uppercase"
+                                        >
+                                            Leak Data
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         )}
                     </div>
@@ -222,9 +300,21 @@ export const Browser: React.FC<BrowserProps> = ({
                                 <p className="text-gray-400 text-sm">{event.description}</p>
                             </div>
                         ))}
+                        {playerState.emails.filter(e => e.sender === 'GNN-Alert').map((email, idx) => (
+                            <div key={`archived-${idx}`} className="border-l-4 border-gray-600 pl-4 py-2 opacity-80">
+                                <div className="text-xs text-gray-500 font-bold uppercase mb-1">Archived Report - {email.timestamp}</div>
+                                <h3 className="text-lg text-gray-300 font-bold mb-1">{email.subject.replace('BREAKING: ', '')}</h3>
+                                <p className="text-gray-500 text-sm">{email.body}</p>
+                            </div>
+                        ))}
+                        {worldEvents.length === 0 && playerState.emails.filter(e => e.sender === 'GNN-Alert').length === 0 && (
+                            <div className="text-gray-600 italic text-center py-10 border border-dashed border-gray-800">
+                                No active breaking news events.
+                            </div>
+                        )}
                         <div className="opacity-50 border-t border-gray-800 pt-4">
-                            <h4 className="text-sm font-bold text-gray-500 mb-2 uppercase">Archived Reports</h4>
-                            <p className="text-xs text-gray-600 italic">No archived reports found for this session.</p>
+                            <h4 className="text-sm font-bold text-gray-500 mb-2 uppercase">System Status</h4>
+                            <p className="text-xs text-gray-600 italic">All systems nominal. Monitoring global network traffic...</p>
                         </div>
                     </div>
                 </div>
@@ -258,6 +348,8 @@ export const Browser: React.FC<BrowserProps> = ({
                                             let updatedState = { ...playerState };
                                             let alertMsg = "";
 
+                                            const extortionCategory = item.name.includes('tax') ? 'financial' : item.name.includes('nudes') || item.name.includes('diary') ? 'personal' : 'sensitive';
+
                                             if (roll < 10) {
                                                 // Critical Failure: Hitman / Kernel Panic
                                                 alertMsg = "[CRITICAL ERROR] Victim traced your upload. Counter-hack initiated. SYSTEM CRASH IMMINENT.";
@@ -271,8 +363,7 @@ export const Browser: React.FC<BrowserProps> = ({
                                                 updatedState.credits = Math.max(0, playerState.credits - 500);
                                             } else {
                                                 // Success
-                                                const category = item.name.includes('tax') ? 'financial' : item.name.includes('nudes') || item.name.includes('diary') ? 'personal' : 'sensitive';
-                                                const template = blackmailTemplates.find(t => t.category === category) || blackmailTemplates[2];
+                                                const template = blackmailTemplates.find(t => t.category === extortionCategory) || blackmailTemplates[2];
 
                                                 const blackmailEmail = {
                                                     id: `blackmail_${Date.now()}`,
@@ -292,6 +383,12 @@ export const Browser: React.FC<BrowserProps> = ({
                                             updatedState.inventory = playerState.inventory.filter(i => i.name !== item.name);
                                             onPlayerStateChange(updatedState);
                                             alert(alertMsg);
+
+                                            // Trigger News Event for Extortion
+                                            if (roll >= 30) {
+                                                // We can't easily trigger NewsTicker from here without a callback, 
+                                                // but the email system will handle the notification.
+                                            }
                                         }}
                                         className="bg-purple-900/20 border border-purple-500 p-4 hover:bg-purple-500 hover:text-white transition-all flex justify-between items-center group"
                                     >
@@ -305,145 +402,13 @@ export const Browser: React.FC<BrowserProps> = ({
             );
         }
 
-        if (url.startsWith('web://macro-electronics')) {
-            const category = url.split('/').pop() || 'macro-electronics';
-            return (
-                <div className="flex h-full overflow-hidden">
-                    {/* Sidebar */}
-                    <div className="w-48 bg-gray-900/50 border-r border-gray-800 p-4 flex flex-col gap-2">
-                        <h3 className="text-xs font-bold text-gray-500 uppercase mb-2 tracking-widest">Categories</h3>
-                        <button onClick={() => navigate('web://macro-electronics/hardware')} className={`text-left px-2 py-1 text-sm ${category === 'hardware' ? 'text-green-400 bg-green-900/20' : 'text-gray-400 hover:text-white'}`}>[ HARDWARE ]</button>
-                        <button onClick={() => navigate('web://macro-electronics/software')} className={`text-left px-2 py-1 text-sm ${category === 'software' ? 'text-green-400 bg-green-900/20' : 'text-gray-400 hover:text-white'}`}>[ SOFTWARE ]</button>
-                        <button onClick={() => navigate('web://macro-electronics/ransomware')} className={`text-left px-2 py-1 text-sm ${category === 'ransomware' ? 'text-green-400 bg-green-900/20' : 'text-gray-400 hover:text-white'}`}>[ RANSOMWARE ]</button>
-                        <button onClick={() => navigate('web://macro-electronics/consumables')} className={`text-left px-2 py-1 text-sm ${category === 'consumables' ? 'text-green-400 bg-green-900/20' : 'text-gray-400 hover:text-white'}`}>[ CONSUMABLES ]</button>
-                        <div className="mt-auto pt-4 border-t border-gray-800">
-                            <div className="text-[10px] text-gray-600 uppercase">Your Balance</div>
-                            <div className="text-lg font-bold text-yellow-500 font-mono">{playerState.credits.toLocaleString()}c</div>
-                        </div>
-                    </div>
-
-                    {/* Main Content */}
-                    <div className="flex-grow p-6 overflow-y-auto bg-[#080808]">
-                        {category === 'macro-electronics' && (
-                            <div className="flex flex-col items-center justify-center h-full text-center">
-                                <div className="text-6xl mb-4">🛒</div>
-                                <h2 className="text-3xl font-bold text-white mb-2 tracking-tighter uppercase italic">Macro-Electronics</h2>
-                                <p className="text-gray-500 max-w-md">Premium hardware and software solutions for the modern operative. Select a category to begin.</p>
-                            </div>
-                        )}
-
-                        {category === 'hardware' && (
-                            <div>
-                                <h2 className="text-2xl font-bold text-white mb-6 border-b border-gray-800 pb-2 uppercase italic tracking-widest">System Upgrades</h2>
-                                <div className="grid grid-cols-1 gap-6">
-                                    {['cpu', 'ram', 'storage', 'cooling', 'network'].map(key => {
-                                        const current = playerState.hardware[key as keyof typeof playerState.hardware];
-                                        const nextLevel = (current.level || 0) + 1;
-                                        const upgrade = MARKET_CATALOG.find(i => i.category === 'hardware' && i.hardwareKey === key && (i as any).stats?.level === nextLevel);
-
-                                        // Find the current item in the catalog to get its name/description
-                                        const currentCatalogItem = MARKET_CATALOG.find(i => i.id === current.id);
-
-                                        return (
-                                            <div key={key} className="bg-gray-900/30 border border-gray-800 p-4 flex justify-between items-center">
-                                                <div className="flex-grow">
-                                                    <div className="text-xs text-gray-500 uppercase mb-1">{key}</div>
-                                                    <div className="text-lg font-bold text-white uppercase">
-                                                        {currentCatalogItem?.name || current.id.replace('_', ' ')}
-                                                        <span className="text-green-500 text-sm ml-2">LVL {current.level}</span>
-                                                    </div>
-                                                    <div className="text-xs text-gray-400 mt-1 italic mb-2">
-                                                        {currentCatalogItem?.description}
-                                                    </div>
-                                                    <div className="text-[10px] text-cyan-600 font-mono uppercase">
-                                                        Current Stats: {
-                                                            key === 'cpu' ? `${(currentCatalogItem as any)?.stats?.clockSpeed >= 1 ? (currentCatalogItem as any).stats.clockSpeed + 'GHz' : ((currentCatalogItem as any)?.stats?.clockSpeed * 1000) + 'MHz'} / ${(currentCatalogItem as any)?.stats?.cores} Cores` :
-                                                                key === 'ram' ? `${(currentCatalogItem as any)?.stats?.capacity >= 1 ? (currentCatalogItem as any).stats.capacity + 'GB' : ((currentCatalogItem as any)?.stats?.capacity * 1000) + 'MB'} Capacity` :
-                                                                    key === 'storage' ? `${(currentCatalogItem as any)?.stats?.capacity >= 1 ? (currentCatalogItem as any).stats.capacity + 'GB' : ((currentCatalogItem as any)?.stats?.capacity * 1000) + 'MB'} Capacity` :
-                                                                        key === 'cooling' ? `${(currentCatalogItem as any)?.stats?.heatDissipation}x Dissipation` :
-                                                                            key === 'network' ? `${(currentCatalogItem as any)?.stats?.bandwidth >= 1 ? (currentCatalogItem as any).stats.bandwidth + 'MBps' : ((currentCatalogItem as any)?.stats?.bandwidth * 1000) + 'KBps'} Bandwidth` : ''
-                                                        }
-                                                    </div>
-                                                </div>
-                                                <div className="ml-4 flex flex-col items-end gap-2">
-                                                    {upgrade ? (
-                                                        <>
-                                                            <div className="text-[10px] text-yellow-600 uppercase text-right">
-                                                                Next: {(upgrade as any).name}<br />
-                                                                {
-                                                                    key === 'cpu' ? `${(upgrade as any).stats.clockSpeed >= 1 ? (upgrade as any).stats.clockSpeed + 'GHz' : ((upgrade as any).stats.clockSpeed * 1000) + 'MHz'} / ${(upgrade as any).stats.cores} Cores` :
-                                                                        key === 'ram' ? `${(upgrade as any).stats.capacity >= 1 ? (upgrade as any).stats.capacity + 'GB' : ((upgrade as any).stats.capacity * 1000) + 'MB'} Capacity` :
-                                                                            key === 'storage' ? `${(upgrade as any).stats.capacity >= 1 ? (upgrade as any).stats.capacity + 'GB' : ((upgrade as any).stats.capacity * 1000) + 'MB'} Capacity` :
-                                                                                key === 'cooling' ? `${(upgrade as any).stats.heatDissipation}x Dissipation` :
-                                                                                    key === 'network' ? `${(upgrade as any).stats.bandwidth >= 1 ? (upgrade as any).stats.bandwidth + 'MBps' : ((upgrade as any).stats.bandwidth * 1000) + 'KBps'} Bandwidth` : ''
-                                                                }
-                                                            </div>
-                                                            <button
-                                                                onClick={() => handlePurchase(upgrade.id)}
-                                                                className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 font-bold uppercase flex flex-col items-center min-w-[120px]"
-                                                            >
-                                                                <span>Upgrade</span>
-                                                                <span className="text-xs opacity-80">{upgrade.cost}c</span>
-                                                            </button>
-                                                        </>
-                                                    ) : (
-                                                        <div className="text-gray-600 font-bold uppercase">Max Level</div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-
-                        {(category === 'software' || category === 'ransomware' || category === 'consumables') && (
-                            <div>
-                                <h2 className="text-2xl font-bold text-white mb-6 border-b border-gray-800 pb-2 uppercase italic tracking-widest">{category}</h2>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {MARKET_CATALOG.filter(i => {
-                                        if (category === 'software') return ['utility', 'exploit', 'sniffing'].includes(i.category) && !i.id.startsWith('ransom_');
-                                        if (category === 'ransomware') return i.id.startsWith('ransom_');
-                                        if (category === 'consumables') return i.category === 'consumable' && !i.id.startsWith('theme_');
-                                        return false;
-                                    }).map(item => {
-                                        const isOwned = playerState.installedSoftware.includes(item.id);
-                                        return (
-                                            <div key={item.id} className={`bg-gray-900/30 border ${isOwned ? 'border-green-900/50' : 'border-gray-800'} p-4 flex flex-col`}>
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <span className="text-white font-bold uppercase tracking-tighter">{item.name}</span>
-                                                    {(item as any).tier && <span className="text-[10px] bg-gray-800 px-1 text-gray-400">TIER {(item as any).tier}</span>}
-                                                </div>
-                                                <p className="text-xs text-gray-500 mb-2 flex-grow italic">{item.description}</p>
-                                                <div className="text-[10px] text-cyan-700 font-mono mb-4">
-                                                    {(item as any).cpuReq !== undefined && `REQ: ${(item as any).cpuReq}% CPU / ${(item as any).ramReq}MB RAM / ${(item as any).storageSize}MB DISK`}
-                                                </div>
-                                                <div className="flex justify-between items-center mt-auto">
-                                                    <span className="text-yellow-500 font-mono text-sm">{item.cost}c</span>
-                                                    {isOwned ? (
-                                                        <span className="text-green-500 text-[10px] font-bold uppercase tracking-widest">Installed</span>
-                                                    ) : (
-                                                        <button
-                                                            onClick={() => handlePurchase(item.id)}
-                                                            className="bg-blue-600 hover:bg-blue-500 text-white px-3 py-1 text-[10px] font-bold uppercase"
-                                                        >
-                                                            Purchase
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        }
-
         return <div className="p-6 text-gray-500">404 - Page Not Found</div>;
     };
+
+    if (isMissionActive) {
+        onClose();
+        return null;
+    }
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">

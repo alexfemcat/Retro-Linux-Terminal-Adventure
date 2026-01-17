@@ -95,10 +95,12 @@ export interface GameState {
   // Meta
   scenario: Omit<Scenario, 'welcomeMessage'> & { welcomeMessage: string };
   bootTime: number; // Global start time
+  currentDate: string; // In-game date (YYYY-MM-DD)
 
   // Phase 3 Mission Engine
   traceProgress: number; // 0-100
   isTraceActive: boolean;
+  activeWorldEvents: WorldEvent[];
 }
 
 export interface ChatMessage {
@@ -118,6 +120,12 @@ export interface Email {
   missionId?: string;
   factionId?: string;
   reputationModifier?: number;
+  ransomData?: {
+    file: VFSNode;
+    payout: number;
+    nodeId: string;
+    status: 'pending' | 'refused' | 'threatened' | 'paid' | 'leaked';
+  };
 }
 
 export interface WorldEvent {

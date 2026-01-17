@@ -757,8 +757,10 @@ class PuzzleGenerator {
             winCondition,
             scenario: { ...scenario, welcomeMessage },
             bootTime: Date.now(),
+            currentDate: new Date().toISOString().split('T')[0],
             traceProgress: 0,
-            isTraceActive: false
+            isTraceActive: false,
+            activeWorldEvents: []
         };
     }
 
@@ -843,8 +845,10 @@ class PuzzleGenerator {
                 distractionDirs: []
             },
             bootTime: Date.now(),
+            currentDate: new Date().toISOString().split('T')[0],
             traceProgress: 0,
-            isTraceActive: false
+            isTraceActive: false,
+            activeWorldEvents: []
         };
     }
 

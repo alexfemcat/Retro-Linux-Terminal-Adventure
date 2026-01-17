@@ -11,12 +11,17 @@ export const NewsTicker: React.FC<NewsTickerProps> = ({ onEvent }) => {
 
     useEffect(() => {
         const interval = setInterval(() => {
-            const event = worldEvents[Math.floor(Math.random() * worldEvents.length)];
-            if (event.breaking) {
-                setCurrentEvent(event);
-                onEvent(event);
+            // 20% chance to trigger a random world event every 5 minutes
+            if (Math.random() > 0.8) {
+                const event = worldEvents[Math.floor(Math.random() * worldEvents.length)];
+                if (event.breaking) {
+                    setCurrentEvent(event);
+                    onEvent(event);
+                    // Clear after 30 seconds
+                    setTimeout(() => setCurrentEvent(null), 30000);
+                }
             }
-        }, 600000); // Every 10 minutes
+        }, 300000); // Every 5 minutes
 
         return () => clearInterval(interval);
     }, [onEvent]);

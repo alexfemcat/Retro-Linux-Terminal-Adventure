@@ -965,3 +965,29 @@ export const worldEvents: WorldEvent[] = [
         breaking: true
     }
 ];
+
+export const holidayEvents = [
+    { name: "Steam Winter Sale Hack", month: 11, day: 24, duration: 7, rewardMult: 2 },
+    { name: "Election Day DDoS", month: 10, day: 5, duration: 1, rewardMult: 2 },
+    { name: "Black Friday Data Heist", month: 10, day: 25, duration: 3, rewardMult: 2 },
+    { name: "New Year's Eve Logic Bomb", month: 11, day: 31, duration: 1, rewardMult: 2 },
+    { name: "Tax Day Audit Breach", month: 3, day: 15, duration: 5, rewardMult: 2 },
+];
+
+export const leakNewsTemplates = {
+    financial: [
+        "SENSITIVE DATA LEAKED: [Company] tax records exposed on the dark web.",
+        "MARKET ALERT: [Company] offshore accounts revealed by unknown hacker.",
+        "FINANCIAL CRISIS: [Company] internal audit leaked, stock plummeting."
+    ],
+    personal: [
+        "SENSITIVE DATA LEAKED: [Company] CEO private communications exposed.",
+        "SCANDAL: [Company] executive blackmail material posted on public forums.",
+        "PRIVACY BREACH: [Company] employee personal files leaked online."
+    ],
+    sensitive: [
+        "SENSITIVE DATA LEAKED: [Company] secret R&D project details exposed.",
+        "SECURITY ALERT: [Company] internal security protocols leaked.",
+        "WHISTLEBLOWER: [Company] unethical experiment logs revealed to public."
+    ]
+};

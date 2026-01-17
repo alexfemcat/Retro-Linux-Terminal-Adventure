@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { GameState, VFSNode, NetworkNode, PlayerState, Directory, File as VFSFile } from '../types';
+import type { GameState, VFSNode, NetworkNode, PlayerState, Directory, File as VFSFile, Email } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
 import { MARKET_CATALOG } from '../data/marketData';
@@ -588,12 +588,16 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 break;
             case 'browser':
-                if (onOpenBrowser) {
+                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                    output = <div className="text-red-500">Error: Browser can only be accessed from secure Homebase terminals. Disconnect first.</div>;
+                } else if (onOpenBrowser) {
                     onOpenBrowser(args[0]);
                 }
                 break;
             case 'mail':
-                if (onOpenBrowser) {
+                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                    output = <div className="text-red-500">Error: Mail can only be accessed from secure Homebase terminals. Disconnect first.</div>;
+                } else if (onOpenBrowser) {
                     onOpenBrowser('mail://homebase');
                 }
                 break;
@@ -1664,8 +1668,16 @@ export const Terminal: React.FC<TerminalProps> = ({
                 );
                 break;
             case 'date':
-                const now = new Date();
-                output = now.toString();
+                output = `Current Date: ${gameState.currentDate}`;
+                break;
+            case 'sleep':
+                if (onGameStateChange) {
+                    const date = new Date(gameState.currentDate);
+                    date.setDate(date.getDate() + 1);
+                    const newDate = date.toISOString().split('T')[0];
+                    onGameStateChange({ ...gameState, currentDate: newDate });
+                    output = `You sleep for 24 hours. Current Date: ${newDate}`;
+                }
                 break;
             case 'logout':
                 if (playerState.isDevMode) {
@@ -2021,29 +2033,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                             </div>
                         )]);
 
-                        // Delayed Email Response
-                        setTimeout(() => {
-                            const persona = victimPersonas[Math.floor(Math.random() * victimPersonas.length)];
-                            const response = persona.responses[Math.floor(Math.random() * persona.responses.length)];
-                            const willPay = !persona.name.includes('Defiant') || Math.random() > 0.7;
-
-                            const ransomEmail = {
-                                id: `ransom_${Date.now()}`,
-                                sender: activeNode.hostname,
-                                subject: `RE: YOUR RANSOM DEMAND`,
-                                body: `${response}\n\n---\n${willPay ? `[SYSTEM: Victim has authorized a payment of ${payout}c]` : `[SYSTEM: Victim has refused to pay and is attempting to restore from backups]`}`,
-                                timestamp: new Date().toISOString().split('T')[0],
-                                status: 'unread' as const,
-                                type: 'ransom' as const
-                            };
-
-                            onPlayerStateChange({
-                                ...playerState,
-                                credits: playerState.credits + (willPay ? payout : 0),
-                                reputation: playerState.reputation + (willPay ? 100 : 20),
-                                emails: [ransomEmail, ...playerState.emails]
-                            });
-                        }, 5000 + Math.random() * 5000);
 
                         // Visual change: rename file
                         const parentPath = encPath.slice(0, -1);
@@ -2051,6 +2040,37 @@ export const Terminal: React.FC<TerminalProps> = ({
                         const parentNode = getNodeByPath(parentPath) as Directory;
                         if (parentNode) {
                             const originalFile = parentNode.children[fName] as VFSFile;
+
+                            // Delayed Email Response
+                            setTimeout(() => {
+                                const persona = victimPersonas[Math.floor(Math.random() * victimPersonas.length)];
+                                const response = persona.responses[Math.floor(Math.random() * persona.responses.length)];
+                                const willPay = !persona.name.includes('Defiant') || Math.random() > 0.7;
+
+                                const ransomEmail: Email = {
+                                    id: `ransom_${Date.now()}`,
+                                    sender: activeNode.hostname,
+                                    subject: `RE: YOUR RANSOM DEMAND`,
+                                    body: `${response}\n\n---\n${willPay ? `[SYSTEM: Victim has authorized a payment of ${payout}c]` : `[SYSTEM: Victim has refused to pay and is attempting to restore from backups]`}`,
+                                    timestamp: new Date().toISOString().split('T')[0],
+                                    status: 'unread' as const,
+                                    type: 'ransom' as const,
+                                    ransomData: {
+                                        file: originalFile,
+                                        payout: payout,
+                                        nodeId: activeNode.id,
+                                        status: willPay ? 'paid' : 'refused'
+                                    }
+                                };
+
+                                onPlayerStateChange({
+                                    ...playerState,
+                                    credits: playerState.credits + (willPay ? payout : 0),
+                                    reputation: playerState.reputation + (willPay ? 100 : 20),
+                                    emails: [ransomEmail, ...playerState.emails]
+                                });
+                            }, 5000 + Math.random() * 5000);
+
                             delete parentNode.children[fName];
                             parentNode.children[`${fName}.encrypted`] = {
                                 ...originalFile,
@@ -2078,6 +2098,52 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }, 2000);
 
                 break;
+            case 'tar':
+            case 'zip': {
+                const isTar = cmd === 'tar';
+                const archiveName = isTar ? args[1] : args[0];
+                const targetName = isTar ? args[2] : args[1];
+
+                if (!archiveName || !targetName || (isTar && args[0] !== '-cvf')) {
+                    output = isTar ? "usage: tar -cvf [archive.tar] [target]" : "usage: zip [archive.zip] [target]";
+                    break;
+                }
+
+                const archiveTargetPath = resolvePath(targetName);
+                if (!archiveTargetPath) {
+                    output = `${cmd}: ${targetName}: No such file or directory`;
+                    break;
+                }
+
+                const archiveTargetNode = getNodeByPath(archiveTargetPath);
+                if (!archiveTargetNode) {
+                    output = `${cmd}: ${targetName}: No such file or directory`;
+                    break;
+                }
+
+                // Calculate size (recursive if directory)
+                const calculateSize = (node: VFSNode): number => {
+                    if (node.type === 'file') return node.size || 0.01;
+                    return Object.values(node.children).reduce((acc, child) => acc + calculateSize(child), 0);
+                };
+
+                const totalSize = calculateSize(archiveTargetNode);
+                const archiveFile: VFSFile = {
+                    type: 'file',
+                    name: archiveName,
+                    content: `[ARCHIVED DATA: ${targetName}]`,
+                    size: totalSize * 0.8 // Compression!
+                };
+
+                const archiveParentPath = resolvePath('.') || currentPath;
+                const archiveParentNode = getNodeByPath(archiveParentPath) as Directory;
+                if (archiveParentNode && archiveParentNode.type === 'directory') {
+                    archiveParentNode.children[archiveName] = archiveFile;
+                    output = `${cmd}: Created archive ${archiveName} from ${targetName} (${(totalSize * 0.8).toFixed(2)}KB)`;
+                    if (onVFSChange) onVFSChange(vfs);
+                }
+                break;
+            }
             default:
                 output = `command not found: ${cmd}`;
         }

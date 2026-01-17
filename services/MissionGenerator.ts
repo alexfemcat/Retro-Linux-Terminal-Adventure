@@ -1,20 +1,20 @@
-import { Mission, MissionConfig } from '../types';
-import { scenarios, sensitiveFilenames } from '../data/gameData';
+import { Mission, MissionConfig, GameState } from '../types';
+import { scenarios, sensitiveFilenames, holidayEvents } from '../data/gameData';
 
 class MissionGenerator {
     private getRandom<T>(arr: T[]): T {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    public generateMissions(reputation: number, count: number = 6): Mission[] {
+    public generateMissions(reputation: number, count: number = 6, gameState?: GameState): Mission[] {
         const missions: Mission[] = [];
         for (let i = 0; i < count; i++) {
-            missions.push(this.generateSingleMission(reputation));
+            missions.push(this.generateSingleMission(reputation, gameState));
         }
         return missions;
     }
 
-    private generateSingleMission(reputation: number): Mission {
+    private generateSingleMission(reputation: number, gameState?: GameState): Mission {
         const scenarioIndex = Math.floor(Math.random() * scenarios.length);
         const scenario = scenarios[scenarioIndex];
 
@@ -43,14 +43,29 @@ class MissionGenerator {
         // Diff 4: ~10000-14000c
         // Diff 5: ~45000-60000c
         const baseReward = Math.pow(difficulty, 3.8) * 45 + (difficulty * 150);
-        const reward = baseReward + Math.floor(Math.random() * (baseReward * 0.15));
+        let reward = baseReward + Math.floor(Math.random() * (baseReward * 0.15));
+
+        // Apply Holiday Modifiers
+        if (gameState?.currentDate) {
+            const date = new Date(gameState.currentDate);
+
+            const activeHoliday = holidayEvents.find(h => {
+                const hDate = new Date(date.getFullYear(), h.month, h.day);
+                const diff = (date.getTime() - hDate.getTime()) / (1000 * 3600 * 24);
+                return diff >= 0 && diff < h.duration;
+            });
+
+            if (activeHoliday) {
+                reward *= activeHoliday.rewardMult;
+            }
+        }
 
         // Mission titles based on scenario
         const titlePrefixes = ["Operation", "Project", "Task", "Heist", "Infiltration"];
         const titleSuffixes = ["Alpha", "Beta", "Omega", "Nexus", "Zero", "Prime"];
         const title = `${this.getRandom(titlePrefixes)} ${scenario.theme.split(' ')[0]} ${this.getRandom(titleSuffixes)}`.toUpperCase();
 
-        const isSensitive = Math.random() > 0.6;
+        const isSensitive = Math.random() > 0.8;
         const targetFileName = isSensitive
             ? sensitiveFilenames[Math.floor(Math.random() * sensitiveFilenames.length)]
             : `SECRET_${Math.floor(Math.random() * 10000)}.dat`;

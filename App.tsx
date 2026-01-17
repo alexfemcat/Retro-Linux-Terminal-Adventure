@@ -60,6 +60,7 @@ const App: React.FC = () => {
 
     const handleMissionAccept = useCallback((mission: any) => {
         setTransition({ type: 'entering', mission });
+        setBrowserUrl(null); // Close browser on mission accept
     }, []);
 
     const completeMissionAccept = useCallback((mission: any) => {
@@ -235,6 +236,11 @@ const App: React.FC = () => {
 
         // Move mission inventory files to ~/loot in the homebase VFS
         const homebaseGameState = puzzleGenerator.generateHomebase(updatedPlayerState);
+        // Advance time on win
+        const date = new Date(homebaseGameState.currentDate);
+        date.setDate(date.getDate() + 1);
+        homebaseGameState.currentDate = date.toISOString().split('T')[0];
+
         setGameState(homebaseGameState);
     };
 
@@ -266,13 +272,19 @@ const App: React.FC = () => {
                         sender: 'GNN-Alert',
                         subject: `BREAKING: ${e.title}`,
                         body: e.description,
-                        timestamp: new Date().toISOString().split('T')[0],
+                        timestamp: playerState.activeMissionId ? gameState?.currentDate || new Date().toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
                         status: 'unread',
                         type: 'tip'
                     };
                     setPlayerState({
                         ...playerState,
                         emails: [newsEmail, ...playerState.emails]
+                    });
+                }
+                if (gameState) {
+                    setGameState({
+                        ...gameState,
+                        activeWorldEvents: [...gameState.activeWorldEvents, e]
                     });
                 }
             }} />
