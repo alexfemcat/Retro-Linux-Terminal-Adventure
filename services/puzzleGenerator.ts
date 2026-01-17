@@ -15,8 +15,15 @@ class PuzzleGenerator {
         const ext = name.split('.').pop()?.toLowerCase();
 
         // 1. Databases / High Value Loot (.db, .sql, .vault)
-        if (ext === 'db' || ext === 'sql' || ext === 'vault' || name.includes('database') || name.includes('SECRET')) {
+        // Only make them huge if they are specifically endgame targets or large databases.
+        // SECRET.dat files in early missions should be small.
+        if (ext === 'db' || ext === 'sql' || ext === 'vault' || name.includes('database')) {
             return 500 * 1024 + Math.random() * 7500 * 1024; // 500MB - 8GB in KB
+        }
+
+        // SECRET.dat files should be small unless they are endgame
+        if (name.includes('SECRET')) {
+            return 10 + Math.random() * 90; // 10KB - 100KB
         }
 
         // 2. Media / Video / Images

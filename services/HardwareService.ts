@@ -1,4 +1,5 @@
 import { PlayerState } from '../types';
+import { MARKET_CATALOG } from '../data/marketData';
 
 /**
  * Global Hardware Simulation Configuration
@@ -147,37 +148,32 @@ export class HardwareService {
     /**
      * Calculates current storage usage in KB (Inventory + Installed Software).
      */
-    static calculateStorageUsage(_playerState: PlayerState, vfs: any): number {
+    static calculateStorageUsage(playerState: PlayerState, _vfs: any): number {
         let total = 0;
 
-        // 1. VFS size
-        if (vfs) {
-            total += this.getDirectorySize(vfs);
+        // 1. Permanent Inventory (loot already sold or moved, includes ~/bin and ~/loot contents)
+        if (playerState.inventory) {
+            total += playerState.inventory.reduce((sum, node) => sum + (node.type === 'file' ? (node.size || 0) : 0), 0);
         }
 
-        // 2. Installed Software - this is now part of the VFS in ~/bin
-        // if (playerState.installedSoftware) {
-        //     playerState.installedSoftware.forEach(id => {
-        //         const soft = MARKET_CATALOG.find(i => i.id === id);
-        //         if (soft && (soft as any).storageSize) {
-        //             total += (soft as any).storageSize * 1024; // Convert MB to KB
-        //         }
-        //     });
-        // }
+        // 2. Mission Inventory (files downloaded but not yet moved to ~/loot)
+        if (playerState.missionInventory) {
+            total += playerState.missionInventory.reduce((sum, node) => sum + (node.size || 0), 0);
+        }
 
-        return total;
-    }
-
-    private static getDirectorySize(directory: any): number {
-        let size = 0;
-        for (const key in directory.children) {
-            const child = directory.children[key];
-            if (child.type === 'file') {
-                size += child.size || 0;
-            } else if (child.type === 'directory') {
-                size += this.getDirectorySize(child);
+        // 3. Installed Software (binaries in ~/bin)
+        playerState.installedSoftware.forEach(id => {
+            const soft = MARKET_CATALOG.find(i => i.id === id);
+            if (soft && (soft as any).storageSize) {
+                total += (soft as any).storageSize * 1024; // Convert MB to KB
             }
-        }
-        return size;
+        });
+
+        // 4. Default Commands (small but non-zero)
+        const defaultCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs'];
+        total += defaultCommands.length * 100; // ~100KB per default command
+
+        // Ensure we never return negative or NaN
+        return Math.max(0, total || 0);
     }
 }

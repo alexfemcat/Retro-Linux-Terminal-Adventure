@@ -41,8 +41,7 @@ export const usePerformance = (
         const isThrashing = ramUsed > ramCapacity * 0.9; // Thrashing starts at 90%
 
         // Calculate Storage Usage
-        const activeNode = gameState.nodes[gameState.activeNodeIndex];
-        const storageUsed = HardwareService.calculateStorageUsage(playerState, activeNode.vfs);
+        const storageUsed = HardwareService.calculateStorageUsage(playerState, null);
 
         // Calculate CPU Load
         // We use the base process costs to estimate load

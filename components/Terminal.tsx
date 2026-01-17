@@ -1105,7 +1105,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             const fileSizeKB = fNode.size || 1;
 
                             // 1. Check Storage Capacity (Phase 5)
-                            const currentUsageKB = HardwareService.calculateStorageUsage(playerState, vfs);
+                            const currentUsageKB = HardwareService.calculateStorageUsage(playerState, null);
                             const capacityKB = playerState.hardware.storage.capacity * 1024 * 1024;
                             if (currentUsageKB + fileSizeKB > capacityKB) {
                                 output = (
@@ -1162,6 +1162,21 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                             setTimeout(() => {
                                 setIsDiskActive(false);
+
+                                // Re-check storage capacity right before finishing to prevent race conditions or state changes
+                                const finalUsageKB = HardwareService.calculateStorageUsage(playerState, null);
+                                const finalCapacityKB = playerState.hardware.storage.capacity * 1024 * 1024;
+
+                                if (finalUsageKB + fileSizeKB > finalCapacityKB) {
+                                    setHistory(prev => [...prev, (
+                                        <div className="text-red-500">
+                                            [ERROR] Download failed: Disk became full during transfer.
+                                        </div>
+                                    )]);
+                                    setActiveProcesses(prev => prev.filter(p => p.id !== pid.toString()));
+                                    return;
+                                }
+
                                 setHistory(prev => [...prev, (
                                     <div className="text-green-400">
                                         [SUCCESS] Downloaded '{fNode.name}' ({(fileSizeKB / 1024).toFixed(1)}MB) in {(delay / 1000).toFixed(2)}s.
@@ -1199,7 +1214,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 break;
             case 'inv':
-                const invStorageUsed = HardwareService.calculateStorageUsage(playerState, vfs);
+                const invStorageUsed = HardwareService.calculateStorageUsage(playerState, null);
                 const invCapacity = playerState.hardware.storage.capacity * 1024 * 1024;
                 const invPercent = (invStorageUsed / invCapacity) * 100;
 
