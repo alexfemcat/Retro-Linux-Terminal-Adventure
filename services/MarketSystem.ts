@@ -1,52 +1,5 @@
-import { PlayerState, HardwareSpecs } from '../types';
-
-export interface MarketItem {
-    id: string;
-    name: string;
-    type: 'software' | 'hardware';
-    description: string;
-    cost: number;
-    // For hardware upgrades
-    hardwareKey?: keyof HardwareSpecs;
-    stats?: any;
-}
-
-export const MARKET_CATALOG: MarketItem[] = [
-    // Software
-    { id: 'ping', name: 'ping', type: 'software', description: 'Network connectivity tester', cost: 100 },
-    { id: 'nmap', name: 'nmap', type: 'software', description: 'Advanced network scanner', cost: 500 },
-    { id: 'hydra', name: 'hydra', type: 'software', description: 'Password brute-force tool', cost: 1500 },
-    { id: 'overclock', name: 'overclock', type: 'software', description: 'Unlock CPU frequency controls and voltage scaling.', cost: 1200 },
-
-    // Hardware
-    {
-        id: 'cpu_v2',
-        name: 'CPU v2',
-        type: 'hardware',
-        description: 'Dual-core processor. Increases execution speed.',
-        cost: 1000,
-        hardwareKey: 'cpu',
-        stats: { level: 2, clockSpeed: 2.0, cores: 2 }
-    },
-    {
-        id: 'ram_v2',
-        name: 'RAM 8GB',
-        type: 'hardware',
-        description: 'Enhanced memory. Improves multitasking and trace defense.',
-        cost: 800,
-        hardwareKey: 'ram',
-        stats: { level: 2, capacity: 8 }
-    },
-    {
-        id: 'hd_v2',
-        name: 'Storage 500GB',
-        type: 'hardware',
-        description: 'High capacity drive. Increases loot storage.',
-        cost: 600,
-        hardwareKey: 'storage',
-        stats: { level: 2, capacity: 500 }
-    }
-];
+import { PlayerState } from '../types';
+import { MARKET_CATALOG } from '../data/marketData';
 
 export interface PurchaseResult {
     success: boolean;

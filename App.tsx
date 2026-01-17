@@ -7,11 +7,13 @@ import { HardwareService } from './services/HardwareService';
 import { DebugOverlay } from './components/DebugOverlay';
 import { MissionTransition } from './components/MissionTransition';
 import TitleScreen from './components/TitleScreen';
+import BIOSBoot from './components/BIOSBoot';
 import type { GameState, PlayerState, Directory } from './types';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
     const [playerState, setPlayerState] = useState<PlayerState | null>(null);
+    const [bootingPlayerState, setBootingPlayerState] = useState<PlayerState | null>(null);
     const [gameId, setGameId] = useState<number>(1);
     const [gameWon, setGameWon] = useState<boolean>(false);
     const [winMessage, setWinMessage] = useState<React.ReactNode[]>([]);
@@ -87,16 +89,18 @@ const App: React.FC = () => {
 
     const handleGameLoad = useCallback((loadedPlayerState: PlayerState, slotId: string) => {
         localStorage.setItem('active-save-slot', slotId);
-
-        // Start "Sick Ass" boot sequence
+        setBootingPlayerState(loadedPlayerState);
         setIsBooting(true);
+    }, []);
 
-        setTimeout(() => {
-            startNewGame(loadedPlayerState);
+    const handleBootComplete = useCallback(() => {
+        if (bootingPlayerState) {
+            startNewGame(bootingPlayerState);
             setShowTitleScreen(false);
             setIsBooting(false);
-        }, 2500); // 2.5s boot sequence
-    }, [startNewGame]);
+            setBootingPlayerState(null);
+        }
+    }, [bootingPlayerState, startNewGame]);
 
     const handleTransitionComplete = useCallback(() => {
         if (!transition) return;
@@ -110,6 +114,11 @@ const App: React.FC = () => {
             }
         }
     }, [transition, completeMissionAccept, completeMissionAbort]);
+
+    const handleReboot = useCallback((targetPlayerState: PlayerState) => {
+        setBootingPlayerState(targetPlayerState);
+        setIsBooting(true);
+    }, []);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -200,8 +209,12 @@ const App: React.FC = () => {
         setPlayerState(updatedPlayerState);
     };
 
+    if (isBooting && bootingPlayerState) {
+        return <BIOSBoot hardware={bootingPlayerState.hardware} onComplete={handleBootComplete} />;
+    }
+
     if (showTitleScreen) {
-        return <TitleScreen onGameLoad={handleGameLoad} isBooting={isBooting} />;
+        return <TitleScreen onGameLoad={handleGameLoad} />;
     }
 
     if (!gameState || !playerState) {
@@ -287,13 +300,25 @@ const App: React.FC = () => {
                                     setCurrentPath(['home', 'user']);
                                     setCurrentUser('user');
                                 }}
+                                onReboot={handleReboot}
                             />
                         </div>
                     </div>
 
                     {/* Debug Overlay - Positioned Absolutely to the right */}
-                    <div className={`absolute right-8 top-1/2 transform -translate-y-1/2 w-80 h-[600px] transition-opacity duration-300 ${showDebug ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                        <DebugOverlay gameState={gameState} activeNode={activeNode} />
+                    <div className={`absolute right-8 top-1/2 transform -translate-y-1/2 w-96 h-[640px] transition-opacity duration-300 z-[100] ${showDebug ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                        {playerState && (
+                            <DebugOverlay
+                                gameState={gameState}
+                                activeNode={activeNode}
+                                playerState={playerState}
+                                isMissionActive={isMissionActive}
+                                onPlayerStateChange={(s) => setPlayerState(s)}
+                                onGameStateChange={(s) => setGameState(s)}
+                                onWin={handleWin}
+                                onAbort={handleMissionAbort}
+                            />
+                        )}
                     </div>
                 </>
             ) : (

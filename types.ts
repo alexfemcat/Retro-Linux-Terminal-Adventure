@@ -105,6 +105,7 @@ export interface MissionConfig {
 }
 
 export interface PlayerState {
+  version: string;
   credits: number;
   reputation: number; // XP / Security Clearance
   installedSoftware: string[]; // List of binary IDs/names
@@ -123,6 +124,7 @@ export interface SaveSlot {
   id: string;
   isEmpty: boolean;
   playerState?: PlayerState; // Optional, present if not empty
+  updatedAt?: string; // ISO timestamp
 }
 
 export interface DatabaseSchema {

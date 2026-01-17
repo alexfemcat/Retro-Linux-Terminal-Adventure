@@ -2,7 +2,8 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { GameState, VFSNode, NetworkNode, PlayerState, Directory } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
-import { MARKET_CATALOG, buyItem } from '../services/MarketSystem';
+import { buyItem } from '../services/MarketSystem';
+import { MARKET_CATALOG } from '../data/marketData';
 import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
 
@@ -25,6 +26,7 @@ export interface TerminalProps {
     onVFSChange?: (newVFS: VFSNode) => void;
     onGameStateChange?: (newState: GameState) => void;
     onTransitionPreview?: (type: 'entering' | 'aborting') => void;
+    onReboot?: (newState: PlayerState) => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -157,7 +159,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     setCurrentUser,
     onVFSChange,
     onGameStateChange,
-    onTransitionPreview
+    onTransitionPreview,
+    onReboot
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -1003,15 +1006,12 @@ export const Terminal: React.FC<TerminalProps> = ({
                     promptPassword(async (pwd) => {
                         if (pwd === '6969') {
                             const devState: PlayerState = { ...playerState, isDevMode: true };
-                            onPlayerStateChange(devState);
                             await writeSave('dev_save_slot', devState);
-                            setHistory(prev => [...prev,
-                            <div key={Date.now()} className="text-purple-400 font-bold mt-2">
-                                [KERNEL] DEVELOPER SANDBOX INITIALIZED.<br />
-                                [KERNEL] SESSION ISOLATION ACTIVE.<br />
-                                [KERNEL] WELCOME, ROOT.
-                            </div>
-                            ]);
+                            if (onReboot) {
+                                onReboot(devState);
+                            } else {
+                                onPlayerStateChange(devState);
+                            }
                         } else {
                             setHistory(prev => [...prev, <div key={Date.now()} className="text-red-500">sudo: authentication failed.</div>]);
                         }
@@ -1084,8 +1084,12 @@ export const Terminal: React.FC<TerminalProps> = ({
                 if (playerState.isDevMode) {
                     const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
                     const originalState = await readSave(slotId);
-                    onPlayerStateChange(originalState || createInitialPlayerState());
-                    setHistory(prev => [...prev, <div key={Date.now()} className="text-purple-400 mt-2">[KERNEL] DEVELOPER SESSION TERMINATED. RELOADING USER STATE.</div>]);
+                    const newState = originalState || createInitialPlayerState();
+                    if (onReboot) {
+                        onReboot(newState);
+                    } else {
+                        onPlayerStateChange(newState);
+                    }
                 } else {
                     output = "logout";
                 }
@@ -1198,9 +1202,13 @@ export const Terminal: React.FC<TerminalProps> = ({
             case 'debug-anim':
                 const animType = args[0];
                 if (animType === 'bios') {
-                    setHistory([]);
-                    setHistory([<div key="reboot" className="text-white font-mono">REBOOTING... (BIOS DEBUG)</div>]);
-                    setTimeout(() => setHistory(getWelcomeLines()), 2000);
+                    if (onReboot) {
+                        onReboot(playerState);
+                    } else {
+                        setHistory([]);
+                        setHistory([<div key="reboot" className="text-white font-mono">REBOOTING... (BIOS DEBUG)</div>]);
+                        setTimeout(() => setHistory(getWelcomeLines()), 2000);
+                    }
                 } else if (animType === 'panic') {
                     onPlayerStateChange({ ...playerState, systemHeat: 100 });
                 } else if (animType === 'glitch') {

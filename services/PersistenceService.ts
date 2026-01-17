@@ -1,9 +1,10 @@
 import { DatabaseSchema, PlayerState, SaveSlot } from '../types';
 
 const LOCAL_STORAGE_KEY = 'retro-terminal-adventure-db';
+const CURRENT_VERSION = '2.0';
 
 const DEFAULT_DB_SCHEMA: DatabaseSchema = {
-    meta: { version: '2.0' },
+    meta: { version: CURRENT_VERSION },
     saves: {
         slot_1: { id: 'slot_1', isEmpty: true },
         slot_2: { id: 'slot_2', isEmpty: true },
@@ -16,7 +17,9 @@ async function readDBFromLocalStorage(): Promise<DatabaseSchema> {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data) {
         try {
-            return JSON.parse(data) as DatabaseSchema;
+            const parsed = JSON.parse(data) as DatabaseSchema;
+            // Ensure schema version is compatible or handled
+            return parsed;
         } catch (error) {
             console.error('Error parsing database from localStorage, re-initializing.', error);
             return DEFAULT_DB_SCHEMA;
@@ -25,31 +28,78 @@ async function readDBFromLocalStorage(): Promise<DatabaseSchema> {
     return DEFAULT_DB_SCHEMA;
 }
 
+/**
+ * Safe write wrapper for localStorage with integrity check and quota handling.
+ */
 async function writeDBToLocalStorage(data: DatabaseSchema): Promise<void> {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data, null, 2));
+    try {
+        const serialized = JSON.stringify(data, null, 2);
+        // Basic integrity check: ensure it can be parsed back
+        JSON.parse(serialized);
+        localStorage.setItem(LOCAL_STORAGE_KEY, serialized);
+    } catch (error) {
+        if (error instanceof Error) {
+            if (error.name === 'QuotaExceededError') {
+                console.error('CRITICAL: LocalStorage quota exceeded. Save failed.');
+            } else {
+                console.error('CRITICAL: Failed to write to LocalStorage:', error.message);
+            }
+        }
+        throw error;
+    }
 }
 
 export async function initDB(): Promise<void> {
-    // For localStorage, initDB mainly ensures a valid schema is present
     const dbData = await readDBFromLocalStorage();
-    await writeDBToLocalStorage(dbData); // Ensure a clean, valid schema is saved if not already.
+    // Ensure meta version is updated if it's an old DB
+    if (dbData.meta.version !== CURRENT_VERSION) {
+        dbData.meta.version = CURRENT_VERSION;
+    }
+    await writeDBToLocalStorage(dbData);
 }
 
 export async function writeSave(slotId: string, data: PlayerState): Promise<void> {
     const dbData = await readDBFromLocalStorage();
-    dbData.saves[slotId] = { id: slotId, isEmpty: false, playerState: data };
+    dbData.saves[slotId] = {
+        id: slotId,
+        isEmpty: false,
+        playerState: { ...data, version: CURRENT_VERSION },
+        updatedAt: new Date().toISOString()
+    };
     await writeDBToLocalStorage(dbData);
+}
+
+/**
+ * Handles migration of save data from older versions to the current schema.
+ */
+export function migrateSaveData(data: any): PlayerState {
+    const defaultState = createInitialPlayerState();
+
+    // Future-proofing: If version mismatch, apply specific transforms
+    // For now, we merge with defaultState to ensure new fields (like systemHeat) exist.
+
+    const migrated = {
+        ...defaultState,
+        ...data,
+        version: CURRENT_VERSION // Always stamp with current version after migration
+    };
+
+    // Deep merge hardware if needed to prevent level/stat mismatch
+    if (data.hardware) {
+        migrated.hardware = {
+            ...defaultState.hardware,
+            ...data.hardware
+        };
+    }
+
+    return migrated;
 }
 
 export async function readSave(slotId: string): Promise<PlayerState | null> {
     const dbData = await readDBFromLocalStorage();
     const slot = dbData.saves[slotId];
     if (slot && !slot.isEmpty && slot.playerState) {
-        // Merge with default state to handle legacy save migration
-        return {
-            ...createInitialPlayerState(),
-            ...slot.playerState
-        };
+        return migrateSaveData(slot.playerState);
     }
     return null;
 }
@@ -67,6 +117,7 @@ export async function getAllSaveSlots(): Promise<SaveSlot[]> {
 
 export function createInitialPlayerState(): PlayerState {
     return {
+        version: CURRENT_VERSION,
         credits: 0,
         reputation: 0,
         installedSoftware: ['ls', 'cd', 'help', 'market', 'jobs', 'exit'],
@@ -75,7 +126,7 @@ export function createInitialPlayerState(): PlayerState {
             cpu: { id: 'cpu_v1', level: 1, clockSpeed: 1.0, cores: 1 },
             ram: { id: 'ram_v1', level: 1, capacity: 4 },
             network: { id: 'net_v1', level: 1, bandwidth: 10 },
-            storage: { id: 'hd_v1', level: 1, capacity: 100 },
+            storage: { id: 'hd_v1', level: 1, capacity: 1 },
             cooling: { id: 'cool_v1', level: 1, heatDissipation: 1.0 }
         },
         activeMissionId: null,
@@ -87,5 +138,4 @@ export function createInitialPlayerState(): PlayerState {
     };
 }
 
-// Export readDB for internal use if needed by TitleScreen, etc.
 export { readDBFromLocalStorage as readDB };

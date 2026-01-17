@@ -1,161 +1,324 @@
-import React from 'react';
-import type { GameState, NetworkNode, WinCondition } from '../types';
+import React, { useState } from 'react';
+import type { GameState, NetworkNode, WinCondition, PlayerState } from '../types';
+import { MARKET_CATALOG } from '../data/marketData';
 
 interface DebugOverlayProps {
     gameState: GameState;
     activeNode: NetworkNode;
+    playerState: PlayerState;
+    isMissionActive: boolean;
+    onPlayerStateChange: (state: PlayerState) => void;
+    onGameStateChange: (state: GameState) => void;
+    onWin: () => void;
+    onAbort: () => void;
 }
 
-export const DebugOverlay: React.FC<DebugOverlayProps> = ({ gameState, activeNode }) => {
+export const DebugOverlay: React.FC<DebugOverlayProps> = ({
+    gameState,
+    activeNode,
+    playerState,
+    isMissionActive,
+    onPlayerStateChange,
+    onGameStateChange,
+    onWin,
+    onAbort
+}) => {
+    const [activeTab, setActiveTab] = useState<'mission' | 'player' | 'hardware'>('player');
+
+    const modifyCredits = (amount: number) => {
+        onPlayerStateChange({ ...playerState, credits: Math.max(0, playerState.credits + amount) });
+    };
+
+    const modifyReputation = (amount: number) => {
+        onPlayerStateChange({ ...playerState, reputation: Math.max(0, playerState.reputation + amount) });
+    };
+
+    const toggleSoftware = (id: string) => {
+        const hasIt = playerState.installedSoftware.includes(id);
+        const newSoftware = hasIt
+            ? playerState.installedSoftware.filter(s => s !== id)
+            : [...playerState.installedSoftware, id];
+        onPlayerStateChange({ ...playerState, installedSoftware: newSoftware });
+    };
+
+    const revealAllNodes = () => {
+        const newNodes = gameState.nodes.map(n => ({ ...n, isDiscovered: true }));
+        onGameStateChange({ ...gameState, nodes: newNodes });
+    };
+
+    const setHeat = (val: number) => {
+        onPlayerStateChange({ ...playerState, systemHeat: val });
+    };
+
+    const spawnMission = (tier: number) => {
+        const config = { numNodes: tier + 1, difficultyMultiplier: tier };
+        const fakeMission = {
+            id: `dev_${Date.now()}`,
+            title: `DEBUG TIER ${tier}`,
+            difficulty: Math.min(5, Math.max(1, tier)) as 1 | 2 | 3 | 4 | 5,
+            reward: tier * 500,
+            description: 'FORCE-SPAWNED VIA DEBUG MENU',
+            targetNetworkConfig: config
+        };
+        // This is a bit of a hack since we need to call handleMissionAccept from App
+        // But since we are debugging, we can just trigger the transition directly if we had it.
+        // For now, let's just use the existing jobs system logic.
+        const updatedMissions = [...playerState.availableMissions, fakeMission as any];
+        onPlayerStateChange({ ...playerState, availableMissions: updatedMissions });
+    };
 
     const renderWinCondition = (win: WinCondition) => {
         let desc = "";
         switch (win.type) {
             case 'root_access':
                 const targetNode = gameState.nodes.find(n => n.id === win.nodeId);
-                desc = `Root Access on ${targetNode?.hostname || win.nodeId} (${targetNode?.ip})`;
+                desc = `Root Access on ${targetNode?.hostname || win.nodeId}`;
                 break;
             case 'file_found':
-                desc = `Find File at /${win.path.join('/')} on ${win.nodeId}`;
+                desc = `Download ${win.path[win.path.length - 1]}`;
                 break;
             case 'process_killed':
-                desc = `Kill Process '${win.processName}' on ${win.nodeId}`;
+                desc = `Kill ${win.processName}`;
                 break;
         }
         return <span className="text-yellow-400 font-bold">{desc}</span>;
     };
 
     return (
-        <div
-            className="flex-shrink-0 p-4 bg-black/80 border-2 border-green-500/30 rounded-lg font-mono text-[10px] text-green-400 select-none backdrop-blur-md shadow-xl mt-4 h-full overflow-y-auto custom-scrollbar"
-            style={{ textShadow: 'none' }}
-        >
-            <h3 className="text-green-500 font-bold mb-4 border-b border-green-500/30 pb-1 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                NETWORK DEBUGGER (F2 - DEV MODE)
-            </h3>
-
-            {/* Win Condition */}
-            <div className="mb-4 p-2 bg-green-900/20 border border-green-500/20 rounded">
-                <span className="text-gray-400 uppercase text-xs block mb-1">Current Objective</span>
-                {renderWinCondition(gameState.winCondition)}
+        <div className="flex flex-col h-full bg-black/90 border-2 border-green-500/30 rounded-lg font-mono text-[11px] text-green-400 select-none backdrop-blur-md shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-3 bg-green-500/10 border-b border-green-500/30 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                    <span className="font-bold tracking-tighter">TERMINAL_DEBUG_OS v2.0</span>
+                </div>
+                <div className="text-[9px] opacity-50 uppercase">{isMissionActive ? 'MISSION_MODE' : 'HOMEBASE'}</div>
             </div>
 
-            {/* Network Map */}
-            <div className="mb-4 space-y-2">
-                <h4 className="text-gray-500 uppercase text-xs border-b border-gray-700 pb-1">Network Topology ({gameState.nodes.length} Nodes)</h4>
-                {gameState.nodes.map((node) => (
-                    <div
-                        key={node.id}
-                        className={`p-2 rounded border ${node.id === activeNode.id ? 'border-green-400 bg-green-900/30' : 'border-gray-700 bg-gray-900/30'} flex justify-between items-center`}
+            {/* Tabs */}
+            <div className="flex border-b border-green-500/20">
+                {(['player', 'mission', 'hardware'] as const).map(tab => (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`flex-1 py-2 uppercase tracking-widest transition-colors ${activeTab === tab ? 'bg-green-500/20 text-white font-bold' : 'hover:bg-white/5 opacity-50'}`}
                     >
-                        <div>
-                            <div className={`${node.id === activeNode.id ? 'text-white font-bold' : 'text-gray-400'}`}>
-                                {node.hostname}
-                            </div>
-                            <div className="text-xs text-gray-500">{node.ip}</div>
-                        </div>
-                        <div className="text-right">
-                            <div className={`text-[9px] px-1 rounded ${node.isDiscovered ? 'bg-blue-900/50 text-blue-300' : 'bg-red-900/50 text-red-300'}`}>
-                                {node.isDiscovered ? 'KNOWN' : 'UNKNOWN'}
-                            </div>
-                            {node.id === activeNode.id && <div className="text-[9px] text-green-500 mt-1">ACTIVE</div>}
-                        </div>
-                    </div>
+                        {tab}
+                    </button>
                 ))}
             </div>
 
-            {/* Active Node Details */}
-            <div className="space-y-2 border-t border-gray-700 pt-2">
-                <h4 className="text-gray-500 uppercase text-xs mb-1">Active System: <span className="text-white">{activeNode.hostname}</span></h4>
+            {/* Content Area */}
+            <div className="flex-grow overflow-y-auto p-4 custom-scrollbar space-y-4">
 
-                <div className="grid grid-cols-2 gap-2">
-                    <div>
-                        <span className="text-gray-500">OS:</span> <span className="text-white">{activeNode.osVersion.split('-')[0]}</span>
-                    </div>
-                    <div>
-                        <span className="text-gray-500">User:</span> <span className="text-white">{activeNode.currentUser}</span>
-                    </div>
-                    <div className="col-span-2">
-                        <span className="text-gray-500">Root Pwd:</span> <span className="text-yellow-500 font-bold ml-1 select-all">{activeNode.rootPassword}</span>
-                    </div>
-                    <div className="col-span-2">
-                        <span className="text-gray-500">Theme:</span> <span className="text-white text-[9px]">{activeNode.themeColor}</span>
-                    </div>
-                </div>
-
-                <div className="mt-2">
-                    <span className="text-gray-500 block mb-1">Open Ports:</span>
-                    <div className="grid grid-cols-1 gap-1">
-                        {activeNode.ports.map(p => (
-                            <div key={p.port} className="flex justify-between text-[9px] bg-gray-800/50 px-1 rounded">
-                                <span className="text-blue-300">{p.port}/{p.service}</span>
-                                <span className={p.isOpen ? 'text-green-500' : 'text-red-500'}>{p.isOpen ? 'OPEN' : 'CLOSED'}</span>
+                {activeTab === 'player' && (
+                    <div className="space-y-4">
+                        <section>
+                            <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Account Assets</h4>
+                            <div className="grid grid-cols-2 gap-2 mb-3">
+                                <div className="bg-gray-900/50 p-2 rounded">
+                                    <div className="text-gray-500 mb-1">CREDITS</div>
+                                    <div className="text-amber-500 font-bold text-sm mb-2">{playerState.credits}c</div>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => modifyCredits(100)} className="bg-green-900/40 px-2 py-1 rounded hover:bg-green-800/60">+100</button>
+                                        <button onClick={() => modifyCredits(1000)} className="bg-green-900/40 px-2 py-1 rounded hover:bg-green-800/60">+1k</button>
+                                    </div>
+                                </div>
+                                <div className="bg-gray-900/50 p-2 rounded">
+                                    <div className="text-gray-500 mb-1">REPUTATION</div>
+                                    <div className="text-cyan-400 font-bold text-sm mb-2">{playerState.reputation} XP</div>
+                                    <div className="flex gap-1">
+                                        <button onClick={() => modifyReputation(50)} className="bg-green-900/40 px-2 py-1 rounded hover:bg-green-800/60">+50</button>
+                                        <button onClick={() => modifyReputation(500)} className="bg-green-900/40 px-2 py-1 rounded hover:bg-green-800/60">+500</button>
+                                    </div>
+                                </div>
                             </div>
-                        ))}
+                        </section>
+
+                        <section>
+                            <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Software Binaries</h4>
+                            <div className="grid grid-cols-2 gap-1">
+                                {MARKET_CATALOG.filter(i => i.type === 'software').map(item => {
+                                    const installed = playerState.installedSoftware.includes(item.id);
+                                    return (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => toggleSoftware(item.id)}
+                                            className={`text-left px-2 py-1 rounded transition-colors ${installed ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-gray-900/30 text-gray-600 border border-transparent hover:border-gray-700'}`}
+                                        >
+                                            {installed ? '✓' : '+'} {item.id}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </section>
+
+                        <section>
+                            <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Inventory Management</h4>
+                            <div className="bg-gray-900/50 p-2 rounded max-h-32 overflow-y-auto custom-scrollbar">
+                                {playerState.inventory.length === 0 ? (
+                                    <div className="text-gray-700 italic text-center py-2">Inventory Empty</div>
+                                ) : (
+                                    <div className="space-y-1">
+                                        {playerState.inventory.map((item, i) => (
+                                            <div key={i} className="flex justify-between items-center text-[10px] text-gray-400">
+                                                <span>{item.name}</span>
+                                                <span className="text-cyan-800">{item.type === 'file' ? `${(item.size || 0).toFixed(1)}MB` : 'DIR'}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <button
+                                onClick={() => onPlayerStateChange({ ...playerState, inventory: [] })}
+                                className="w-full mt-2 py-1 bg-red-900/20 text-red-500 hover:bg-red-900/40 rounded transition-colors"
+                            >
+                                WIPE INVENTORY
+                            </button>
+                        </section>
                     </div>
-                </div>
+                )}
+
+                {activeTab === 'mission' && (
+                    <div className="space-y-4">
+                        {isMissionActive ? (
+                            <>
+                                <section>
+                                    <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Active Objective</h4>
+                                    <div className="p-2 bg-green-900/20 border border-green-500/20 rounded">
+                                        {renderWinCondition(gameState.winCondition)}
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h4 className="text-gray-500 uppercase text-[9px]">Network Topology</h4>
+                                        <button
+                                            onClick={revealAllNodes}
+                                            className="text-[9px] bg-blue-900/40 text-blue-400 px-2 py-0.5 rounded hover:bg-blue-800/60"
+                                        >
+                                            REVEAL ALL
+                                        </button>
+                                    </div>
+                                    <div className="space-y-1">
+                                        {gameState.nodes.map(node => (
+                                            <div key={node.id} className={`p-2 rounded bg-gray-900/50 border ${node.id === activeNode.id ? 'border-green-500/50' : 'border-transparent'}`}>
+                                                <div className="flex justify-between text-[10px]">
+                                                    <span className={node.id === activeNode.id ? 'text-white font-bold' : 'text-gray-400'}>{node.hostname}</span>
+                                                    <span className="text-gray-600">{node.ip}</span>
+                                                </div>
+                                                <div className="flex justify-between mt-1 items-center">
+                                                    <div className="text-[10px]">
+                                                        <span className="text-gray-500">ROOT: </span>
+                                                        <span className="text-yellow-500 select-all font-bold">{node.rootPassword}</span>
+                                                    </div>
+                                                    <div className={`text-[8px] px-1 rounded ${node.isDiscovered ? 'text-blue-400' : 'text-red-900'}`}>
+                                                        {node.isDiscovered ? 'DISCOVERED' : 'HIDDEN'}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </section>
+
+                                <section className="pt-2 flex gap-2">
+                                    <button onClick={onWin} className="flex-1 py-2 bg-green-600 text-black font-bold hover:bg-green-500 rounded">FORCE WIN</button>
+                                    <button onClick={onAbort} className="flex-1 py-2 bg-red-600 text-white font-bold hover:bg-red-500 rounded">ABORT</button>
+                                </section>
+                            </>
+                        ) : (
+                            <section>
+                                <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Mission Deployment</h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {[1, 2, 3, 4, 5, 6].map(tier => (
+                                        <button
+                                            key={tier}
+                                            onClick={() => spawnMission(tier)}
+                                            className="py-2 bg-green-900/30 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded flex flex-col items-center"
+                                        >
+                                            <span className="text-xs font-bold">TIER {tier}</span>
+                                            <span className="text-[8px] opacity-50">{tier + 1} NODES</span>
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="mt-4 text-[9px] text-gray-600 italic leading-tight">
+                                    NOTE: Spawning a mission adds it to your 'jobs' list. Use 'jobs accept [n]' in the terminal to deploy.
+                                </div>
+                            </section>
+                        )}
+                    </div>
+                )}
+
+                {activeTab === 'hardware' && (
+                    <div className="space-y-4">
+                        <section>
+                            <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Thermal Telemetry</h4>
+                            <div className="bg-gray-900/50 p-3 rounded">
+                                <div className="flex justify-between mb-2">
+                                    <span className="text-gray-500">SYSTEM_HEAT</span>
+                                    <span className={`font-bold ${playerState.systemHeat > 80 ? 'text-red-500' : 'text-green-500'}`}>{playerState.systemHeat.toFixed(1)}°C</span>
+                                </div>
+                                <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden mb-4">
+                                    <div
+                                        className={`h-full transition-all duration-500 ${playerState.systemHeat > 80 ? 'bg-red-500 shadow-[0_0_10px_red]' : 'bg-green-500 shadow-[0_0_10px_#33ff00]'}`}
+                                        style={{ width: `${Math.min(100, playerState.systemHeat)}%` }}
+                                    />
+                                </div>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button onClick={() => setHeat(0)} className="py-1 bg-blue-900/40 text-blue-400 rounded border border-blue-500/20 hover:bg-blue-800/60">RESET HEAT</button>
+                                    <button onClick={() => setHeat(99)} className="py-1 bg-red-900/40 text-red-500 rounded border border-red-500/20 hover:bg-red-800/60">OVERHEAT</button>
+                                </div>
+                            </div>
+                        </section>
+
+                        <section>
+                            <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Component Specs</h4>
+                            <div className="space-y-1">
+                                {Object.entries(playerState.hardware).map(([key, spec]: [string, any]) => (
+                                    <div key={key} className="bg-gray-900/30 p-2 rounded flex justify-between items-center text-[10px]">
+                                        <div className="flex flex-col">
+                                            <span className="text-white uppercase font-bold">{key}</span>
+                                            <span className="text-gray-600 text-[8px]">{spec.id}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <div className="text-cyan-400">LVL {spec.level}</div>
+                                            <div className="text-[8px] text-gray-500">
+                                                {key === 'cpu' && `${spec.clockSpeed}GHz x${spec.cores}`}
+                                                {key === 'ram' && `${spec.capacity}GB`}
+                                                {key === 'storage' && `${spec.capacity}GB`}
+                                                {key === 'network' && `${spec.bandwidth}MBps`}
+                                                {key === 'cooling' && `${spec.heatDissipation}x`}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => {
+                                    // Cheat: Set all hardware to Level 2
+                                    const highSpec = {
+                                        cpu: { id: 'cpu_v2', level: 2, clockSpeed: 2.0, cores: 2 },
+                                        ram: { id: 'ram_v2', level: 2, capacity: 8 },
+                                        network: { id: 'net_v1', level: 1, bandwidth: 50 },
+                                        storage: { id: 'hd_v2', level: 2, capacity: 500 },
+                                        cooling: { id: 'cool_v1', level: 1, heatDissipation: 2.0 }
+                                    };
+                                    onPlayerStateChange({ ...playerState, hardware: highSpec as any });
+                                }}
+                                className="w-full mt-3 py-2 border border-cyan-500/30 text-cyan-500 hover:bg-cyan-500/10 rounded font-bold uppercase"
+                            >
+                                UPGRADE ALL (DEV_PACK)
+                            </button>
+                        </section>
+                    </div>
+                )}
+
             </div>
 
-            {/* Developer Cheat Sheet */}
-            <div className="mt-4 border-t border-gray-700 pt-2">
-                <h4 className="text-gray-500 uppercase text-xs mb-1">Developer Cheat Sheet</h4>
-                <div className="text-gray-400 text-[9px] space-y-1">
-                    <div className="bg-gray-900/50 p-1 rounded">
-                        <span className="text-yellow-400">All Node IPs:</span>
-                        <div className="pl-2">
-                            {gameState.nodes.map(n => (
-                                <div key={n.id}>{n.hostname}: {n.ip}</div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="bg-gray-900/50 p-1 rounded">
-                        <span className="text-yellow-400">All Root Passwords:</span>
-                        <div className="pl-2">
-                            {gameState.nodes.map(n => (
-                                <div key={n.id}>{n.hostname}: <span className="text-green-400">{n.rootPassword}</span></div>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="bg-gray-900/50 p-1 rounded">
-                        <span className="text-yellow-400">Quick Test:</span>
-                        <div className="pl-2 text-cyan-300">
-                            1. cat /etc/hosts (see all IPs)
-                            <br />
-                            2. cat /var/log/auth.log (find real clue)
-                            <br />
-                            3. cat ~/.bash_history (find ssh command)
-                            <br />
-                            4. ssh user@[next-ip] (use root pwd from above)
-                            <br />
-                            5. sudo (use root pwd from above)
-                        </div>
-                    </div>
-                    <div className="bg-gray-900/50 p-1 rounded">
-                        <span className="text-yellow-400">Honeypot Files:</span>
-                        <div className="pl-2">
-                            /var/log/fake_auth.log (200-300 fake entries)
-                            <br />
-                            /tmp/password_dump.txt (200-300 fake passwords)
-                            <br />
-                            /tmp/ip_scan_results.txt (50 fake IPs)
-                            <br />
-                            /tmp/leaked_tokens.txt (fake tokens)
-                        </div>
-                    </div>
-                    <div className="bg-gray-900/50 p-1 rounded">
-                        <span className="text-yellow-400">Real Clue Files:</span>
-                        <div className="pl-2">
-                            /var/log/auth.log (real IP buried in logs)
-                            <br />
-                            ~/.bash_history (ssh commands to next node)
-                            <br />
-                            /home/user/* (password puzzle components)
-                        </div>
-                    </div>
-                </div>
+            {/* Footer */}
+            <div className="p-2 bg-black border-t border-green-500/30 text-center text-[8px] text-gray-600 uppercase tracking-tighter">
+                F2 TO TOGGLE DEBUG // USE CAREFULLY IN PROD
             </div>
-
         </div>
     );
 };

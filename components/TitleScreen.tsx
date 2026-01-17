@@ -4,10 +4,9 @@ import { PlayerState, SaveSlot } from '../types';
 
 interface TitleScreenProps {
     onGameLoad: (playerState: PlayerState, slotId: string) => void;
-    isBooting?: boolean;
 }
 
-const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad, isBooting }) => {
+const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad }) => {
     const [saveSlots, setSaveSlots] = useState<SaveSlot[]>([]);
     const [isLoading, setIsLoading] = useState<boolean>(true);
     const [error, setError] = useState<string | null>(null);
@@ -136,22 +135,6 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad, isBooting }) => {
         }
     };
 
-    if (isBooting) {
-        return (
-            <div className="flex flex-col items-start justify-start h-screen bg-black p-12 font-mono text-green-500 overflow-hidden relative">
-                <div className="animate-pulse mb-4">RETRO-BIOS v2.0.4 - RELEASE 1998</div>
-                <div className="space-y-1">
-                    <div className="animate-[typing_0.5s_steps(20)_forwards]">CPU: R-CORE 4000 @ 1.2GHz ... OK</div>
-                    <div className="animate-[typing_0.5s_steps(20)_0.5s_forwards] opacity-0">MEMORY: 65536 KB ... OK</div>
-                    <div className="animate-[typing_0.5s_steps(20)_1.0s_forwards] opacity-0">VFS MOUNTING /dev/sda1 ... OK</div>
-                    <div className="animate-[typing_0.5s_steps(20)_1.5s_forwards] opacity-0 text-yellow-500">INITIATING SYSTEM HANDSHAKE...</div>
-                    <div className="animate-[typing_0.5s_steps(20)_2.0s_forwards] opacity-0 text-cyan-400 font-bold">WELCOME BACK, OPERATIVE.</div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent pointer-events-none animate-scanline"></div>
-                <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
-            </div>
-        );
-    }
 
     if (isLoading) {
         return (
