@@ -9,6 +9,7 @@ import { MissionTransition } from './components/MissionTransition';
 import TitleScreen from './components/TitleScreen';
 import BIOSBoot from './components/BIOSBoot';
 import type { GameState, PlayerState, Directory } from './types';
+import { usePerformance } from './hooks/usePerformance';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -226,6 +227,7 @@ const App: React.FC = () => {
     }
 
     const activeNode = gameState.nodes[gameState.activeNodeIndex];
+    const performance = usePerformance(playerState, activeProcesses);
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
@@ -259,6 +261,7 @@ const App: React.FC = () => {
                                 gameState={gameState} // Pass FULL gameState so Terminal can see all nodes for SSH/Ping
                                 activeNode={activeNode} // Explicitly pass active node
                                 playerState={playerState!}
+                                performance={performance}
                                 isMissionActive={isMissionActive}
                                 activeProcesses={activeProcesses}
                                 setActiveProcesses={setActiveProcesses}

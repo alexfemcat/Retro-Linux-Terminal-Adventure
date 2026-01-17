@@ -1,4 +1,5 @@
 import { PlayerState } from '../types';
+import { MARKET_CATALOG } from '../data/marketData';
 
 /**
  * Global Hardware Simulation Configuration
@@ -29,16 +30,22 @@ export const HARDWARE_CONFIG = {
 };
 
 export interface ProcessMetrics {
-    cpuUsage: number;
-    ramUsage: number;
+    cpuUsage: number; // Percentage of 1 core (0-1.0)
+    ramUsage: number; // GB
 }
 
 export const PROCESS_COSTS: Record<string, ProcessMetrics> = {
-    'nmap': { cpuUsage: 0.1, ramUsage: 1.0 },
+    'nmap': { cpuUsage: 0.15, ramUsage: 1.0 },
+    'nmap-pro': { cpuUsage: 0.25, ramUsage: 1.5 },
     'hydra': { cpuUsage: 0.4, ramUsage: 2.0 },
     'download': { cpuUsage: 0.05, ramUsage: 0.5 },
     'scp': { cpuUsage: 0.05, ramUsage: 0.5 },
-    'crack': { cpuUsage: 0.6, ramUsage: 1.5 },
+    'sqlmap': { cpuUsage: 0.35, ramUsage: 2.5 },
+    'msfconsole': { cpuUsage: 0.5, ramUsage: 4.0 },
+    'msf-exploit': { cpuUsage: 0.6, ramUsage: 4.5 },
+    'john': { cpuUsage: 0.9, ramUsage: 6.0 },
+    'neuro-crack': { cpuUsage: 0.95, ramUsage: 8.0 },
+    'ping': { cpuUsage: 0.01, ramUsage: 0.1 },
 };
 
 export class HardwareService {
@@ -139,17 +146,31 @@ export class HardwareService {
     }
 
     /**
-     * Calculates current storage usage in MB.
+     * Calculates current storage usage in MB (Inventory + Installed Software).
      */
     static calculateStorageUsage(playerState: PlayerState): number {
-        if (!playerState.inventory) return 0;
-        return playerState.inventory.reduce((total, node) => {
-            if (node.type === 'file') {
-                return total + (node.size || 0);
-            }
-            // For directories in inventory (if any), we'd need recursive calc,
-            // but for now loot is mostly files.
-            return total;
-        }, 0);
+        let total = 0;
+
+        // 1. Files in inventory
+        if (playerState.inventory) {
+            total += playerState.inventory.reduce((sum, node) => {
+                if (node.type === 'file') {
+                    return sum + (node.size || 0);
+                }
+                return sum;
+            }, 0);
+        }
+
+        // 2. Installed Software
+        if (playerState.installedSoftware) {
+            playerState.installedSoftware.forEach(id => {
+                const soft = MARKET_CATALOG.find(i => i.id === id);
+                if (soft && (soft as any).storageSize) {
+                    total += (soft as any).storageSize;
+                }
+            });
+        }
+
+        return total;
     }
 }

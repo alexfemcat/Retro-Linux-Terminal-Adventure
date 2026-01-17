@@ -6,11 +6,15 @@ import { buyItem } from '../services/MarketSystem';
 import { MARKET_CATALOG } from '../data/marketData';
 import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
+import { PerformanceStats } from '../hooks/usePerformance';
+import { TaskManager } from './TaskManager';
+import { KernelPanic } from './KernelPanic';
 
 export interface TerminalProps {
     gameState: GameState;
     activeNode: NetworkNode;
     playerState: PlayerState;
+    performance: PerformanceStats;
     isMissionActive: boolean;
     activeProcesses: { id: string; name: string; ram: number }[];
     setActiveProcesses: React.Dispatch<React.SetStateAction<{ id: string; name: string; ram: number }[]>>;
@@ -145,6 +149,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     gameState,
     activeNode,
     playerState,
+    performance,
     isMissionActive,
     activeProcesses,
     setActiveProcesses,
@@ -173,6 +178,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
     const [isDiskActive, setIsDiskActive] = useState<boolean>(false);
+    const [showTaskManager, setShowTaskManager] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
@@ -998,6 +1004,62 @@ export const Terminal: React.FC<TerminalProps> = ({
                     output = `download: ${downloadFileName}: No such file or directory`;
                 }
                 break;
+            case 'inv':
+                const invStorageUsed = HardwareService.calculateStorageUsage(playerState);
+                const invCapacity = playerState.hardware.storage.capacity * 1024;
+                const invPercent = (invStorageUsed / invCapacity) * 100;
+
+                output = (
+                    <div className="text-cyan-400 font-mono">
+                        <div className="font-bold border-b border-cyan-400/30 mb-2 pb-1">INVENTORY STATUS</div>
+                        <div className="mb-4">
+                            <div className="flex justify-between text-xs mb-1">
+                                <span>STORAGE USAGE</span>
+                                <span className={invPercent > 90 ? 'text-red-500' : 'text-cyan-400'}>
+                                    {(invStorageUsed / 1024).toFixed(2)} / {(invCapacity / 1024).toFixed(2)} GB
+                                </span>
+                            </div>
+                            <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-cyan-900">
+                                <div
+                                    className={`h-full ${invPercent > 90 ? 'bg-red-500' : 'bg-cyan-500'}`}
+                                    style={{ width: `${Math.min(100, invPercent)}%` }}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-[1fr_80px_100px] gap-2 text-xs border-b border-cyan-900/50 pb-1 mb-1 opacity-70">
+                            <div>ITEM</div>
+                            <div>TYPE</div>
+                            <div>SIZE</div>
+                        </div>
+
+                        {playerState.inventory.length === 0 ? (
+                            <div className="text-gray-500 italic">No loot in inventory.</div>
+                        ) : (
+                            playerState.inventory.map((item, idx) => (
+                                <div key={idx} className="grid grid-cols-[1fr_80px_100px] gap-2 hover:bg-white/5">
+                                    <span className="text-white truncate">{item.name}</span>
+                                    <span className="text-gray-400 uppercase">{item.type}</span>
+                                    <span className="text-cyan-600">{item.type === 'file' ? `${(item.size || 0).toFixed(2)}MB` : '-'}</span>
+                                </div>
+                            ))
+                        )}
+
+                        <div className="mt-4 pt-2 border-t border-cyan-900/50">
+                            <div className="text-[10px] text-gray-500 uppercase mb-1">Installed Software Usage</div>
+                            {playerState.installedSoftware.map(softId => {
+                                const soft = MARKET_CATALOG.find(i => i.id === softId);
+                                return (
+                                    <div key={softId} className="flex justify-between text-xs text-gray-400">
+                                        <span>{softId}</span>
+                                        <span>{(soft as any)?.storageSize || 0} MB</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+                break;
             case 'ping':
                 if (!args[0]) { output = "usage: ping [ip]"; break; }
                 const targetIp = args[0];
@@ -1821,12 +1883,12 @@ export const Terminal: React.FC<TerminalProps> = ({
 
 
     if (playerState.systemHeat >= 100) {
-        return <CrashScreen onReboot={onMissionAbort} />;
+        return <KernelPanic onReboot={onMissionAbort} />;
     }
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning ? 'glitch-text blur-sm brightness-150' : ''}`}
+            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning || performance.isThrashing ? 'glitch-text blur-sm brightness-150' : ''}`}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();
@@ -1836,10 +1898,13 @@ export const Terminal: React.FC<TerminalProps> = ({
             {/* System Status Bar */}
             <div className="flex justify-between items-center border-b border-green-900/30 pb-2 mb-4 font-mono text-xs tracking-widest uppercase opacity-70">
                 <div className="flex gap-6">
-                    <span className="flex items-center gap-2">
-                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        SYS: ONLINE
-                    </span>
+                    <button
+                        onClick={() => setShowTaskManager(!showTaskManager)}
+                        className={`flex items-center gap-2 px-2 py-0.5 rounded transition-colors ${showTaskManager ? 'bg-cyan-900/50 text-cyan-400' : 'hover:bg-white/5'}`}
+                    >
+                        <span className={`w-1.5 h-1.5 rounded-full ${showTaskManager ? 'bg-cyan-400' : 'bg-green-500 animate-pulse'}`}></span>
+                        {showTaskManager ? 'HIDE_MONITOR' : 'SYS: ONLINE'}
+                    </button>
                     <span>MODE: {isMissionActive ? 'MISSION_OPS' : 'HOMEBASE'}</span>
                     <span className={`flex items-center gap-2 ${playerState.systemHeat > 80 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                         TEMP: {playerState.systemHeat.toFixed(1)}°C
@@ -1848,11 +1913,11 @@ export const Terminal: React.FC<TerminalProps> = ({
                         <span className={`w-2 h-2 rounded-full ${isDiskActive ? 'bg-amber-500 shadow-[0_0_5px_#f59e0b]' : 'bg-gray-800'}`}></span>
                         DISK
                     </span>
-                    <span className="text-gray-400">
-                        RAM: {activeProcesses.reduce((acc, p) => acc + p.ram, 0).toFixed(1)}/{playerState.hardware.ram.capacity}GB
+                    <span className={`${performance.isThrashing ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                        RAM: {performance.ramUsed.toFixed(1)}/{performance.ramCapacity}GB
                     </span>
-                    <span className="text-gray-400">
-                        DISK: {(HardwareService.calculateStorageUsage(playerState) / 1024).toFixed(2)}/{playerState.hardware.storage.capacity}GB
+                    <span className={`${(performance.storageUsed / performance.storageCapacity) > 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
+                        DISK: {(performance.storageUsed / 1024).toFixed(2)}/{(performance.storageCapacity / 1024).toFixed(0)}GB
                     </span>
                     {isMissionActive && (
                         <span className="flex items-center gap-2">
@@ -1877,9 +1942,21 @@ export const Terminal: React.FC<TerminalProps> = ({
                 </div>
             </div>
 
-            <div className="flex-grow overflow-y-auto pr-2 pl-2 custom-scrollbar">
-                {history.map((line, i) => <div key={i} className="mb-1 leading-tight break-words">{line}</div>)}
-                <div ref={terminalEndRef} />
+            <div className="flex-grow relative overflow-hidden flex flex-col">
+                {showTaskManager && (
+                    <div className="absolute top-0 right-0 w-80 h-full z-20 p-2">
+                        <TaskManager
+                            playerState={playerState}
+                            performance={performance}
+                            activeProcesses={activeProcesses}
+                            onKill={(id) => setActiveProcesses(prev => prev.filter(p => p.id !== id))}
+                        />
+                    </div>
+                )}
+                <div className="flex-grow overflow-y-auto pr-2 pl-2 custom-scrollbar">
+                    {history.map((line, i) => <div key={i} className="mb-1 leading-tight break-words">{line}</div>)}
+                    <div ref={terminalEndRef} />
+                </div>
             </div>
             {!isLockedOut && (
                 <InputLine
@@ -1903,32 +1980,3 @@ export const Terminal: React.FC<TerminalProps> = ({
     );
 };
 
-const CrashScreen: React.FC<{ onReboot: () => void }> = ({ onReboot }) => {
-    const hasTriggered = useRef(false);
-    useEffect(() => {
-        if (hasTriggered.current) return;
-        hasTriggered.current = true;
-        const timer = setTimeout(onReboot, 5000);
-        return () => clearTimeout(timer);
-    }, [onReboot]);
-
-    return (
-        <div className="w-full h-full bg-blue-900 text-white p-20 font-mono flex flex-col items-start justify-center overflow-hidden cursor-none">
-            <div className="bg-white text-blue-900 px-4 py-1 font-bold mb-8 uppercase">Fatal System Error</div>
-            <div className="text-2xl mb-4">A critical thermal exception has occurred at address 0x00000FF.</div>
-            <div className="mb-8 opacity-80 leading-relaxed">
-                *  If this is the first time you've seen this Stop error screen,
-                check your cooling levels and reduce voltage.
-                <br /><br />
-                *  Check to make sure any new hardware is properly installed.
-                If this is a new installation, ask your hardware vendor
-                for any driver updates you might need.
-            </div>
-            <div className="mb-4 font-bold">Technical information:</div>
-            <div className="mb-12 font-mono">*** STOP: 0x0000001E (0xC0000005, 0x804B518F, 0x00000000, 0x00000000)</div>
-            <div className="animate-pulse text-yellow-400 font-bold uppercase tracking-widest">
-                Emergency Reboot Initiated... [T-5s]
-            </div>
-        </div>
-    );
-};
