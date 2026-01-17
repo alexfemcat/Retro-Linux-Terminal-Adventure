@@ -116,6 +116,7 @@ export interface PlayerState {
   systemHeat: number;
   isOverclocked: boolean;
   voltageLevel: number; // 1.0 to 1.5
+  isDevMode?: boolean;
 }
 
 export interface SaveSlot {

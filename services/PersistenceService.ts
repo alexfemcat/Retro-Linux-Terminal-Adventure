@@ -8,6 +8,7 @@ const DEFAULT_DB_SCHEMA: DatabaseSchema = {
         slot_1: { id: 'slot_1', isEmpty: true },
         slot_2: { id: 'slot_2', isEmpty: true },
         slot_3: { id: 'slot_3', isEmpty: true },
+        dev_save_slot: { id: 'dev_save_slot', isEmpty: true },
     },
 };
 
@@ -81,7 +82,8 @@ export function createInitialPlayerState(): PlayerState {
         availableMissions: [],
         systemHeat: 0,
         isOverclocked: false,
-        voltageLevel: 1.0
+        voltageLevel: 1.0,
+        isDevMode: false
     };
 }
 

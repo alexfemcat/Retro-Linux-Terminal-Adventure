@@ -5,6 +5,7 @@ import { missionGenerator } from './services/MissionGenerator';
 import { writeSave } from './services/PersistenceService';
 import { HardwareService } from './services/HardwareService';
 import { DebugOverlay } from './components/DebugOverlay';
+import { MissionTransition } from './components/MissionTransition';
 import TitleScreen from './components/TitleScreen';
 import type { GameState, PlayerState, Directory } from './types';
 
@@ -23,6 +24,8 @@ const App: React.FC = () => {
 
     const [showDebug, setShowDebug] = useState<boolean>(false);
     const [activeProcesses, setActiveProcesses] = useState<{ id: string; name: string; ram: number }[]>([]);
+
+    const [transition, setTransition] = useState<{ type: 'entering' | 'aborting', mission?: any } | null>(null);
 
     const startNewGame = useCallback((initialPlayerState: PlayerState) => {
         // Initialize missions if needed
@@ -45,6 +48,10 @@ const App: React.FC = () => {
     }, []);
 
     const handleMissionAccept = useCallback((mission: any) => {
+        setTransition({ type: 'entering', mission });
+    }, []);
+
+    const completeMissionAccept = useCallback((mission: any) => {
         // Transition to Mission Mode
         const missionGameState = puzzleGenerator.generateNetwork(mission.targetNetworkConfig);
         setGameState(missionGameState);
@@ -55,9 +62,14 @@ const App: React.FC = () => {
         setCurrentPath(['home', 'user']);
         setCurrentUser('user');
         setGameId(id => id + 1); // Reset terminal history for mission
+        setTransition(null);
     }, []);
 
     const handleMissionAbort = useCallback(() => {
+        setTransition({ type: 'aborting' });
+    }, []);
+
+    const completeMissionAbort = useCallback(() => {
         if (playerState) {
             const updatedPlayerState = {
                 ...playerState,
@@ -66,10 +78,11 @@ const App: React.FC = () => {
             setPlayerState(updatedPlayerState);
             startNewGame(updatedPlayerState);
 
-            // Auto-save
-            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+            // Auto-save (respect dev mode)
+            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
             writeSave(slotId, updatedPlayerState);
         }
+        setTransition(null);
     }, [playerState, startNewGame]);
 
     const handleGameLoad = useCallback((loadedPlayerState: PlayerState, slotId: string) => {
@@ -84,6 +97,19 @@ const App: React.FC = () => {
             setIsBooting(false);
         }, 2500); // 2.5s boot sequence
     }, [startNewGame]);
+
+    const handleTransitionComplete = useCallback(() => {
+        if (!transition) return;
+        if (transition.mission?.isPreview) {
+            setTransition(null);
+        } else {
+            if (transition.type === 'entering') {
+                completeMissionAccept(transition.mission);
+            } else {
+                completeMissionAbort();
+            }
+        }
+    }, [transition, completeMissionAccept, completeMissionAbort]);
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -190,6 +216,13 @@ const App: React.FC = () => {
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
+            {transition && (
+                <MissionTransition
+                    type={transition.type}
+                    missionData={transition.mission}
+                    onComplete={handleTransitionComplete}
+                />
+            )}
             {!gameWon ? (
                 <>
                     {/* CRT Monitor Container */}
@@ -217,6 +250,19 @@ const App: React.FC = () => {
                                 activeProcesses={activeProcesses}
                                 setActiveProcesses={setActiveProcesses}
                                 onWin={handleWin}
+                                onGameStateChange={setGameState}
+                                onTransitionPreview={(type) => {
+                                    setTransition({
+                                        type,
+                                        mission: {
+                                            title: 'PREVIEW MODE',
+                                            difficulty: 3,
+                                            reward: 9999,
+                                            description: 'THIS IS A VISUAL PREVIEW OF THE TRANSITION SYSTEM.',
+                                            isPreview: true
+                                        }
+                                    });
+                                }}
                                 onMissionAccept={handleMissionAccept}
                                 onMissionAbort={handleMissionAbort}
                                 onPlayerStateChange={setPlayerState}

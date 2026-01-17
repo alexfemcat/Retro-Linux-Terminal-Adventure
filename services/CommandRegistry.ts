@@ -1,4 +1,5 @@
 import { PlayerState } from '../types';
+import { DEV_COMMAND_REGISTRY } from './DevCommandRegistry';
 
 export interface CommandContext {
     playerState: PlayerState;
@@ -53,6 +54,16 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
 };
 
 export function checkCommandAvailability(command: string, context: CommandContext): { available: boolean; error?: string } {
+    // 0. Check Dev Mode Commands
+    const isDevCommand = !!DEV_COMMAND_REGISTRY[command];
+    if (isDevCommand) {
+        if (context.playerState.isDevMode) {
+            return { available: true };
+        } else {
+            return { available: false, error: `command not found: ${command}` };
+        }
+    }
+
     const def = COMMAND_REGISTRY[command];
 
     if (!def) {

@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { GameState, VFSNode, NetworkNode, PlayerState, Directory } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
+import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
 import { MARKET_CATALOG, buyItem } from '../services/MarketSystem';
-import { writeSave } from '../services/PersistenceService';
+import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
 
 export interface TerminalProps {
@@ -22,6 +23,8 @@ export interface TerminalProps {
     currentUser: 'user' | 'root';
     setCurrentUser: (user: 'user' | 'root') => void;
     onVFSChange?: (newVFS: VFSNode) => void;
+    onGameStateChange?: (newState: GameState) => void;
+    onTransitionPreview?: (type: 'entering' | 'aborting') => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -42,7 +45,8 @@ const InputLine: React.FC<{
     commandHistory: string[];
     isPasswordInput: boolean;
     themeColor: string;
-}> = ({ currentPath, currentUser, hostname, onSubmit, onTab, getCompletion, inputRef, commandHistory, isPasswordInput, themeColor }) => {
+    playerState: PlayerState;
+}> = ({ currentPath, currentUser, hostname, onSubmit, onTab, getCompletion, inputRef, commandHistory, isPasswordInput, themeColor, playerState }) => {
     const [value, setValue] = useState('');
     const [suggestion, setSuggestion] = useState<string | null>(null);
     const [historyIndex, setHistoryIndex] = useState(-1);
@@ -92,10 +96,13 @@ const InputLine: React.FC<{
         <form onSubmit={handleSubmit} className="flex w-full">
             {!isPasswordInput && (
                 <label htmlFor="command-input" className="flex-shrink-0 mr-2">
-                    <span className={themeColor}>{currentUser}@{hostname}</span>
+                    {/* Dev Mode Prompt Styling */}
+                    <span className={playerState.isDevMode ? "text-purple-500 font-bold" : themeColor}>
+                        {playerState.isDevMode ? 'root@dev-sandbox' : `${currentUser}@${hostname}`}
+                    </span>
                     <span className="text-gray-400">:</span>
-                    <span className="text-blue-400">{pathString}</span>
-                    <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
+                    <span className={playerState.isDevMode ? "text-red-500" : "text-blue-400"}>{pathString}</span>
+                    <span className="text-gray-400">{(currentUser === 'root' || playerState.isDevMode) ? '#' : '$'}</span>
                 </label>
             )}
             {isPasswordInput && (
@@ -148,7 +155,9 @@ export const Terminal: React.FC<TerminalProps> = ({
     setCurrentPath,
     currentUser,
     setCurrentUser,
-    onVFSChange
+    onVFSChange,
+    onGameStateChange,
+    onTransitionPreview
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -259,10 +268,12 @@ export const Terminal: React.FC<TerminalProps> = ({
             const pathString = getPathDisplay(currentPath);
             setHistory(prev => [...prev, (
                 <div key={Date.now()} className="flex">
-                    <span className={themeColor}>{currentUser}@{hostname}</span>
+                    <span className={playerState.isDevMode ? "text-purple-500 font-bold" : themeColor}>
+                        {playerState.isDevMode ? 'root@dev-sandbox' : `${currentUser}@${hostname}`}
+                    </span>
                     <span className="text-gray-400">:</span>
-                    <span className="text-blue-400">{pathString}</span>
-                    <span className="text-gray-400">{currentUser === 'root' ? '#' : '$'}</span>
+                    <span className={playerState.isDevMode ? "text-red-500" : "text-blue-400"}>{pathString}</span>
+                    <span className="text-gray-400">{(currentUser === 'root' || playerState.isDevMode) ? '#' : '$'}</span>
                     <span className="pl-2">{trimmedCommand}</span>
                 </div>
             )]);
@@ -309,6 +320,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                                     <div>{def.id}</div>
                                     <div className="text-gray-400">{def.usage}</div>
                                     <div>{def.description}</div>
+                                </React.Fragment>
+                            ))}
+                            {playerState.isDevMode && Object.values(DEV_COMMAND_REGISTRY).map(def => (
+                                <React.Fragment key={def.id}>
+                                    <div className="text-purple-400 font-bold">{def.id}</div>
+                                    <div className="text-gray-400">{def.usage}</div>
+                                    <div className="text-purple-200">{def.description}</div>
                                 </React.Fragment>
                             ))}
                         </div>
@@ -408,7 +426,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             );
                             onPlayerStateChange(result.updatedPlayerState);
                             // Auto-save logic
-                            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
                             writeSave(slotId, result.updatedPlayerState);
                         } else {
                             output = <div className="text-red-500">[ERROR] {result.error}</div>;
@@ -463,7 +481,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                         }
                                     }
 
-                                    const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                                    const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
                                     writeSave(slotId, newState);
 
                                     setHistory(prev => [...prev, <div key={`sell-done-${Date.now()}`} className="text-green-400">Transaction Complete. +{finalPrice}c added to balance.</div>]);
@@ -771,7 +789,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 onPlayerStateChange(updatedPlayerState);
 
                                 // Auto-save
-                                const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                                const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
                                 writeSave(slotId, updatedPlayerState);
 
                                 // End process
@@ -964,6 +982,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 return;
             case 'exit':
+                if (playerState.isDevMode) {
+                    output = "Error: Use 'logout' to exit dev-sandbox.";
+                    break;
+                }
                 if (activeNode.id !== 'local') {
                     // Return to local
                     setIsTransitioning(true);
@@ -977,18 +999,37 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 break;
             case 'sudo':
-                promptPassword((pwd) => {
-                    if (pwd === activeNode.rootPassword) {
-                        setCurrentUser('root');
-                        if (gameState.winCondition.type === 'root_access' && gameState.winCondition.nodeId === activeNode.id) {
-                            onWin();
+                if ((args[0] === 'login' && args[1] === 'dev') || (args[0] === 'dev' && args[1] === 'login')) {
+                    promptPassword(async (pwd) => {
+                        if (pwd === '6969') {
+                            const devState: PlayerState = { ...playerState, isDevMode: true };
+                            onPlayerStateChange(devState);
+                            await writeSave('dev_save_slot', devState);
+                            setHistory(prev => [...prev,
+                            <div key={Date.now()} className="text-purple-400 font-bold mt-2">
+                                [KERNEL] DEVELOPER SANDBOX INITIALIZED.<br />
+                                [KERNEL] SESSION ISOLATION ACTIVE.<br />
+                                [KERNEL] WELCOME, ROOT.
+                            </div>
+                            ]);
                         } else {
-                            setHistory(prev => [...prev, <div className="text-yellow-400">sudo: root access granted.</div>]);
+                            setHistory(prev => [...prev, <div key={Date.now()} className="text-red-500">sudo: authentication failed.</div>]);
                         }
-                    } else {
-                        setHistory(prev => [...prev, <div className="text-red-500">Sorry, try again.</div>]);
-                    }
-                });
+                    });
+                } else {
+                    promptPassword((pwd) => {
+                        if (pwd === activeNode.rootPassword) {
+                            setCurrentUser('root');
+                            if (gameState.winCondition.type === 'root_access' && gameState.winCondition.nodeId === activeNode.id) {
+                                onWin();
+                            } else {
+                                setHistory(prev => [...prev, <div key={Date.now()} className="text-yellow-400">sudo: root access granted.</div>]);
+                            }
+                        } else {
+                            setHistory(prev => [...prev, <div key={Date.now()} className="text-red-500">Sorry, try again.</div>]);
+                        }
+                    });
+                }
                 return;
             case 'ps':
                 output = (
@@ -1039,6 +1080,178 @@ export const Terminal: React.FC<TerminalProps> = ({
                 const now = new Date();
                 output = now.toString();
                 break;
+            case 'logout':
+                if (playerState.isDevMode) {
+                    const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                    const originalState = await readSave(slotId);
+                    onPlayerStateChange(originalState || createInitialPlayerState());
+                    setHistory(prev => [...prev, <div key={Date.now()} className="text-purple-400 mt-2">[KERNEL] DEVELOPER SESSION TERMINATED. RELOADING USER STATE.</div>]);
+                } else {
+                    output = "logout";
+                }
+                break;
+            case 'devhelp':
+                output = (
+                    <div className="text-purple-300">
+                        <div className="font-bold mb-2">DEV OPS COMMAND SUITE:</div>
+                        <div className="grid grid-cols-[150px_1fr] gap-x-4 gap-y-1">
+                            {Object.values(DEV_COMMAND_REGISTRY).map(d => (
+                                <React.Fragment key={d.id}>
+                                    <div className="font-bold">{d.id}</div>
+                                    <div className="text-gray-400">{d.description}</div>
+                                </React.Fragment>
+                            ))}
+                        </div>
+                    </div>
+                );
+                break;
+            case 'dev-guide':
+                const category = args[0];
+                if (category === 'animations') {
+                    output = (
+                        <div className="text-purple-300">
+                            <div className="font-bold border-b border-purple-500/30 mb-2 pb-1">ANIMATION REFERENCE GUIDE</div>
+                            <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
+                                <div className="font-bold">debug-anim bios</div><div>Phase 1: POST and boot sequence. Re-runs system startup logs.</div>
+                                <div className="font-bold">debug-anim panic</div><div>Phase 4: Kernel Panic. Triggers the BSOD hex-dump and reboot.</div>
+                                <div className="font-bold">debug-anim glitch</div><div>Visual Jitter: Manually scrambles terminal pixels.</div>
+                                <div className="font-bold">debug-anim mission-in</div><div>Infiltration: The "Sick as Hell" mission loading sequence.</div>
+                                <div className="font-bold">debug-anim mission-out</div><div>Exfiltration: The "Sick as Hell" mission abort sequence.</div>
+                                <div className="font-bold">rm [file]</div><div>Shredding: 5-step progress bar with red "DELETED" text.</div>
+                                <div className="font-bold">download [file]</div><div>Transfer: Cyan progress bar with percentage tracking.</div>
+                                <div className="font-bold">market sell [file]</div><div>Credit Tikker: Rapid credit increment animation.</div>
+                                <div className="font-bold">ssh [user]@[ip]</div><div>Network Pivot: Transition glitch effect and history wipe.</div>
+                            </div>
+                        </div>
+                    );
+                } else if (category === 'triggers') {
+                    output = (
+                        <div className="text-purple-300">
+                            <div className="font-bold border-b border-purple-500/30 mb-2 pb-1">SYSTEM TRIGGER GUIDE</div>
+                            <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
+                                <div className="font-bold text-red-400">Thermal Crash</div><div>Trigger: systemHeat {'>'}= 100. Action: Immediate BSOD & Reboot.</div>
+                                <div className="font-bold text-red-400">Degradation</div><div>Trigger: systemHeat {'>'} 95. Action: Permanent hardware level reduction.</div>
+                                <div className="font-bold text-green-400">Mission Win</div><div>Trigger: Obtain root on target or download SECRET.dat.</div>
+                                <div className="font-bold">Disk Full</div><div>Trigger: inventory size {'>'} storage capacity. Action: Prevents downloads.</div>
+                                <div className="font-bold">RAM Thrashing</div><div>Trigger: process RAM {'>'} capacity. Action: 500% operation slowdown.</div>
+                            </div>
+                        </div>
+                    );
+                } else if (category === 'missions') {
+                    output = (
+                        <div className="text-purple-300">
+                            <div className="font-bold border-b border-purple-500/30 mb-2 pb-1">MISSION SYSTEM INTERNALS</div>
+                            <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
+                                <div className="font-bold">Generation</div><div>Uses MissionGenerator.ts to scale complexity by reputation.</div>
+                                <div className="font-bold">Tier 1-6</div><div>Determines node count (2 to 7) and target difficulty.</div>
+                                <div className="font-bold">Procedural VFS</div><div>Backwards-chained clues. Node N always contains login to Node N+1.</div>
+                                <div className="font-bold">Dev Command</div><div>dev-mission [tier] - Instantly force-deploys a mission.</div>
+                            </div>
+                        </div>
+                    );
+                } else if (category === 'commands') {
+                    output = (
+                        <div className="text-purple-300">
+                            <div className="font-bold border-b border-purple-500/30 mb-2 pb-1">DEV-OPS COMMAND REFERENCE</div>
+                            <div className="grid grid-cols-[180px_1fr] gap-4 text-sm">
+                                <div className="font-bold">spawn software [id]</div><div>Injects binary (e.g., nmap, hydra) into playerState.</div>
+                                <div className="font-bold">spawn hardware [id]</div><div>Hot-swaps component. ID must match MARKET_CATALOG.</div>
+                                <div className="font-bold">spawn item [id]</div><div>Adds file to loot inventory. Used for selling/testing.</div>
+                                <div className="font-bold">spawn credits [n]</div><div>Instantly sets current balance.</div>
+                                <div className="font-bold">dev-reveal</div><div>Bypasses discovery fog; sets isDiscovered=true for all nodes.</div>
+                                <div className="font-bold">dev-reset</div><div>Wipes dev_save_slot and returns to vanilla sandbox.</div>
+                            </div>
+                        </div>
+                    );
+                } else {
+                    output = "usage: dev-guide <animations|triggers|commands|missions>";
+                }
+                break;
+            case 'spawn':
+                const [spawnType, spawnId] = args;
+                if (spawnType === 'software') {
+                    if (!spawnId) { output = "usage: spawn software [id]"; break; }
+                    onPlayerStateChange({ ...playerState, installedSoftware: [...new Set([...playerState.installedSoftware, spawnId])] });
+                    output = `[SPAWN] Software '${spawnId}' installed.`;
+                } else if (spawnType === 'hardware') {
+                    const hwItem = MARKET_CATALOG.find(i => i.id === spawnId && i.type === 'hardware');
+                    if (!hwItem || !hwItem.hardwareKey) { output = "usage: spawn hardware [valid_hardware_id]"; break; }
+                    onPlayerStateChange({
+                        ...playerState,
+                        hardware: { ...playerState.hardware, [hwItem.hardwareKey]: hwItem.stats }
+                    });
+                    output = `[SPAWN] Hardware '${spawnId}' swapped.`;
+                } else if (spawnType === 'item') {
+                    if (!spawnId) { output = "usage: spawn item [name]"; break; }
+                    const newItem: VFSNode = { type: 'file', name: spawnId, content: '[DEV_ITEM]', size: 100 };
+                    onPlayerStateChange({ ...playerState, inventory: [...playerState.inventory, newItem] });
+                    output = `[SPAWN] Item '${spawnId}' added to inventory.`;
+                } else if (spawnType === 'credits') {
+                    const amt = parseInt(spawnId);
+                    if (isNaN(amt)) { output = "usage: spawn credits [amount]"; break; }
+                    onPlayerStateChange({ ...playerState, credits: amt });
+                    output = `[SPAWN] Balance set to ${amt}c.`;
+                } else {
+                    output = "usage: spawn <software|hardware|item|credits>";
+                }
+                break;
+            case 'debug-anim':
+                const animType = args[0];
+                if (animType === 'bios') {
+                    setHistory([]);
+                    setHistory([<div key="reboot" className="text-white font-mono">REBOOTING... (BIOS DEBUG)</div>]);
+                    setTimeout(() => setHistory(getWelcomeLines()), 2000);
+                } else if (animType === 'panic') {
+                    onPlayerStateChange({ ...playerState, systemHeat: 100 });
+                } else if (animType === 'glitch') {
+                    setIsTransitioning(true);
+                    setTimeout(() => setIsTransitioning(false), 2000);
+                    output = "[DEBUG] Glitch animation triggered.";
+                } else if (animType === 'mission-in') {
+                    if (onTransitionPreview) onTransitionPreview('entering');
+                    output = "[DEBUG] Mission-In transition triggered.";
+                } else if (animType === 'mission-out') {
+                    if (onTransitionPreview) onTransitionPreview('aborting');
+                    output = "[DEBUG] Mission-Out transition triggered.";
+                } else {
+                    output = "usage: debug-anim <bios|panic|glitch|mission-in|mission-out>";
+                }
+                break;
+            case 'dev-set-load':
+                // This is tricky because load is calculated. We can mock systemHeat.
+                const cpuArg = args.indexOf('--cpu');
+                if (cpuArg !== -1) {
+                    const val = parseFloat(args[cpuArg + 1]);
+                    if (!isNaN(val)) onPlayerStateChange({ ...playerState, systemHeat: val });
+                }
+                output = "[DEV] System load/heat adjusted.";
+                break;
+            case 'dev-reveal':
+                if (onGameStateChange) {
+                    const revealedNodes = gameState.nodes.map(n => ({ ...n, isDiscovered: true }));
+                    onGameStateChange({ ...gameState, nodes: revealedNodes });
+                    output = "[DEV] All network nodes revealed.";
+                }
+                break;
+            case 'dev-reset':
+                await writeSave('dev_save_slot', createInitialPlayerState());
+                onPlayerStateChange({ ...createInitialPlayerState(), isDevMode: true });
+                output = "[DEV] Sandbox reset to defaults.";
+                break;
+            case 'dev-mission':
+                const tier = parseInt(args[0]) || 1;
+                const config = { numNodes: tier + 1, difficultyMultiplier: tier };
+                const fakeMission = {
+                    id: `dev_${Date.now()}`,
+                    title: `DEV OPS TIER ${tier}`,
+                    difficulty: Math.min(5, Math.max(1, tier)) as 1 | 2 | 3 | 4 | 5,
+                    reward: 0,
+                    description: 'DEVELOPER SANDBOX MISSION',
+                    targetNetworkConfig: config
+                };
+                onMissionAccept(fakeMission);
+                output = `[DEV] Initializing Mission Tier ${tier}...`;
+                break;
             default:
                 output = `command not found: ${cmd}`;
         }
@@ -1068,7 +1281,10 @@ export const Terminal: React.FC<TerminalProps> = ({
         const isCommand = parts.length === 1 && !currentValue.endsWith(' ');
 
         if (isCommand) {
-            const cmds = Object.keys(COMMAND_REGISTRY);
+            const cmds = [...Object.keys(COMMAND_REGISTRY)];
+            if (playerState.isDevMode) {
+                cmds.push(...Object.keys(DEV_COMMAND_REGISTRY));
+            }
             const matches = cmds.filter(c => c.startsWith(currentValue));
             if (matches.length > 0) return getCommonPrefix(matches) + (matches.length === 1 ? ' ' : '');
         } else {
@@ -1088,32 +1304,11 @@ export const Terminal: React.FC<TerminalProps> = ({
             }
         }
         return null;
-    }, [currentPath, getNodeByPath]);
+    }, [currentPath, getNodeByPath, playerState.isDevMode]);
 
 
     if (playerState.systemHeat >= 100) {
-        return (
-            <div className="w-full h-full bg-blue-900 text-white p-20 font-mono flex flex-col items-start justify-center overflow-hidden">
-                <div className="bg-white text-blue-900 px-4 py-1 font-bold mb-8">FATAL SYSTEM ERROR</div>
-                <div className="text-2xl mb-4">A critical thermal exception has occurred at address 0x00000FF.</div>
-                <div className="mb-8 opacity-80">
-                    *  If this is the first time you've seen this Stop error screen,
-                    check your cooling levels and reduce voltage.
-                    <br /><br />
-                    *  Check to make sure any new hardware is properly installed.
-                    If this is a new installation, ask your hardware vendor
-                    for any driver updates you might need.
-                </div>
-                <div className="mb-4">Technical information:</div>
-                <div className="mb-12">*** STOP: 0x0000001E (0xC0000005, 0x804B518F, 0x00000000, 0x00000000)</div>
-                <div className="animate-pulse">REBOOTING IN 5 SECONDS...</div>
-                {/* Auto-reboot logic */}
-                {(() => {
-                    setTimeout(() => onMissionAbort(), 5000);
-                    return null;
-                })()}
-            </div>
-        );
+        return <CrashScreen onReboot={onMissionAbort} />;
     }
 
     return (
@@ -1171,8 +1366,39 @@ export const Terminal: React.FC<TerminalProps> = ({
                     commandHistory={commandHistory}
                     isPasswordInput={inputMode === 'password'}
                     themeColor={themeColor}
+                    playerState={playerState}
                 />
             )}
+        </div>
+    );
+};
+
+const CrashScreen: React.FC<{ onReboot: () => void }> = ({ onReboot }) => {
+    const hasTriggered = useRef(false);
+    useEffect(() => {
+        if (hasTriggered.current) return;
+        hasTriggered.current = true;
+        const timer = setTimeout(onReboot, 5000);
+        return () => clearTimeout(timer);
+    }, [onReboot]);
+
+    return (
+        <div className="w-full h-full bg-blue-900 text-white p-20 font-mono flex flex-col items-start justify-center overflow-hidden cursor-none">
+            <div className="bg-white text-blue-900 px-4 py-1 font-bold mb-8 uppercase">Fatal System Error</div>
+            <div className="text-2xl mb-4">A critical thermal exception has occurred at address 0x00000FF.</div>
+            <div className="mb-8 opacity-80 leading-relaxed">
+                *  If this is the first time you've seen this Stop error screen,
+                check your cooling levels and reduce voltage.
+                <br /><br />
+                *  Check to make sure any new hardware is properly installed.
+                If this is a new installation, ask your hardware vendor
+                for any driver updates you might need.
+            </div>
+            <div className="mb-4 font-bold">Technical information:</div>
+            <div className="mb-12 font-mono">*** STOP: 0x0000001E (0xC0000005, 0x804B518F, 0x00000000, 0x00000000)</div>
+            <div className="animate-pulse text-yellow-400 font-bold uppercase tracking-widest">
+                Emergency Reboot Initiated... [T-5s]
+            </div>
         </div>
     );
 };
