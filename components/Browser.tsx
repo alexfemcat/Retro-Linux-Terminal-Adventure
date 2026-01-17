@@ -261,11 +261,11 @@ export const Browser: React.FC<BrowserProps> = ({
                                                     </div>
                                                     <div className="text-[10px] text-cyan-600 font-mono uppercase">
                                                         Current Stats: {
-                                                            key === 'cpu' ? `${(current as any).clockSpeed}GHz / ${(current as any).cores} Cores` :
-                                                                key === 'ram' ? `${(current as any).capacity * 1000}MB Capacity` :
-                                                                    key === 'storage' ? `${(current as any).capacity * 1000}MB Capacity` :
-                                                                        key === 'cooling' ? `${(current as any).heatDissipation}x Dissipation` :
-                                                                            key === 'network' ? `${(current as any).bandwidth}MBps Bandwidth` : ''
+                                                            key === 'cpu' ? `${(currentCatalogItem as any)?.stats?.clockSpeed >= 1 ? (currentCatalogItem as any).stats.clockSpeed + 'GHz' : ((currentCatalogItem as any)?.stats?.clockSpeed * 1000) + 'MHz'} / ${(currentCatalogItem as any)?.stats?.cores} Cores` :
+                                                                key === 'ram' ? `${(currentCatalogItem as any)?.stats?.capacity >= 1 ? (currentCatalogItem as any).stats.capacity + 'GB' : ((currentCatalogItem as any)?.stats?.capacity * 1000) + 'MB'} Capacity` :
+                                                                    key === 'storage' ? `${(currentCatalogItem as any)?.stats?.capacity >= 1 ? (currentCatalogItem as any).stats.capacity + 'GB' : ((currentCatalogItem as any)?.stats?.capacity * 1000) + 'MB'} Capacity` :
+                                                                        key === 'cooling' ? `${(currentCatalogItem as any)?.stats?.heatDissipation}x Dissipation` :
+                                                                            key === 'network' ? `${(currentCatalogItem as any)?.stats?.bandwidth >= 1 ? (currentCatalogItem as any).stats.bandwidth + 'MBps' : ((currentCatalogItem as any)?.stats?.bandwidth * 1000) + 'KBps'} Bandwidth` : ''
                                                         }
                                                     </div>
                                                 </div>
@@ -275,11 +275,11 @@ export const Browser: React.FC<BrowserProps> = ({
                                                             <div className="text-[10px] text-yellow-600 uppercase text-right">
                                                                 Next: {(upgrade as any).name}<br />
                                                                 {
-                                                                    key === 'cpu' ? `${(upgrade as any).stats.clockSpeed}GHz / ${(upgrade as any).stats.cores} Cores` :
-                                                                        key === 'ram' ? `${(upgrade as any).stats.capacity * 1000}MB Capacity` :
-                                                                            key === 'storage' ? `${(upgrade as any).stats.capacity * 1000}MB Capacity` :
+                                                                    key === 'cpu' ? `${(upgrade as any).stats.clockSpeed >= 1 ? (upgrade as any).stats.clockSpeed + 'GHz' : ((upgrade as any).stats.clockSpeed * 1000) + 'MHz'} / ${(upgrade as any).stats.cores} Cores` :
+                                                                        key === 'ram' ? `${(upgrade as any).stats.capacity >= 1 ? (upgrade as any).stats.capacity + 'GB' : ((upgrade as any).stats.capacity * 1000) + 'MB'} Capacity` :
+                                                                            key === 'storage' ? `${(upgrade as any).stats.capacity >= 1 ? (upgrade as any).stats.capacity + 'GB' : ((upgrade as any).stats.capacity * 1000) + 'MB'} Capacity` :
                                                                                 key === 'cooling' ? `${(upgrade as any).stats.heatDissipation}x Dissipation` :
-                                                                                    key === 'network' ? `${(upgrade as any).stats.bandwidth}MBps Bandwidth` : ''
+                                                                                    key === 'network' ? `${(upgrade as any).stats.bandwidth >= 1 ? (upgrade as any).stats.bandwidth + 'MBps' : ((upgrade as any).stats.bandwidth * 1000) + 'KBps'} Bandwidth` : ''
                                                                 }
                                                             </div>
                                                             <button

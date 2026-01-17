@@ -176,6 +176,10 @@ export interface Mission {
   difficulty: 1 | 2 | 3 | 4 | 5;
   reward: number;
   description: string;
+  targetFileMetadata?: {
+    value: number;
+    category: 'sensitive' | 'financial' | 'personal' | 'system';
+  };
   // Parameters to feed into the Network Generator
   targetNetworkConfig: MissionConfig;
 }

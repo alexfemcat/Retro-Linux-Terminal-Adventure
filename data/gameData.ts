@@ -112,6 +112,19 @@ export const trashFiles: Record<string, string> = {
     "crash_dump.log": "EXCEPTION: NULL_POINTER_DEREFERENCE at 0x4002"
 };
 
+export const sensitiveFilenames = [
+    "private_photos.zip",
+    "tax_evasion_2025.pdf",
+    "ceo_nudes_leak.enc",
+    "offshore_accounts.xlsx",
+    "blackmail_material.txt",
+    "unethical_experiments.log",
+    "insider_trading_tips.doc",
+    "political_bribes.csv",
+    "secret_affair_emails.eml",
+    "illegal_arms_deal.pdf"
+];
+
 export const thematicMap: Record<string, string> = {
     'finance': 'financial archives',
     'legal': 'legal vault',

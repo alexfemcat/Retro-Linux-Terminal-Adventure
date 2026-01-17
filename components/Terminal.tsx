@@ -1925,6 +1925,152 @@ export const Terminal: React.FC<TerminalProps> = ({
                     onOpenSettings();
                 }
                 break;
+            case 'sell':
+                const sellFileName = args[0];
+                if (!sellFileName) {
+                    output = "usage: sell [file]";
+                    break;
+                }
+                const itemToSell = playerState.inventory.find(i => i.name === sellFileName);
+                if (!itemToSell) {
+                    output = <div className="text-red-500">Error: File '{sellFileName}' not found in local inventory.</div>;
+                    break;
+                }
+                // Calculate value: base on size or metadata if it was a mission target
+                // For now, simple size-based value + bonus for sensitive files
+                const isSensitive = itemToSell.name.includes('SECRET') || itemToSell.name.includes('leak') || itemToSell.name.includes('private');
+                const baseValue = (itemToSell.size || 1) * 10;
+                const finalValue = Math.floor(isSensitive ? baseValue * 5 : baseValue);
+
+                const updatedInv = playerState.inventory.filter(i => i.name !== sellFileName);
+                const updatedCredits = playerState.credits + finalValue;
+                const updatedRep = playerState.reputation + (isSensitive ? 50 : 10);
+
+                onPlayerStateChange({
+                    ...playerState,
+                    inventory: updatedInv,
+                    credits: updatedCredits,
+                    reputation: updatedRep
+                });
+
+                output = (
+                    <div className="text-green-400 font-bold animate-pulse">
+                        [MARKET] File '{sellFileName}' sold for {finalValue}c.<br />
+                        Reputation increased by {isSensitive ? 50 : 10}.
+                    </div>
+                );
+                break;
+            case 'encrypt':
+                if (!isMissionActive) {
+                    output = <div className="text-red-500">Error: Ransomware can only be deployed on remote targets.</div>;
+                    break;
+                }
+                const encFileName = args[0];
+                const ransomwareId = args[1];
+                if (!encFileName || !ransomwareId) {
+                    output = "usage: encrypt [file] [ransomware_id]";
+                    break;
+                }
+
+                const hasRansomware = playerState.installedSoftware.includes(ransomwareId);
+                if (!hasRansomware) {
+                    output = <div className="text-red-500">Error: Ransomware '{ransomwareId}' not installed.</div>;
+                    break;
+                }
+
+                const encPath = resolvePath(encFileName);
+                if (!encPath) {
+                    output = `encrypt: ${encFileName}: No such file or directory`;
+                    break;
+                }
+
+                const encNode = getNodeByPath(encPath);
+                if (!encNode || encNode.type !== 'file') {
+                    output = `encrypt: ${encFileName}: Not a file`;
+                    break;
+                }
+
+                // Success Logic
+                const rwItem = MARKET_CATALOG.find(i => i.id === ransomwareId) as any;
+                const baseSuccess = parseInt(rwItem?.description.match(/(\d+)%/)?.[1] || "10");
+                const difficulty = gameState.nodes[gameState.activeNodeIndex].vulnerabilities.length; // Proxy for difficulty
+                const finalSuccess = (baseSuccess - (difficulty * 5)) + (playerState.reputation / 500);
+
+                setHistory(prev => [...prev, (
+                    <div key={Date.now()} className="text-red-500 font-mono">
+                        [!] Initializing {rwItem?.name}...<br />
+                        [!] Target: {encFileName}<br />
+                        [!] Success Probability: {Math.min(95, Math.max(5, finalSuccess)).toFixed(1)}%<br />
+                        [*] Encrypting blocks...
+                    </div>
+                )]);
+
+                setTimeout(() => {
+                    const roll = Math.random() * 100;
+                    if (roll < finalSuccess) {
+                        // Success
+                        const payoutMultiplier = parseFloat(rwItem?.description.match(/(\d+\.\d+)x/)?.[1] || "0.4");
+                        const payout = Math.floor(2000 * payoutMultiplier * (difficulty + 1));
+
+                        setHistory(prev => [...prev, (
+                            <div key={Date.now()} className="text-green-500 font-bold border-2 border-green-500 p-2 mt-2">
+                                [SUCCESS] File '{encFileName}' encrypted.<br />
+                                [!] Ransom note transmitted to target admin.<br />
+                                [!] Payout of {payout}c will be processed upon confirmation.
+                            </div>
+                        )]);
+
+                        // Add email
+                        const ransomEmail = {
+                            id: `ransom_${Date.now()}`,
+                            sender: 'SYSTEM',
+                            subject: `Ransom Confirmation: ${activeNode.hostname}`,
+                            body: `Target ${activeNode.hostname} has been successfully encrypted using ${rwItem.name}.\n\nVictim has agreed to pay the ransom of ${payout}c to avoid data exposure.\n\nCredits have been added to your account.`,
+                            timestamp: new Date().toISOString().split('T')[0],
+                            status: 'unread' as const,
+                            type: 'ransom' as const
+                        };
+
+                        onPlayerStateChange({
+                            ...playerState,
+                            credits: playerState.credits + payout,
+                            reputation: playerState.reputation + 100,
+                            emails: [ransomEmail, ...playerState.emails]
+                        });
+
+                        // Visual change: rename file
+                        const parentPath = encPath.slice(0, -1);
+                        const fName = encPath[encPath.length - 1];
+                        const parentNode = getNodeByPath(parentPath) as Directory;
+                        if (parentNode) {
+                            const originalFile = parentNode.children[fName] as VFSFile;
+                            delete parentNode.children[fName];
+                            parentNode.children[`${fName}.encrypted`] = {
+                                ...originalFile,
+                                name: `${fName}.encrypted`,
+                                content: "[ENCRYPTED DATA - RANSOM REQUIRED]"
+                            };
+                            if (onVFSChange) onVFSChange(vfs);
+                        }
+
+                    } else {
+                        // Failure
+                        setHistory(prev => [...prev, (
+                            <div key={Date.now()} className="text-red-600 font-bold border-2 border-red-600 p-2 mt-2 animate-pulse">
+                                [CRITICAL FAILURE] Encryption process detected and killed by remote AV.<br />
+                                [!] Trace speed increased!
+                            </div>
+                        )]);
+                        if (onGameStateChange) {
+                            onGameStateChange({
+                                ...gameState,
+                                traceProgress: Math.min(100, gameState.traceProgress + 30)
+                            });
+                        }
+                    }
+                }, 2000);
+
+                break;
             default:
                 output = `command not found: ${cmd}`;
         }

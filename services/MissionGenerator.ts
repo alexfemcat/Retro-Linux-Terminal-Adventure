@@ -1,5 +1,5 @@
 import { Mission, MissionConfig } from '../types';
-import { scenarios } from '../data/gameData';
+import { scenarios, sensitiveFilenames } from '../data/gameData';
 
 class MissionGenerator {
     private getRandom<T>(arr: T[]): T {
@@ -36,14 +36,29 @@ class MissionGenerator {
         if (rand > 0.8 && difficulty < 5) difficulty++;
         if (rand < 0.2 && difficulty > 1) difficulty--;
 
-        const reward = difficulty * 500 + Math.floor(Math.random() * 200);
+        // Reward scaling (Grindier):
+        // Diff 1: ~200-250c
+        // Diff 2: ~600-800c
+        // Diff 3: ~2500-3500c
+        // Diff 4: ~10000-14000c
+        // Diff 5: ~45000-60000c
+        const baseReward = Math.pow(difficulty, 3.8) * 45 + (difficulty * 150);
+        const reward = baseReward + Math.floor(Math.random() * (baseReward * 0.15));
 
         // Mission titles based on scenario
         const titlePrefixes = ["Operation", "Project", "Task", "Heist", "Infiltration"];
         const titleSuffixes = ["Alpha", "Beta", "Omega", "Nexus", "Zero", "Prime"];
         const title = `${this.getRandom(titlePrefixes)} ${scenario.theme.split(' ')[0]} ${this.getRandom(titleSuffixes)}`.toUpperCase();
 
-        const targetFileName = `SECRET_${Math.floor(Math.random() * 10000)}.dat`;
+        const isSensitive = Math.random() > 0.6;
+        const targetFileName = isSensitive
+            ? sensitiveFilenames[Math.floor(Math.random() * sensitiveFilenames.length)]
+            : `SECRET_${Math.floor(Math.random() * 10000)}.dat`;
+
+        const targetFileMetadata: Mission['targetFileMetadata'] = {
+            value: reward * 0.5,
+            category: isSensitive ? 'sensitive' : 'system'
+        };
 
         // Enhance description with phase 3 details
         const vectors = ['SSH Exploit', 'SQL Injection', 'Service Buffer Overflow', 'Kernel Zero-Day'];
@@ -70,6 +85,7 @@ class MissionGenerator {
             difficulty: difficulty as 1 | 2 | 3 | 4 | 5,
             reward,
             description,
+            targetFileMetadata,
             targetNetworkConfig: config
         };
     }

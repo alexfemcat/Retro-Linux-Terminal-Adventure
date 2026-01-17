@@ -32,6 +32,7 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'rm': { id: 'rm', description: 'Remove a file.', usage: 'rm [file]', isDefaultCommand: true, isLocalOnly: false },
     'kill': { id: 'kill', description: 'Terminate a process by PID.', usage: 'kill [pid]', isDefaultCommand: true, isLocalOnly: false },
     'echo': { id: 'echo', description: 'Write text to a file.', usage: 'echo "text" > [file]', isDefaultCommand: true, isLocalOnly: false },
+    'sell': { id: 'sell', description: 'Sell a file from your inventory.', usage: 'sell [file]', isDefaultCommand: true, isLocalOnly: true },
 
     'alias': { id: 'alias', description: 'Create a command alias.', usage: 'alias [name]="[command]"', isDefaultCommand: true, isLocalOnly: false },
     'sh': { id: 'sh', description: 'Execute a script.', usage: 'sh [file]', isDefaultCommand: true, isLocalOnly: false },
@@ -67,6 +68,7 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'dist-crack': { id: 'dist-crack', description: 'Coordinated multi-node brute force.', usage: 'dist-crack [user]@[ip]', isDefaultCommand: false, isLocalOnly: false, requiredSoftware: 'dist-crack' },
     '0day-pack': { id: '0day-pack', description: 'Instant-access exploit kit.', usage: '0day-pack [ip]', isDefaultCommand: false, isLocalOnly: false },
     'neuro-crack': { id: 'neuro-crack', description: 'AI-driven heuristic encryption bypass.', usage: 'neuro-crack [ip]', isDefaultCommand: false, isLocalOnly: false },
+    'encrypt': { id: 'encrypt', description: 'Deploy ransomware to encrypt a file/directory.', usage: 'encrypt [file] [ransomware_id]', isDefaultCommand: false, isLocalOnly: false },
 
     'netmap': { id: 'netmap', description: 'Visualize discovered network nodes.', usage: 'netmap', isDefaultCommand: true, isLocalOnly: false },
     'ssh': { id: 'ssh', description: 'Connect to remote host.', usage: 'ssh [user]@[ip]', isDefaultCommand: true, isLocalOnly: false },

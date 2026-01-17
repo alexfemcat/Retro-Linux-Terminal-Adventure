@@ -146,10 +146,10 @@ export function createInitialPlayerState(): PlayerState {
         ],
         browserHistory: [],
         hardware: {
-            cpu: { id: 'cpu_v1', level: 1, clockSpeed: 1.0, cores: 1 },
-            ram: { id: 'ram_v1', level: 1, capacity: 4 },
-            network: { id: 'net_v1', level: 1, bandwidth: 10 },
-            storage: { id: 'hd_v1', level: 1, capacity: 1 },
+            cpu: { id: 'cpu_v1', level: 1, clockSpeed: 0.016, cores: 1 },
+            ram: { id: 'ram_v1', level: 1, capacity: 0.004 },
+            network: { id: 'net_v1', level: 1, bandwidth: 0.014 },
+            storage: { id: 'hd_v1', level: 1, capacity: 0.04 },
             cooling: { id: 'cool_v1', level: 1, heatDissipation: 1.0 }
         },
         activeMissionId: null,
