@@ -3,6 +3,7 @@ import type { GameState, VFSNode, NetworkNode, PlayerState, Directory, File as V
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
 import { MARKET_CATALOG } from '../data/marketData';
+import { victimPersonas } from '../data/gameData';
 import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
 import { PerformanceStats } from '../hooks/usePerformance';
@@ -2016,27 +2017,33 @@ export const Terminal: React.FC<TerminalProps> = ({
                             <div key={Date.now()} className="text-green-500 font-bold border-2 border-green-500 p-2 mt-2">
                                 [SUCCESS] File '{encFileName}' encrypted.<br />
                                 [!] Ransom note transmitted to target admin.<br />
-                                [!] Payout of {payout}c will be processed upon confirmation.
+                                [!] Awaiting victim response...
                             </div>
                         )]);
 
-                        // Add email
-                        const ransomEmail = {
-                            id: `ransom_${Date.now()}`,
-                            sender: 'SYSTEM',
-                            subject: `Ransom Confirmation: ${activeNode.hostname}`,
-                            body: `Target ${activeNode.hostname} has been successfully encrypted using ${rwItem.name}.\n\nVictim has agreed to pay the ransom of ${payout}c to avoid data exposure.\n\nCredits have been added to your account.`,
-                            timestamp: new Date().toISOString().split('T')[0],
-                            status: 'unread' as const,
-                            type: 'ransom' as const
-                        };
+                        // Delayed Email Response
+                        setTimeout(() => {
+                            const persona = victimPersonas[Math.floor(Math.random() * victimPersonas.length)];
+                            const response = persona.responses[Math.floor(Math.random() * persona.responses.length)];
+                            const willPay = !persona.name.includes('Defiant') || Math.random() > 0.7;
 
-                        onPlayerStateChange({
-                            ...playerState,
-                            credits: playerState.credits + payout,
-                            reputation: playerState.reputation + 100,
-                            emails: [ransomEmail, ...playerState.emails]
-                        });
+                            const ransomEmail = {
+                                id: `ransom_${Date.now()}`,
+                                sender: activeNode.hostname,
+                                subject: `RE: YOUR RANSOM DEMAND`,
+                                body: `${response}\n\n---\n${willPay ? `[SYSTEM: Victim has authorized a payment of ${payout}c]` : `[SYSTEM: Victim has refused to pay and is attempting to restore from backups]`}`,
+                                timestamp: new Date().toISOString().split('T')[0],
+                                status: 'unread' as const,
+                                type: 'ransom' as const
+                            };
+
+                            onPlayerStateChange({
+                                ...playerState,
+                                credits: playerState.credits + (willPay ? payout : 0),
+                                reputation: playerState.reputation + (willPay ? 100 : 20),
+                                emails: [ransomEmail, ...playerState.emails]
+                            });
+                        }, 5000 + Math.random() * 5000);
 
                         // Visual change: rename file
                         const parentPath = encPath.slice(0, -1);

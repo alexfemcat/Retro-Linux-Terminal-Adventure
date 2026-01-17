@@ -125,6 +125,115 @@ export const sensitiveFilenames = [
     "illegal_arms_deal.pdf"
 ];
 
+export const victimPersonas = [
+    {
+        name: "The Panic-Stricken",
+        responses: [
+            "OH GOD PLEASE DON'T DELETE MY CAT PHOTOS. I'LL PAY ANYTHING.",
+            "I have the credits, just please don't leak my browser history!",
+            "I'm shaking right now. Please, I've sent the payment. Just give me the key.",
+            "My heart is racing. I've never been hacked before. Is this real? I've sent the money, please just stop.",
+            "I'm crying. Those files were all I had of my vacation. Please, I've authorized the transfer.",
+            "PLEASE! I'll do anything! I've sent the credits. Just don't hurt my computer!",
+            "I'm calling my mom. No, wait, I'll just pay. Please don't tell anyone about this."
+        ]
+    },
+    {
+        name: "The Angry Boomer",
+        responses: [
+            "I'M CALLING THE CYBER-POLICE. MY NEPHEW IS GOOD WITH COMPUTERS, HE'LL FIX THIS.",
+            "Listen here you little punk, I've been using computers since before you were born. You can't do this!",
+            "I'm not paying a cent! I'll just buy a new computer. Good luck with your 'encryption'!",
+            "You think you're so smart with your 'binary' and your 'code'. I've got a shotgun and a bad attitude.",
+            "I've reported you to the Better Business Bureau! This is the worst service I've ever received!",
+            "GET OFF MY HARD DRIVE! I'm typing this in all caps so you know I'm serious!",
+            "I've already contacted the FBI, the CIA, and my local sheriff. You're going to jail, buddy!"
+        ]
+    },
+    {
+        name: "The Resigned IT Guy",
+        responses: [
+            "Again? Fine. The company has a budget for this. Just send the key.",
+            "Look, I'm just trying to get through my shift. I've authorized the payment. Don't make it weird.",
+            "Third time this month. You guys are getting efficient. Payment sent.",
+            "I told management we needed a better firewall. They didn't listen. Now they're paying you. Hilarious.",
+            "Whatever. I'm on my lunch break. I've clicked 'pay'. Send the decryptor whenever.",
+            "I'm not even mad. That was a clean exploit. Credits sent. Can you send me the CVE for this?",
+            "Just another Tuesday in the server room. Payment authorized. Don't forget to leave a review."
+        ]
+    },
+    {
+        name: "The Defiant",
+        responses: [
+            "We have backups from 1994. Good luck with your 'encryption', kid.",
+            "Nice try. Our systems are air-gapped (mostly). We're not paying.",
+            "You think this is the first time we've been hacked? We've got a team of lawyers already tracing your IP.",
+            "I'd rather set the server room on fire than pay you a single credit.",
+            "Go ahead, delete it. It's mostly just corporate training videos and memes anyway.",
+            "We don't negotiate with 'script kiddies'. Enjoy your trace spike.",
+            "Our encryption is better than yours. We'll have this cracked by morning. Buzz off."
+        ]
+    },
+    {
+        name: "The Confused Grandma",
+        responses: [
+            "Hello? Is this the Google? My screen has turned all red and it's asking for 'credits'. Is that like stamps?",
+            "Dear Hacker, I hope this finds you well. I've sent the 'credits' you asked for. Does this mean I can see my grandkids' photos again?",
+            "I tried to put the credits in the floppy drive but they won't fit. Please help.",
+            "Is this a virus? My grandson told me not to click on the dancing hamsters. I'm sorry.",
+            "I've sent the money. Can you also fix my printer? It's been making a funny noise since 1998."
+        ]
+    },
+    {
+        name: "The Edgy Teen",
+        responses: [
+            "LMAO nice one. I was gonna wipe this drive anyway. Jokes on you, I've got nothing to lose.",
+            "Pffft, I could have done that in my sleep. You're using a T1 ransomware? Cringe.",
+            "I've sent the credits, but only because I'm bored. Don't think you're 'elite' or anything.",
+            "1v1 me in Cyber-Strike and maybe I'll pay. Actually, fine, here's your credits. Nerd.",
+            "My dad owns Microsoft. You're so banned. Enjoy your ban, kid."
+        ]
+    }
+];
+
+export const blackmailTemplates = [
+    {
+        category: 'financial',
+        subject: "I KNOW WHAT YOU DID",
+        body: "I received your message. I can't believe you found those tax records. Please, I'll pay the {payout}c, just delete them and never contact me again."
+    },
+    {
+        category: 'financial',
+        subject: "URGENT: REGARDING YOUR AUDIT",
+        body: "How did you get into the secure vault? Those offshore accounts were supposed to be invisible. I've authorized the {payout}c. Don't let this leak."
+    },
+    {
+        category: 'personal',
+        subject: "PLEASE BE DISCREET",
+        body: "How did you get those photos? My career would be over. I've authorized the {payout}c transfer. Just make it go away."
+    },
+    {
+        category: 'personal',
+        subject: "A PRIVATE MATTER",
+        body: "I'm a family man. If my wife sees those chat logs... please. I've sent the {payout}c. I'm begging you, delete everything."
+    },
+    {
+        category: 'sensitive',
+        subject: "LET'S MAKE A DEAL",
+        body: "You've got the logs. Fine. {payout}c is a small price to pay for silence. Don't get greedy."
+    },
+    {
+        category: 'sensitive',
+        subject: "REGARDING THE 'INCIDENT'",
+        body: "We knew there was a leak, but we didn't think it was this bad. The board has authorized a {payout}c 'consultation fee' for your silence. Do we have an agreement?"
+    },
+    {
+        category: 'sensitive',
+        subject: "UNETHICAL FINDINGS",
+        body: "Those lab results were never meant to see the light of day. You've put us in a very difficult position. Here is {payout}c. Consider this the end of our interaction."
+    }
+];
+
 export const thematicMap: Record<string, string> = {
     'finance': 'financial archives',
     'legal': 'legal vault',

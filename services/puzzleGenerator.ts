@@ -1,5 +1,5 @@
 import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState, MissionConfig, Vulnerability, VulnerabilityType } from '../types';
-import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens, trashFiles } from '../data/gameData';
+import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens, trashFiles, sensitiveFilenames } from '../data/gameData';
 
 class PuzzleGenerator {
     private getRandom<T>(arr: T[]): T {
@@ -545,6 +545,25 @@ class PuzzleGenerator {
 
         // Generate honeypots
         this.generateHoneypots(node);
+
+        // Rare Sensitive File Spawn (Side Hustle)
+        if (Math.random() > 0.8) {
+            const sensitiveName = this.getRandom(sensitiveFilenames);
+            const targetDir = this.getRandom(['tmp', 'var/log', 'home/user/Documents']);
+            let current: Directory = root;
+            const parts = targetDir.split('/');
+            for (const part of parts) {
+                if (current.children[part] && current.children[part].type === 'directory') {
+                    current = current.children[part] as Directory;
+                }
+            }
+            current.children[sensitiveName] = {
+                type: 'file',
+                name: sensitiveName,
+                content: `[SENSITIVE DATA]\nThis file contains potentially blackmail-worthy information.\nCategory: ${this.getRandom(['financial', 'personal', 'sensitive'])}`,
+                size: 50 + Math.random() * 200
+            };
+        }
 
         node.vfs.size = this.calculateDirectorySize(node.vfs);
 

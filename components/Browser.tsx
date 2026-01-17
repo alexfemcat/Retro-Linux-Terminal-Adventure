@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { PlayerState, Mission, WorldEvent } from '../types';
 import { MARKET_CATALOG } from '../data/marketData';
+import { blackmailTemplates } from '../data/gameData';
 import { buyItem } from '../services/MarketSystem';
 import { writeSave } from '../services/PersistenceService';
 
@@ -74,6 +75,12 @@ export const Browser: React.FC<BrowserProps> = ({
                             label="GNN News"
                             sublabel="Global News Network"
                             onClick={() => navigate('web://gnn-news')}
+                        />
+                        <BrowserIcon
+                            icon="🤫"
+                            label="Blackmail"
+                            sublabel="Anonymous Extortion"
+                            onClick={() => navigate('tor://blackmail-service')}
                         />
                     </div>
                 </div>
@@ -204,6 +211,80 @@ export const Browser: React.FC<BrowserProps> = ({
                             <h4 className="text-sm font-bold text-gray-500 mb-2 uppercase">Archived Reports</h4>
                             <p className="text-xs text-gray-600 italic">No archived reports found for this session.</p>
                         </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (url === 'tor://blackmail-service') {
+            return (
+                <div className="p-8 h-full flex flex-col items-center justify-center text-center">
+                    <div className="text-6xl mb-6">🤫</div>
+                    <h2 className="text-3xl font-bold text-purple-400 mb-4 uppercase tracking-widest">Blackmail Portal</h2>
+                    <p className="text-gray-400 max-w-lg mb-8 italic">
+                        "Information is the only currency that never devalues."<br />
+                        Upload stolen sensitive data here to begin anonymous extortion proceedings.
+                    </p>
+
+                    <div className="grid grid-cols-1 gap-4 w-full max-w-md">
+                        {playerState.inventory.filter(i => i.name.includes('SECRET') || i.name.includes('leak') || i.name.includes('private') || i.name.includes('tax') || i.name.includes('unethical')).length === 0 ? (
+                            <div className="border-2 border-dashed border-purple-900/50 p-12 text-purple-900 font-bold uppercase">
+                                No sensitive data found in inventory
+                            </div>
+                        ) : (
+                            playerState.inventory
+                                .filter(i => i.name.includes('SECRET') || i.name.includes('leak') || i.name.includes('private') || i.name.includes('tax') || i.name.includes('unethical'))
+                                .map(item => (
+                                    <button
+                                        key={item.name}
+                                        onClick={() => {
+                                            const payout = Math.floor(5000 + Math.random() * 10000);
+                                            const roll = Math.random() * 100;
+                                            let updatedState = { ...playerState };
+                                            let alertMsg = "";
+
+                                            if (roll < 10) {
+                                                // Critical Failure: Hitman / Kernel Panic
+                                                alertMsg = "[CRITICAL ERROR] Victim traced your upload. Counter-hack initiated. SYSTEM CRASH IMMINENT.";
+                                                updatedState.systemHeat = 100;
+                                            } else if (roll < 30) {
+                                                // Failure: Trace Spike
+                                                alertMsg = "[WARNING] Victim contacted authorities. Trace speed increased!";
+                                                // Note: We can't easily trigger trace spike here without gameState access,
+                                                // but we can simulate a "fine" or reputation loss
+                                                updatedState.reputation = Math.max(0, playerState.reputation - 100);
+                                                updatedState.credits = Math.max(0, playerState.credits - 500);
+                                            } else {
+                                                // Success
+                                                const category = item.name.includes('tax') ? 'financial' : item.name.includes('nudes') || item.name.includes('diary') ? 'personal' : 'sensitive';
+                                                const template = blackmailTemplates.find(t => t.category === category) || blackmailTemplates[2];
+
+                                                const blackmailEmail = {
+                                                    id: `blackmail_${Date.now()}`,
+                                                    sender: 'ANONYMOUS_VICTIM',
+                                                    subject: template.subject,
+                                                    body: `${template.body.replace('{payout}', payout.toString())}\n\n[SYSTEM: Victim has authorized extortion payment]`,
+                                                    timestamp: new Date().toISOString().split('T')[0],
+                                                    status: 'unread' as const,
+                                                    type: 'ransom' as const
+                                                };
+                                                updatedState.credits += payout;
+                                                updatedState.reputation += 150;
+                                                updatedState.emails = [blackmailEmail, ...playerState.emails];
+                                                alertMsg = `[SUCCESS] Data uploaded. Victim contacted. Payout of ${payout}c received.`;
+                                            }
+
+                                            updatedState.inventory = playerState.inventory.filter(i => i.name !== item.name);
+                                            onPlayerStateChange(updatedState);
+                                            alert(alertMsg);
+                                        }}
+                                        className="bg-purple-900/20 border border-purple-500 p-4 hover:bg-purple-500 hover:text-white transition-all flex justify-between items-center group"
+                                    >
+                                        <span className="font-bold uppercase tracking-tighter">{item.name}</span>
+                                        <span className="text-xs opacity-0 group-hover:opacity-100 font-mono">[ UPLOAD & EXTORT ]</span>
+                                    </button>
+                                ))
+                        )}
                     </div>
                 </div>
             );
