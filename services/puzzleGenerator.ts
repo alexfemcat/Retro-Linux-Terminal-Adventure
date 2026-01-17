@@ -1,4 +1,4 @@
-import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState, MissionConfig } from '../types';
+import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState, MissionConfig, Vulnerability, VulnerabilityType } from '../types';
 import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens } from '../data/gameData';
 
 class PuzzleGenerator {
@@ -110,6 +110,49 @@ class PuzzleGenerator {
                 break;
         }
         return ports;
+    }
+
+    private generateVulnerabilities(difficulty: number): Vulnerability[] {
+        const vulnerabilities: Vulnerability[] = [];
+        const types: VulnerabilityType[] = ['ssh', 'service', 'db', 'kernel'];
+        const numVulns = 1 + Math.floor(Math.random() * Math.min(3, difficulty));
+
+        for (let i = 0; i < numVulns; i++) {
+            const type = this.getRandom(types);
+            const level = Math.min(5, Math.max(1, Math.floor(difficulty + (Math.random() * 2 - 1)))) as 1 | 2 | 3 | 4 | 5;
+
+            let entryPoint = '';
+            let hint = '';
+
+            switch (type) {
+                case 'ssh':
+                    entryPoint = 'port 22';
+                    hint = Math.random() > 0.5 ? 'Weak SSH key exchange protocol' : 'SSH-2.0-OpenSSH_7.4 Old Version';
+                    break;
+                case 'service':
+                    entryPoint = Math.random() > 0.5 ? 'port 80' : 'port 8080';
+                    hint = 'Apache/2.4.41 (Ubuntu) mod_ssl/2.4.41';
+                    break;
+                case 'db':
+                    entryPoint = 'port 5432';
+                    hint = 'PostgreSQL 9.6 - Blind SQL Injection possible';
+                    break;
+                case 'kernel':
+                    entryPoint = 'local-system';
+                    hint = 'Linux Kernel 4.15 - CVE-2021-33909 (Dirty Pipe)';
+                    break;
+            }
+
+            vulnerabilities.push({
+                type,
+                level,
+                entryPoint,
+                hint,
+                isExploited: false
+            });
+        }
+
+        return vulnerabilities;
     }
 
     private generateSocialPuzzle(): { password: string, hint: string, components: { type: string, value: string, file: string, content: string }[] } {
@@ -421,6 +464,7 @@ class PuzzleGenerator {
             processes: systemState.processes,
             envVars: systemState.envVars,
             ports: this.generatePorts(type),
+            vulnerabilities: this.generateVulnerabilities(scenario.theme === 'Homebase' ? 1 : 2), // Basic difficulty
             isDiscovered: false,
             rootPassword: puzzle.password,
             currentUser: 'user'
@@ -569,7 +613,9 @@ class PuzzleGenerator {
             activeNodeIndex: 0,
             winCondition,
             scenario: { ...scenario, welcomeMessage },
-            bootTime: Date.now()
+            bootTime: Date.now(),
+            traceProgress: 0,
+            isTraceActive: false
         };
     }
 
@@ -610,6 +656,7 @@ class PuzzleGenerator {
                 SHELL: '/bin/bash'
             },
             ports: [],
+            vulnerabilities: [],
             isDiscovered: true,
             currentUser: 'user'
         };
@@ -652,7 +699,9 @@ class PuzzleGenerator {
                 distractionFiles: {},
                 distractionDirs: []
             },
-            bootTime: Date.now()
+            bootTime: Date.now(),
+            traceProgress: 0,
+            isTraceActive: false
         };
     }
 

@@ -14,20 +14,23 @@ export const MARKET_CATALOG: MarketItem[] = [
 
     // --- SOFTWARE: Tier 3 ---
     { id: 'sqlmap', name: 'sqlmap', category: 'exploit', tier: 3, description: 'Automatic SQL injection and database takeover tool', cost: 5000, cpuReq: 30, ramReq: 256, storageSize: 80 },
-    { id: 'john-the-ripper', name: 'john', category: 'exploit', tier: 3, description: 'Offline password hash cracker', cost: 4500, cpuReq: 80, ramReq: 512, storageSize: 60 },
+    { id: 'john', name: 'john', category: 'exploit', tier: 3, description: 'Offline password hash cracker', cost: 4500, cpuReq: 80, ramReq: 512, storageSize: 60 },
     { id: 'proxy-tunnel', name: 'proxy-tunnel', category: 'utility', tier: 3, description: 'Encrypted traffic tunneling to hide origin', cost: 3500, cpuReq: 5, ramReq: 128, storageSize: 25 },
 
     // --- SOFTWARE: Tier 4 ---
-    { id: 'metasploit-core', name: 'msfconsole', category: 'exploit', tier: 4, description: 'Advanced exploitation framework', cost: 15000, cpuReq: 50, ramReq: 1024, storageSize: 500 },
-    { id: 'distributed-bruteforce', name: 'dist-crack', category: 'exploit', tier: 4, description: 'Coordinated multi-node brute force attack', cost: 25000, cpuReq: 40, ramReq: 2048, storageSize: 150 },
+    { id: 'msfconsole', name: 'msfconsole', category: 'exploit', tier: 4, description: 'Advanced exploitation framework', cost: 15000, cpuReq: 50, ramReq: 1024, storageSize: 500 },
+    { id: 'dist-crack', name: 'dist-crack', category: 'exploit', tier: 4, description: 'Coordinated multi-node brute force attack', cost: 25000, cpuReq: 40, ramReq: 2048, storageSize: 150 },
 
     // --- SOFTWARE: Tier 5 ---
-    { id: 'zero-day-exploit-kit', name: '0day-pack', category: 'exploit', tier: 5, description: 'Instant-access exploit for specific OS versions', cost: 100000, cpuReq: 10, ramReq: 512, storageSize: 10 },
-    { id: 'neural-net-cracker', name: 'neuro-crack', category: 'exploit', tier: 5, description: 'AI-driven heuristic encryption bypass', cost: 250000, cpuReq: 95, ramReq: 4096, storageSize: 1200 },
+    { id: '0day-pack', name: '0day-pack', category: 'exploit', tier: 5, description: 'Instant-access exploit for specific OS versions', cost: 100000, cpuReq: 10, ramReq: 512, storageSize: 10 },
+    { id: 'neuro-crack', name: 'neuro-crack', category: 'exploit', tier: 5, description: 'AI-driven heuristic encryption bypass', cost: 250000, cpuReq: 95, ramReq: 4096, storageSize: 1200 },
+    { id: 'nmap-pro', name: 'nmap-pro', category: 'sniffing', tier: 4, description: 'Advanced OS fingerprinting and version detection.', cost: 8000, cpuReq: 20, ramReq: 256, storageSize: 120 },
 
     // --- CONSUMABLES ---
     { id: 'proxy_list', name: 'Disposable Proxy List', category: 'consumable', description: 'One-time use proxy chain (5 uses)', cost: 500 },
     { id: 'vpn_tunnel', name: 'Encrypted VPN Tunnel', category: 'consumable', description: 'Masks identity for 1 mission', cost: 1200 },
+    { id: 'wordlist_small', name: 'Common Passwords (Small)', category: 'utility', description: 'Small wordlist for hydra', cost: 200, tier: 1, cpuReq: 0, ramReq: 0, storageSize: 10 },
+    { id: 'wordlist_big', name: 'RockYou.txt (Modified)', category: 'utility', description: 'Massive wordlist for hydra', cost: 1000, tier: 2, cpuReq: 0, ramReq: 0, storageSize: 150 },
 
     // --- HARDWARE: CPU ---
     { id: 'cpu_v2', name: 'CPU v2 (1.1GHz)', category: 'hardware', description: 'Minor clock adjustment.', cost: 250, hardwareKey: 'cpu', stats: { level: 2, clockSpeed: 1.1, cores: 1 } },

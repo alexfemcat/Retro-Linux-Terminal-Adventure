@@ -42,6 +42,16 @@ export interface NetworkPort {
   isOpen: boolean;
 }
 
+export type VulnerabilityType = 'ssh' | 'service' | 'db' | 'kernel';
+
+export interface Vulnerability {
+  type: VulnerabilityType;
+  level: 1 | 2 | 3 | 4 | 5;
+  entryPoint: string;
+  hint: string;
+  isExploited: boolean;
+}
+
 export interface NetworkNode {
   id: string;
   hostname: string;
@@ -53,6 +63,7 @@ export interface NetworkNode {
   processes: Process[];
   envVars: Record<string, string>;
   ports: NetworkPort[];
+  vulnerabilities: Vulnerability[];
 
   isDiscovered: boolean;
   rootPassword?: string;
@@ -72,6 +83,10 @@ export interface GameState {
   // Meta
   scenario: Omit<Scenario, 'welcomeMessage'> & { welcomeMessage: string };
   bootTime: number; // Global start time
+
+  // Phase 3 Mission Engine
+  traceProgress: number; // 0-100
+  isTraceActive: boolean;
 }
 
 export interface ChatMessage {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { GameState, VFSNode, NetworkNode, PlayerState, Directory } from '../types';
+import type { GameState, VFSNode, NetworkNode, PlayerState, Directory, File as VFSFile } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
 import { buyItem } from '../services/MarketSystem';
@@ -251,8 +251,56 @@ export const Terminal: React.FC<TerminalProps> = ({
         setPasswordCallback(() => callback);
     };
 
+    const COMMAND_NOISE: Record<string, number> = {
+        'ls': 1,
+        'cat': 2,
+        'cd': 1,
+        'pwd': 0,
+        'whoami': 0,
+        'nmap': 10,
+        'nmap-pro': 15,
+        'hydra': 25,
+        'brute-force.sh': 30,
+        'ssh': 5,
+        'sudo': 10,
+        'download': 20,
+        'sqlmap': 15,
+        'msfconsole': 12,
+        'msf-exploit': 15,
+        'john': 0, // offline
+    };
+
     const processCommand = async (command: string) => {
         if (isLockedOut || isTransitioning) return;
+
+        // Trace Logic
+        if (isMissionActive && onGameStateChange) {
+            const [cmd] = command.trim().split(/\s+/);
+            const noise = COMMAND_NOISE[cmd] || 2;
+            const newTrace = Math.min(100, gameState.traceProgress + noise);
+
+            if (newTrace >= 100) {
+                setHistory(prev => [...prev, <div className="text-red-600 font-bold blink">!!! SIGNAL TRACE DETECTED - EMERGENCY DISCONNECT !!!</div>]);
+                setTimeout(() => onMissionAbort(), 1500);
+                onGameStateChange({ ...gameState, traceProgress: 100, isTraceActive: true });
+                return;
+            }
+
+            // Trace Response Levels
+            if (newTrace >= 75 && gameState.traceProgress < 75) {
+                setHistory(prev => [...prev, <div className="text-red-500 font-bold">WARNING: NODE ENCRYPTION ROTATING. PORTS CLOSING.</div>]);
+            } else if (newTrace >= 50 && gameState.traceProgress < 50) {
+                setIsTransitioning(true);
+                setTimeout(() => setIsTransitioning(false), 500);
+                setHistory(prev => [...prev, <div className="text-yellow-500 font-bold">CAUTION: UNUSUAL NETWORK TRAFFIC DETECTED BY TARGET.</div>]);
+            } else if (newTrace >= 25 && gameState.traceProgress < 25) {
+                setHistory(prev => [...prev, <div className="text-blue-400 opacity-70">Heads up: Remote admin is running a routine check. Stay quiet.</div>]);
+            }
+
+            if (noise > 0) {
+                onGameStateChange({ ...gameState, traceProgress: newTrace, isTraceActive: true });
+            }
+        }
 
         // Handle Password Input
         if (inputMode === 'password') {
@@ -349,6 +397,12 @@ export const Terminal: React.FC<TerminalProps> = ({
                     } else {
                         output = <div className="text-red-500">Error: Invalid mission ID. Use 'jobs' to see available contracts.</div>;
                     }
+                } else if (args[0] === 'generate') {
+                    const count = parseInt(args[1]) || 3;
+                    const { missionGenerator } = await import('../services/MissionGenerator');
+                    const newMissions = missionGenerator.generateMissions(playerState.reputation, count);
+                    onPlayerStateChange({ ...playerState, availableMissions: newMissions });
+                    output = <div className="text-green-400">Successfully rolled {newMissions.length} new contracts. Check 'jobs' list.</div>;
                 } else {
                     output = (
                         <div className="text-yellow-400">
@@ -360,10 +414,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 <div className="opacity-70">REWARD</div>
                                 {playerState.availableMissions.map((m, idx) => (
                                     <React.Fragment key={m.id}>
-                                        <div>[{idx + 1}]</div>
-                                        <div className="font-bold">{m.title}</div>
-                                        <div>{'★'.repeat(m.difficulty)}</div>
-                                        <div>{m.reward}c</div>
+                                        <div className="text-gray-500">[{idx + 1}]</div>
+                                        <div className="font-bold text-white">{m.title}</div>
+                                        <div className="text-amber-500">{'★'.repeat(m.difficulty)}</div>
+                                        <div className="text-green-500">{m.reward}c</div>
+                                        <div className="col-start-2 col-span-3 text-xs text-gray-500 mb-2">
+                                            {m.description.split('\n')[0]}
+                                        </div>
                                     </React.Fragment>
                                 ))}
                             </div>
@@ -924,6 +981,298 @@ export const Terminal: React.FC<TerminalProps> = ({
                     output = `Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn`;
                 }
                 break;
+            case 'nmap-pro':
+                if (!args[0]) { output = "usage: nmap-pro [ip]"; break; }
+                const nmapProIp = args[0];
+                const nmapProTarget = gameState.nodes.find(n => n.ip === nmapProIp);
+
+                if (nmapProTarget) {
+                    const pid = Math.floor(Math.random() * 9000) + 1000;
+                    const cost = { ramUsage: 1.5 }; // nmap-pro is heavier
+
+                    setActiveProcesses(prev => [...prev, { id: pid.toString(), name: 'nmap-pro', ram: cost.ramUsage }]);
+                    setHistory(prev => [...prev, <div key={`scan-pro-${pid}`}>Starting Nmap-Pro 1.0 (Enterprise Scan) at {new Date().toISOString()}...</div>]);
+
+                    const currentRamUsage = activeProcesses.reduce((acc, p) => acc + p.ram, 0) + cost.ramUsage;
+                    const delay = HardwareService.calculateProcessDelay(2500, playerState, currentRamUsage);
+
+                    setTimeout(() => {
+                        const portLines = nmapProTarget.ports.map(p =>
+                            `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${p.version}`
+                        );
+
+                        const vulnerabilities = nmapProTarget.vulnerabilities.map(v =>
+                            `[!] VULNERABILITY FOUND: ${v.type.toUpperCase()} - ${v.hint} (${v.entryPoint}) - TIER ${v.level}`
+                        );
+
+                        const result = (
+                            <div className="whitespace-pre-wrap text-blue-300">
+                                {`Nmap-Pro scan report for ${nmapProTarget.hostname} (${nmapProIp})`}
+                                <br />Host is up (0.0001s latency). OS: {nmapProTarget.osVersion}
+                                <br />PORT     STATE SERVICE      VERSION
+                                <br />{portLines.join('\n')}
+                                <br /><br />
+                                <div className="text-red-400 font-bold">
+                                    {vulnerabilities.length > 0 ? vulnerabilities.join('\n') : 'No high-level vulnerabilities detected by automated scan.'}
+                                </div>
+                                <br />Nmap-Pro done: 1 IP address scanned in {(delay / 1000).toFixed(2)} seconds
+                            </div>
+                        );
+                        setHistory(prev => [...prev, result]);
+                        setActiveProcesses(prev => prev.filter(p => p.id !== pid.toString()));
+                    }, delay);
+                    return;
+                } else {
+                    output = `nmap-pro: host ${nmapProIp} not found.`;
+                }
+                break;
+            case 'hydra':
+                if (!args[0]) { output = "usage: hydra [user]@[ip] [-P wordlist]"; break; }
+                const pFlagIndex = args.indexOf('-P');
+                if (pFlagIndex !== -1) {
+                    const wordlistName = args[pFlagIndex + 1];
+                    const hasWordlist = playerState.inventory.some(item => item.name === wordlistName);
+                    if (!hasWordlist) {
+                        output = <div className="text-red-500">Error: Wordlist file '{wordlistName}' not found in local storage. Purchase one from the market first.</div>;
+                        break;
+                    }
+                }
+                // Fallthrough to existing hydra logic (which I need to check/add)
+                const [hydraUser, hydraIp] = args[0].split('@');
+                const hydraTarget = gameState.nodes.find(n => n.ip === hydraIp);
+                if (hydraTarget) {
+                    output = (
+                        <div className="text-green-400">
+                            Hydra v9.2 (c) 2021 by van Hauser/THC - Starting...<br />
+                            [DATA] attacking ssh://${hydraIp}:22/<br />
+                            [22][ssh] host: ${hydraIp}   login: ${hydraUser}   password: ${hydraTarget.rootPassword}<br />
+                            1 of 1 target successfully completed, 1 valid password found
+                        </div>
+                    );
+                } else {
+                    output = "hydra: connection refused";
+                }
+                break;
+            case 'sqlmap':
+                if (!args[0]) { output = "usage: sqlmap [ip]"; break; }
+                const sqlIp = args[0];
+                const sqlTarget = gameState.nodes.find(n => n.ip === sqlIp);
+                if (sqlTarget) {
+                    const dbVuln = sqlTarget.vulnerabilities.find(v => v.type === 'db');
+                    if (dbVuln) {
+                        const pid = Math.floor(Math.random() * 9000) + 1000;
+                        setHistory(prev => [...prev, (
+                            <div key={`sql-${pid}`} className="text-pink-400 font-mono">
+                                [!] Testing URL: http://${sqlIp}:5432/api/v1/query?id=1<br />
+                                [!] Heuristic test: PostgreSQL (9.6) detected<br />
+                                [!] GET parameter 'id' is vulnerable. Testing payloads...
+                            </div>
+                        )]);
+
+                        setTimeout(() => {
+                            setHistory(prev => [...prev, (
+                                <div key={`sql-dump-${pid}`} className="text-pink-600 font-mono animate-pulse">
+                                    [!] DUMPING DATABASE...<br />
+                                    [0%] [                                ]<br />
+                                    [30%] [#########                       ]<br />
+                                    [65%] [#####################           ]<br />
+                                    [100%] [################################]<br />
+                                    [SUCCESS] Database dumped! Found 124 tables.<br />
+                                    <div className="text-white mt-2">
+                                        - users: 14 entries (extracted root_hash)<br />
+                                        - config: 2 entries<br />
+                                        - logs: 1024 entries
+                                    </div>
+                                    <br />
+                                    <div className="border border-pink-500 p-2 bg-pink-900/20 text-pink-300">
+                                        ROOT_PASSWORD_HASH: {btoa(sqlTarget.rootPassword || 'none')}<br />
+                                        Saved to ~/loot/db_dump.hash
+                                    </div>
+                                    <br />Use 'john' to crack this hash.
+                                </div>
+                            )]);
+
+                            // Add hash file to inventory
+                            const hashFile: VFSFile = {
+                                type: 'file',
+                                name: 'db_dump.hash',
+                                content: btoa(sqlTarget.rootPassword || 'none'),
+                                size: 0.01
+                            };
+                            onPlayerStateChange({
+                                ...playerState,
+                                inventory: [...playerState.inventory, hashFile]
+                            });
+
+                        }, 1500);
+                        return;
+                    } else {
+                        output = <div className="text-red-500">[ERROR] No SQL injection points detected on target.</div>;
+                    }
+                } else {
+                    output = `sqlmap: connection refused to ${sqlIp}`;
+                }
+                break;
+            case 'msfconsole':
+                output = (
+                    <div className="text-red-400 font-bold whitespace-pre">
+                        {`
+      .:okOOOkdl:..          .lodxkkkxo:.
+    .:ONWWWWWWWWWWNWNXK0k0KKNWNNWWWWWWWNWNXO.
+   .ONWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.
+   NWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW.
+   `}
+                        <div className="text-white font-mono">
+                            Metasploit Framework v6.1.0-dev<br />
+                            Type 'search [name]' to find exploits.
+                        </div>
+                    </div>
+                );
+                break;
+            case 'msf-exploit':
+                if (!args[0]) { output = "usage: msf-exploit [ip] [service]"; break; }
+                const msfIp = args[0];
+                const msfTarget = gameState.nodes.find(n => n.ip === msfIp);
+                if (msfTarget) {
+                    const serviceVuln = msfTarget.vulnerabilities.find(v => v.type === 'service');
+                    if (serviceVuln) {
+                        setHistory(prev => [...prev, (
+                            <div key={`msf-${Date.now()}`} className="text-red-500 font-mono">
+                                [*] Exploit target: ${msfIp} (${msfTarget.hostname})<br />
+                                [*] Payload: linux/x64/shell_reverse_tcp<br />
+                                [*] Transmitting exploit body...
+                            </div>
+                        )]);
+
+                        let progress = 0;
+                        const msfProgId = Date.now();
+                        const interval = setInterval(() => {
+                            progress += 25;
+                            if (progress <= 100) {
+                                setHistory(prev => {
+                                    const next = [...prev];
+                                    next[next.length - 1] = (
+                                        <div key={msfProgId} className="text-red-500 font-mono">
+                                            [*] Transmitting exploit body... [{'#'.repeat(progress / 10)}{' '.repeat(10 - progress / 10)}] {progress}%
+                                        </div>
+                                    );
+                                    return next;
+                                });
+                            } else {
+                                clearInterval(interval);
+                                setHistory(prev => [...prev, (
+                                    <div className="text-red-500 font-mono mt-2">
+                                        [*] Exploit completed, but no session was created.<br />
+                                        [!] Waiting for stages... (3.4s)<br />
+                                        [*] Command shell session 1 opened (192.168.1.100:4444 {'->'} ${msfIp}:80)<br /><br />
+                                        <div className="text-green-500 font-bold animate-pulse">SESSION 1 ESTABLISHED. You now have USER access.</div>
+                                    </div>
+                                )]);
+
+                                setTimeout(() => {
+                                    const targetIdx = gameState.nodes.findIndex(n => n.id === msfTarget.id);
+                                    onNodeChange(targetIdx);
+                                    setHistory([]);
+                                }, 2000);
+                            }
+                        }, 400);
+
+                        return;
+                    } else {
+                        output = <div className="text-red-500">[*] Exploit failed: Target not vulnerable to selected payload. Use nmap-pro to verify service versions.</div>;
+                    }
+                } else {
+                    output = `msf-exploit: host ${msfIp} not found.`;
+                }
+                break;
+            case '0day-pack':
+                if (!args[0]) { output = "usage: 0day-pack [ip]"; break; }
+                const zDayIp = args[0];
+                const zDayTarget = gameState.nodes.find(n => n.ip === zDayIp);
+                if (zDayTarget) {
+                    setHistory(prev => [...prev, (
+                        <div key={`0day-${Date.now()}`} className="text-yellow-400 font-mono italic animate-pulse">
+                            [!] DEPLOYING UNKNOWN EXPLOIT PACKAGE...<br />
+                            [!] TARGET OS: {zDayTarget.osVersion}<br />
+                            [*] Identifying kernel patch level...<br />
+                            [*] Buffer overflow triggered at 0xdeadbeef<br />
+                            <div className="text-white font-bold bg-yellow-600/30 p-2 border border-yellow-500 mt-2">
+                                [SUCCESS] SYSTEM COMPROMISED. Root access established.<br />
+                                root_password: {zDayTarget.rootPassword}
+                            </div>
+                        </div>
+                    )]);
+                } else {
+                    output = `0day-pack: target ${zDayIp} unreachable.`;
+                }
+                break;
+            case 'neuro-crack':
+                if (!args[0]) { output = "usage: neuro-crack [ip]"; break; }
+                const neuroIp = args[0];
+                const neuroTarget = gameState.nodes.find(n => n.ip === neuroIp);
+                if (neuroTarget) {
+                    setHistory(prev => [...prev, (
+                        <div key={`neuro-${Date.now()}`} className="text-purple-400 font-mono">
+                            [NEURAL] Initializing heuristic bypass...<br />
+                            [NEURAL] Analyzing encryption patterns...<br />
+                            <div className="flex gap-1 text-xs opacity-50 overflow-hidden">
+                                {Array(20).fill(0).map((_, i) => <div key={i} className="animate-bounce" style={{ animationDelay: `${i * 100}ms` }}>{Math.random() > 0.5 ? '1' : '0'}</div>)}
+                            </div>
+                        </div>
+                    )]);
+
+                    setTimeout(() => {
+                        setHistory(prev => [...prev, (
+                            <div key={`neuro-res-${Date.now()}`} className="text-purple-500 font-mono">
+                                [NEURAL] Mapping qubit states... SUCCESS<br />
+                                [NEURAL] Injecting sub-atomic bypass sequence...<br />
+                                <div className="text-white font-bold mt-4 p-2 border-2 border-purple-500 bg-purple-900/40 shadow-[0_0_15px_rgba(168,85,247,0.5)]">
+                                    [CRITICAL SUCCESS] Root Password Recovered: {neuroTarget.rootPassword}
+                                </div>
+                                <div className="text-red-500 font-bold mt-2 animate-pulse">
+                                    !!! WARNING: CRITICAL HARDWARE STRAIN DETECTED !!!
+                                </div>
+                            </div>
+                        )]);
+                        // Heat spike!
+                        onPlayerStateChange({ ...playerState, systemHeat: playerState.systemHeat + 45 });
+                    }, 2000);
+                    return;
+                } else {
+                    output = `neuro-crack: could not establish neural link to ${neuroIp}`;
+                }
+                break;
+            case 'john':
+                const hashFileName = args[0];
+                if (!hashFileName) { output = "usage: john [hash_file]"; break; }
+                const hashFile = playerState.inventory.find(item => item.name === hashFileName);
+                if (!hashFile || hashFile.type !== 'file') {
+                    output = <div className="text-red-500">Error: Hash file '{hashFileName}' not found in local inventory.</div>;
+                    break;
+                }
+
+                setHistory(prev => [...prev, (
+                    <div key={`john-${Date.now()}`} className="text-yellow-500 font-mono">
+                        John the Ripper 1.9.0-jumbo-1 (Intel 64-bit)<br />
+                        Loaded 1 password hash (bcrypt) [bcrypt 32/64]<br />
+                        Press 'q' or Ctrl-C to abort, almost any other key for status<br />
+                        Proceeding with wordlist attack...
+                    </div>
+                )]);
+
+                setTimeout(() => {
+                    const crackedPassword = atob(hashFile.content);
+                    setHistory(prev => [...prev, (
+                        <div key={`john-done-${Date.now()}`} className="text-green-400 font-mono mt-2">
+                            {crackedPassword}        (root)<br /><br />
+                            1 password hash cracked, 0 left<br />
+                            <div className="text-white bg-green-900/20 p-1 border border-green-500 mt-1 inline-block">
+                                Successfully recovered password from hash.
+                            </div>
+                        </div>
+                    )]);
+                }, 3000);
+                return;
             case 'grep':
                 if (args.length < 2) {
                     output = "usage: grep [term] [file]";
@@ -1107,6 +1456,35 @@ export const Terminal: React.FC<TerminalProps> = ({
                 output = (
                     <div>
                         {bootDate.toLocaleTimeString()} up {days > 0 ? `${days} day${days > 1 ? 's' : ''}, ` : ''}{hours}:{minutes.toString().padStart(2, '0')}, 1 user, load average: 0.15, 0.10, 0.05
+                    </div>
+                );
+                break;
+            case 'netmap':
+                output = (
+                    <div className="font-mono text-cyan-400">
+                        <div className="font-bold border-b border-cyan-400/30 mb-2 pb-1">NETWORK TOPOLOGY MAP</div>
+                        <div className="flex flex-col gap-2">
+                            {gameState.nodes.map((node, idx) => {
+                                const isCurrent = activeNode.id === node.id;
+                                const isDiscovered = node.isDiscovered || node.id === 'local';
+                                return (
+                                    <div key={node.id} className={`flex items-center gap-2 ${isDiscovered ? '' : 'opacity-30'}`}>
+                                        <div className="w-4 flex justify-center">
+                                            {isCurrent ? <span className="text-yellow-400 animate-pulse">▶</span> : <span>○</span>}
+                                        </div>
+                                        <div className={`px-2 py-0.5 border ${isCurrent ? 'border-yellow-400 text-yellow-400' : 'border-cyan-900 text-cyan-700'}`}>
+                                            {isDiscovered ? `${node.hostname} (${node.ip})` : '???.???.???.???'}
+                                        </div>
+                                        {idx < gameState.nodes.length - 1 && (
+                                            <div className="text-gray-600">───▶</div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                        <div className="mt-4 text-xs opacity-50">
+                            * Active pivot points highlighted in yellow.
+                        </div>
                     </div>
                 );
                 break;
@@ -1383,6 +1761,23 @@ export const Terminal: React.FC<TerminalProps> = ({
                     <span className="text-gray-400">
                         DISK: {(HardwareService.calculateStorageUsage(playerState) / 1024).toFixed(2)}/{playerState.hardware.storage.capacity}GB
                     </span>
+                    {isMissionActive && (
+                        <span className="flex items-center gap-2">
+                            TRACE:
+                            <div className="w-32 h-2 bg-gray-800 border border-gray-700 relative overflow-hidden">
+                                <div
+                                    className={`h-full transition-all duration-500 ${gameState.traceProgress > 75 ? 'bg-red-500' : gameState.traceProgress > 40 ? 'bg-yellow-500' : 'bg-green-500'}`}
+                                    style={{ width: `${gameState.traceProgress}%` }}
+                                ></div>
+                                {gameState.traceProgress > 50 && (
+                                    <div className="absolute inset-0 bg-red-500/20 animate-pulse"></div>
+                                )}
+                            </div>
+                            <span className={gameState.traceProgress > 75 ? 'text-red-500 animate-pulse' : 'text-gray-400'}>
+                                {gameState.traceProgress}%
+                            </span>
+                        </span>
+                    )}
                 </div>
                 <div className="text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
                     BAL: {playerState.credits.toLocaleString()} CR

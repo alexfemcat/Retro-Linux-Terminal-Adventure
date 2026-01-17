@@ -16,6 +16,7 @@ export interface CommandDefinition {
     isAlwaysAvailable: boolean; // help, ls, cd, etc.
     isLocalOnly: boolean; // market, jobs
     isRemoteOnly?: boolean; // abort
+    requiredSoftware?: string; // id from marketData
 }
 
 export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
@@ -33,7 +34,7 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },
     'market': { id: 'market', description: 'Browse/Sell items.', usage: 'market [buy <id>|sell <file>]', isAlwaysAvailable: true, isLocalOnly: true },
     'overclock': { id: 'overclock', description: 'Toggle CPU overclocking.', usage: 'overclock [on|off]', isAlwaysAvailable: false, isLocalOnly: false },
-    'voltage': { id: 'voltage', description: 'Set CPU voltage (1.0 - 1.5).', usage: 'voltage [value]', isAlwaysAvailable: false, isLocalOnly: false },
+    'voltage': { id: 'voltage', description: 'Set CPU voltage (1.0 - 1.5).', usage: 'voltage [value]', isAlwaysAvailable: false, isLocalOnly: false, requiredSoftware: 'overclock' },
     'memstat': { id: 'memstat', description: 'Show memory usage.', usage: 'memstat', isAlwaysAvailable: true, isLocalOnly: false },
     'abort': { id: 'abort', description: 'Abandon current mission.', usage: 'abort', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
     'disconnect': { id: 'disconnect', description: 'Alias for abort.', usage: 'disconnect', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
@@ -44,17 +45,20 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'ip': { id: 'ip', description: 'Show network interfaces.', usage: 'ip a', isAlwaysAvailable: false, isLocalOnly: false },
     'nmap-lite': { id: 'nmap-lite', description: 'Basic port scanner (Open/Closed only).', usage: 'nmap-lite [ip]', isAlwaysAvailable: false, isLocalOnly: false },
     'nmap': { id: 'nmap', description: 'Scan for open ports/services.', usage: 'nmap [ip] [-sV]', isAlwaysAvailable: false, isLocalOnly: false },
+    'nmap-pro': { id: 'nmap-pro', description: 'Advanced OS fingerprinting and version detection.', usage: 'nmap-pro [ip]', isAlwaysAvailable: false, isLocalOnly: false },
     'brute-force.sh': { id: 'brute-force.sh', description: 'Basic noisy brute-force script.', usage: 'brute-force.sh [user]@[ip]', isAlwaysAvailable: false, isLocalOnly: false },
-    'hydra': { id: 'hydra', description: 'Brute force tool.', usage: 'hydra [user]@[ip]', isAlwaysAvailable: false, isLocalOnly: false },
+    'hydra': { id: 'hydra', description: 'Brute force tool.', usage: 'hydra [user]@[ip] [-P wordlist]', isAlwaysAvailable: false, isLocalOnly: false },
     'ssh-crack-v1': { id: 'ssh-crack-v1', description: 'Specialized SSH credential harvester.', usage: 'ssh-crack-v1 [user]@[ip]', isAlwaysAvailable: false, isLocalOnly: false },
     'sqlmap': { id: 'sqlmap', description: 'Automatic SQL injection tool.', usage: 'sqlmap [ip]', isAlwaysAvailable: false, isLocalOnly: false },
     'john': { id: 'john', description: 'Offline password hash cracker.', usage: 'john [hash_file]', isAlwaysAvailable: false, isLocalOnly: false },
     'proxy-tunnel': { id: 'proxy-tunnel', description: 'Encrypted traffic tunneling.', usage: 'proxy-tunnel [ip]', isAlwaysAvailable: false, isLocalOnly: false },
-    'msfconsole': { id: 'msfconsole', description: 'Advanced exploitation framework.', usage: 'msfconsole', isAlwaysAvailable: false, isLocalOnly: false },
-    'dist-crack': { id: 'dist-crack', description: 'Coordinated multi-node brute force.', usage: 'dist-crack [user]@[ip]', isAlwaysAvailable: false, isLocalOnly: false },
+    'msfconsole': { id: 'msfconsole', description: 'Advanced exploitation framework.', usage: 'msfconsole', isAlwaysAvailable: false, isLocalOnly: false, requiredSoftware: 'msfconsole' },
+    'msf-exploit': { id: 'msf-exploit', description: 'Execute a Metasploit module against a target.', usage: 'msf-exploit [ip] [service]', isAlwaysAvailable: false, isLocalOnly: false, requiredSoftware: 'msfconsole' },
+    'dist-crack': { id: 'dist-crack', description: 'Coordinated multi-node brute force.', usage: 'dist-crack [user]@[ip]', isAlwaysAvailable: false, isLocalOnly: false, requiredSoftware: 'dist-crack' },
     '0day-pack': { id: '0day-pack', description: 'Instant-access exploit kit.', usage: '0day-pack [ip]', isAlwaysAvailable: false, isLocalOnly: false },
     'neuro-crack': { id: 'neuro-crack', description: 'AI-driven heuristic encryption bypass.', usage: 'neuro-crack [ip]', isAlwaysAvailable: false, isLocalOnly: false },
 
+    'netmap': { id: 'netmap', description: 'Visualize discovered network nodes.', usage: 'netmap', isAlwaysAvailable: true, isLocalOnly: false },
     'ssh': { id: 'ssh', description: 'Connect to remote host.', usage: 'ssh [user]@[ip]', isAlwaysAvailable: true, isLocalOnly: false },
     'sudo': { id: 'sudo', description: 'Gain root access.', usage: 'sudo', isAlwaysAvailable: true, isLocalOnly: false },
     'grep': { id: 'grep', description: 'Search in file.', usage: 'grep [term] [file]', isAlwaysAvailable: true, isLocalOnly: false },
@@ -96,8 +100,9 @@ export function checkCommandAvailability(command: string, context: CommandContex
         return { available: true };
     }
 
-    // 4. Check if Installed
-    if (context.playerState.installedSoftware.includes(command)) {
+    // 4. Check if Installed (by name or requirement)
+    const softwareNeeded = def.requiredSoftware || command;
+    if (context.playerState.installedSoftware.includes(softwareNeeded)) {
         return { available: true };
     }
 

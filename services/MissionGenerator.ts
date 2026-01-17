@@ -44,7 +44,12 @@ class MissionGenerator {
         const title = `${this.getRandom(titlePrefixes)} ${scenario.theme.split(' ')[0]} ${this.getRandom(titleSuffixes)}`.toUpperCase();
 
         const targetFileName = `SECRET_${Math.floor(Math.random() * 10000)}.dat`;
-        const description = scenario.welcomeMessage(targetFileName);
+
+        // Enhance description with phase 3 details
+        const vectors = ['SSH Exploit', 'SQL Injection', 'Service Buffer Overflow', 'Kernel Zero-Day'];
+        const chosenVector = vectors[Math.floor(Math.random() * Math.min(vectors.length, difficulty))];
+
+        const description = `${scenario.welcomeMessage(targetFileName)}\n\nIntel suggests a potential ${chosenVector} vector might be viable. Use advanced recon tools for confirmation.`;
 
         const config: MissionConfig = {
             scenarioIndex,
