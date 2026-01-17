@@ -90,6 +90,8 @@ export function migrateSaveData(data: any): PlayerState {
     const migrated = {
         ...defaultState,
         ...data,
+        emails: data.emails || defaultState.emails,
+        browserHistory: data.browserHistory || defaultState.browserHistory,
         version: CURRENT_VERSION // Always stamp with current version after migration
     };
 
@@ -129,8 +131,20 @@ export function createInitialPlayerState(): PlayerState {
         version: CURRENT_VERSION,
         credits: 0,
         reputation: 0,
-        installedSoftware: ['ls', 'cd', 'help', 'market', 'jobs', 'exit', 'nmap'],
+        installedSoftware: ['ls', 'cd', 'help', 'jobs', 'exit', 'nmap', 'browser', 'mail'],
         inventory: [],
+        emails: [
+            {
+                id: 'welcome_mail',
+                sender: 'The Architect',
+                subject: 'Welcome to the Grid',
+                body: 'Operative,\n\nYour terminal is now active. Use the browser to find contracts on the Onion Forum. We will contact you directly for high-priority tasks.\n\nStay invisible.',
+                timestamp: new Date().toISOString().split('T')[0],
+                status: 'unread',
+                type: 'tip'
+            }
+        ],
+        browserHistory: [],
         hardware: {
             cpu: { id: 'cpu_v1', level: 1, clockSpeed: 1.0, cores: 1 },
             ram: { id: 'ram_v1', level: 1, capacity: 4 },

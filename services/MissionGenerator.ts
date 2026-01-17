@@ -6,7 +6,7 @@ class MissionGenerator {
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
-    public generateMissions(reputation: number, count: number = 3): Mission[] {
+    public generateMissions(reputation: number, count: number = 6): Mission[] {
         const missions: Mission[] = [];
         for (let i = 0; i < count; i++) {
             missions.push(this.generateSingleMission(reputation));

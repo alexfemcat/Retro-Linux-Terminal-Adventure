@@ -106,6 +106,19 @@ export interface ChatMessage {
   text: string;
 }
 
+export interface Email {
+  id: string;
+  sender: string;
+  subject: string;
+  body: string;
+  timestamp: string;
+  status: 'unread' | 'read';
+  type: 'job' | 'ransom' | 'tip' | 'faction';
+  attachments?: VFSNode[];
+  missionId?: string;
+  factionId?: string;
+}
+
 export interface WorldEvent {
   title: string;
   description: string;
@@ -186,6 +199,8 @@ export interface PlayerState {
   activeMissionId: string | null;
   tutorialStep?: number;
   availableMissions: Mission[];
+  emails: Email[];
+  browserHistory: string[];
   // Phase 4 Hardware Simulation
   systemHeat: number;
   isOverclocked: boolean;

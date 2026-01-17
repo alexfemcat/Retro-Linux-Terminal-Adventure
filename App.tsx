@@ -8,10 +8,11 @@ import { DebugOverlay } from './components/DebugOverlay';
 import { MissionTransition } from './components/MissionTransition';
 import TitleScreen from './components/TitleScreen';
 import BIOSBoot from './components/BIOSBoot';
-import type { GameState, PlayerState, Directory } from './types';
+import type { GameState, PlayerState, Directory, Email } from './types';
 import { usePerformance } from './hooks/usePerformance';
 import { NewsTicker } from './components/NewsTicker';
 import { Settings } from './components/Settings';
+import { Browser } from './components/Browser';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -33,6 +34,7 @@ const App: React.FC = () => {
     const [transition, setTransition] = useState<{ type: 'entering' | 'aborting', mission?: any } | null>(null);
     const [worldEvent, setWorldEvent] = useState<any | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
+    const [browserUrl, setBrowserUrl] = useState<string | null>(null);
 
     const performance = usePerformance(playerState, gameState, activeProcesses);
 
@@ -256,7 +258,24 @@ const App: React.FC = () => {
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
-            <NewsTicker onEvent={setWorldEvent} />
+            <NewsTicker onEvent={(e) => {
+                setWorldEvent(e);
+                if (playerState) {
+                    const newsEmail: Email = {
+                        id: `news_${Date.now()}`,
+                        sender: 'GNN-Alert',
+                        subject: `BREAKING: ${e.title}`,
+                        body: e.description,
+                        timestamp: new Date().toISOString().split('T')[0],
+                        status: 'unread',
+                        type: 'tip'
+                    };
+                    setPlayerState({
+                        ...playerState,
+                        emails: [newsEmail, ...playerState.emails]
+                    });
+                }
+            }} />
             {transition && (
                 <MissionTransition
                     type={transition.type}
@@ -269,6 +288,22 @@ const App: React.FC = () => {
                     playerState={playerState}
                     onPlayerStateChange={setPlayerState}
                     onClose={() => setShowSettings(false)}
+                />
+            )}
+            {browserUrl && playerState && (
+                <Browser
+                    playerState={playerState}
+                    onMissionAccept={handleMissionAccept}
+                    onClose={() => setBrowserUrl(null)}
+                    worldEvents={worldEvent ? [worldEvent] : []}
+                    onPlayerStateChange={setPlayerState}
+                    onRefreshMissions={() => {
+                        if (playerState) {
+                            const newMissions = missionGenerator.generateMissions(playerState.reputation, 6);
+                            setPlayerState({ ...playerState, availableMissions: newMissions });
+                        }
+                    }}
+                    initialUrl={browserUrl}
                 />
             )}
             {!gameWon ? (
@@ -339,6 +374,7 @@ const App: React.FC = () => {
                                 onReboot={handleReboot}
                                 worldEvent={worldEvent}
                                 onOpenSettings={() => setShowSettings(true)}
+                                onOpenBrowser={(url) => setBrowserUrl(url || 'home://new-tab')}
                             />
                             <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 text-xs text-gray-500 hover:text-white">SETTINGS</button>
                         </div>

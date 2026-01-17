@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import type { GameState, VFSNode, NetworkNode, PlayerState, Directory, File as VFSFile } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
-import { buyItem } from '../services/MarketSystem';
 import { MARKET_CATALOG } from '../data/marketData';
 import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
@@ -36,6 +35,7 @@ export interface TerminalProps {
     onReboot?: (newState: PlayerState) => void;
     worldEvent?: any;
     onOpenSettings?: () => void;
+    onOpenBrowser?: (url?: string) => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -171,8 +171,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     onGameStateChange,
     onTransitionPreview,
     onReboot,
-    worldEvent,
-    onOpenSettings
+    onOpenSettings,
+    onOpenBrowser
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -552,8 +552,8 @@ export const Terminal: React.FC<TerminalProps> = ({
                     } else {
                         output = <div className="text-red-500">Error: Invalid mission ID. Use 'jobs' to see available contracts.</div>;
                     }
-                } else if (args[0] === 'generate') {
-                    const count = parseInt(args[1]) || 3;
+                } else if (args[0] === 'refresh' || args[0] === 'generate') {
+                    const count = parseInt(args[1]) || 6;
                     const { missionGenerator } = await import('../services/MissionGenerator');
                     const newMissions = missionGenerator.generateMissions(playerState.reputation, count);
                     onPlayerStateChange({ ...playerState, availableMissions: newMissions });
@@ -580,10 +580,20 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 ))}
                             </div>
                             <div className="mt-4 text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
-                                Usage: jobs accept [number]
+                                Usage: jobs accept [number] | jobs refresh
                             </div>
                         </div>
                     );
+                }
+                break;
+            case 'browser':
+                if (onOpenBrowser) {
+                    onOpenBrowser(args[0]);
+                }
+                break;
+            case 'mail':
+                if (onOpenBrowser) {
+                    onOpenBrowser('mail://homebase');
                 }
                 break;
             case 'overclock':
@@ -625,215 +635,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                         ))}
                     </div>
                 );
-                break;
-            case 'market':
-                if (args[0] === 'buy') {
-                    const itemId = args[1];
-                    if (!itemId) {
-                        output = "Usage: market buy <item_id>";
-                    } else {
-                        const result = buyItem(itemId, playerState);
-                        if (result.success && result.updatedPlayerState) {
-                            const updatedState = result.updatedPlayerState;
-                            setIsDiskActive(true);
-
-                            // Installation Animation
-                            let progress = 0;
-                            const progId = Date.now();
-                            setHistory(prev => [...prev, <div key={`buy-${progId}`} className="text-yellow-400">Initializing secure download for {itemId}...</div>]);
-
-                            const interval = setInterval(() => {
-                                progress += 20;
-                                if (progress <= 100) {
-                                    setHistory(prev => {
-                                        const next = [...prev];
-                                        next[next.length - 1] = <div key={`buy-${progId}`} className="text-yellow-400">Downloading {itemId}: [{'='.repeat(progress / 10)}{' '.repeat(10 - progress / 10)}] {progress}%</div>;
-                                        return next;
-                                    });
-                                } else {
-                                    clearInterval(interval);
-                                    setIsDiskActive(false);
-                                    setHistory(prev => [...prev, (
-                                        <div className="text-green-400 font-bold">
-                                            [SUCCESS] {itemId} installed successfully. Credits: {updatedState.credits}c
-                                        </div>
-                                    )]);
-                                    onPlayerStateChange(updatedState);
-                                    const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
-                                    writeSave(slotId, updatedState);
-                                }
-                            }, 300);
-                            return; // Async
-                        } else {
-                            output = <div className="text-red-500">[ERROR] {result.error}</div>;
-                        }
-                    }
-                } else if (args[0] === 'sell') {
-                    const fileName = args[1];
-                    if (!fileName) {
-                        output = "Usage: market sell <filename>";
-                    } else {
-                        const lootFile = playerState.inventory.find(item => item.name === fileName);
-                        if (!lootFile || lootFile.type !== 'file') {
-                            output = <div className="text-red-500">Error: File '{fileName}' not found in loot inventory.</div>;
-                        } else {
-                            // Calculate price: size * factor + random variance
-                            let price = Math.floor((lootFile.size || 0) * 0.5 + (Math.random() * 50));
-                            if (worldEvent?.modifier?.sell) {
-                                price *= worldEvent.modifier.sell;
-                            }
-                            const finalPrice = Math.max(10, price);
-
-                            // Animation: Transaction
-                            setIsDiskActive(true);
-                            const oldCredits = playerState.credits;
-                            const newCredits = oldCredits + finalPrice;
-
-                            setHistory(prev => [...prev, <div key={`sell-${Date.now()}`} className="text-yellow-400">Processing transaction... selling {fileName} for {finalPrice}c</div>]);
-
-                            let currentDisplayCredits = oldCredits;
-                            const steps = 10;
-                            const increment = Math.ceil(finalPrice / steps);
-
-                            const sellInterval = setInterval(() => {
-                                currentDisplayCredits += increment;
-                                if (currentDisplayCredits >= newCredits) {
-                                    currentDisplayCredits = newCredits;
-                                    clearInterval(sellInterval);
-                                    setIsDiskActive(false);
-
-                                    const updatedInventory = playerState.inventory.filter(item => item.name !== fileName);
-                                    const newState = {
-                                        ...playerState,
-                                        credits: newCredits,
-                                        inventory: updatedInventory
-                                    };
-                                    onPlayerStateChange(newState);
-
-                                    // Remove from VFS if we are at homebase
-                                    if (activeNode.id === 'localhost' || activeNode.id === 'local') {
-                                        const userHome = ((vfs.children.home as Directory).children.user as Directory);
-                                        const lootDir = userHome.children.loot as Directory;
-                                        if (lootDir.children[fileName]) {
-                                            delete lootDir.children[fileName];
-                                            if (onVFSChange) onVFSChange(vfs);
-                                        }
-                                    }
-
-                                    const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
-                                    writeSave(slotId, newState);
-
-                                    setHistory(prev => [...prev, <div key={`sell-done-${Date.now()}`} className="text-green-400">Transaction Complete. +{finalPrice}c added to balance.</div>]);
-                                }
-                            }, 50);
-                            return; // Async
-                        }
-                    }
-                } else {
-                    const categoryFilter = args[0] === '--software' ? ['utility', 'exploit', 'sniffing'] :
-                        args[0] === '--hardware' ? ['hardware'] :
-                            args[0] === '--consumable' ? ['consumable'] : null;
-
-                    const items = categoryFilter
-                        ? MARKET_CATALOG.filter(i => categoryFilter.includes(i.category))
-                        : MARKET_CATALOG;
-
-                    const groupedItems = items.reduce((acc, item) => {
-                        const cat = item.category.toUpperCase();
-                        if (!acc[cat]) acc[cat] = [];
-                        acc[cat].push(item);
-                        return acc;
-                    }, {} as Record<string, any[]>);
-
-                    output = (
-                        <div className="text-yellow-400 font-mono text-sm max-w-4xl">
-                            <div className="font-bold border-b-2 border-yellow-400 mb-4 pb-1 text-center bg-yellow-400/10 uppercase tracking-widest">
-                                --- RETRO-MARKET v2.0 - Global Asset Exchange ---
-                            </div>
-
-                            {Object.entries(groupedItems).map(([category, catItems]) => {
-                                const isHardware = category === 'HARDWARE';
-                                return (
-                                    <div key={category} className="mb-6">
-                                        <div className="text-white font-bold mb-2 flex items-center gap-2">
-                                            <span className="bg-yellow-600/20 px-2 py-0.5 border border-yellow-600/50 text-[10px]">{category}</span>
-                                            <div className="h-[1px] flex-grow bg-yellow-600/20"></div>
-                                        </div>
-                                        {isHardware ? (
-                                            <div className="grid grid-cols-[160px_80px_60px_1fr_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
-                                                <div>Designation</div>
-                                                <div>Price</div>
-                                                <div>Level</div>
-                                                <div>Specs</div>
-                                                <div>Description</div>
-                                            </div>
-                                        ) : (
-                                            <div className="grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
-                                                <div>Designation</div>
-                                                <div>Price</div>
-                                                <div>Tier</div>
-                                                <div>System Req</div>
-                                                <div>Capabilities</div>
-                                            </div>
-                                        )}
-                                        {catItems.map(item => {
-                                            let isOwned = false;
-                                            if (item.category === 'hardware') {
-                                                if (item.hardwareKey) {
-                                                    isOwned = playerState.hardware[item.hardwareKey as keyof typeof playerState.hardware].level >= (item.stats?.level || 0);
-                                                }
-                                            } else if (item.category !== 'consumable') {
-                                                isOwned = playerState.installedSoftware.includes(item.id);
-                                            }
-
-                                            const software = item as any;
-                                            const reqs = software.cpuReq !== undefined ? `${software.cpuReq}% / ${software.ramReq}MB` : 'N/A';
-                                            let cost = item.cost;
-                                            if (worldEvent?.modifier?.market) {
-                                                if (worldEvent.modifier.market[item.category]) {
-                                                    cost *= worldEvent.modifier.market[item.category];
-                                                }
-                                            }
-
-                                            if (isHardware) {
-                                                const stats = (item as any).stats;
-                                                const specs = stats ? Object.entries(stats).map(([key, value]) => `${key}: ${value}`).join(', ') : 'N/A';
-                                                return (
-                                                    <div key={item.id} className={`grid grid-cols-[160px_80px_60px_1fr_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
-                                                        <div className="font-bold text-yellow-300">{item.id}</div>
-                                                        <div className="text-green-500">{cost.toLocaleString()}c</div>
-                                                        <div className="text-center">{stats?.level || '-'}</div>
-                                                        <div className="text-cyan-600 text-[10px]">{specs}</div>
-                                                        <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
-                                                    </div>
-                                                );
-                                            }
-
-                                            return (
-                                                <div key={item.id} className={`grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
-                                                    <div className="font-bold text-yellow-300">{item.id}</div>
-                                                    <div className="text-green-500">{cost.toLocaleString()}c</div>
-                                                    <div className="text-center">{software.tier || '-'}</div>
-                                                    <div className="text-cyan-600 text-[10px]">{reqs}</div>
-                                                    <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                );
-                            })}
-
-                            <div className="mt-6 p-3 bg-black border border-yellow-500/20 rounded-md">
-                                <div className="text-xs text-gray-500 flex justify-between gap-4">
-                                    <span className="text-yellow-500 font-bold uppercase underline">Usage Protocols:</span>
-                                    <span>market buy [id]</span>
-                                    <span>market sell [filename]</span>
-                                    <span className="opacity-50">Tags: --software, --hardware, --consumable</span>
-                                </div>
-                            </div>
-                        </div>
-                    );
-                }
                 break;
             case 'abort':
             case 'disconnect':

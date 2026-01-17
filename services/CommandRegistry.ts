@@ -40,8 +40,9 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
 
     // Mission Control
     'tutorial': { id: 'tutorial', description: 'Start the training simulation.', usage: 'tutorial', isDefaultCommand: true, isLocalOnly: true },
-    'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isDefaultCommand: true, isLocalOnly: true },
-    'market': { id: 'market', description: 'Browse/Sell items.', usage: 'market [buy <id>|sell <file>]', isDefaultCommand: true, isLocalOnly: true },
+    'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>|refresh]', isDefaultCommand: true, isLocalOnly: true },
+    'browser': { id: 'browser', description: 'Open the Retro Browser.', usage: 'browser [url]', isDefaultCommand: true, isLocalOnly: true },
+    'mail': { id: 'mail', description: 'Open the Email Client.', usage: 'mail', isDefaultCommand: true, isLocalOnly: true },
     'overclock': { id: 'overclock', description: 'Toggle CPU overclocking.', usage: 'overclock [on|off]', isDefaultCommand: false, isLocalOnly: false },
     'voltage': { id: 'voltage', description: 'Set CPU voltage (1.0 - 1.5).', usage: 'voltage [value]', isDefaultCommand: false, isLocalOnly: false, requiredSoftware: 'overclock' },
     'memstat': { id: 'memstat', description: 'Show memory usage.', usage: 'memstat', isDefaultCommand: true, isLocalOnly: false },
