@@ -770,15 +770,10 @@ class PuzzleGenerator {
             currentUser: 'user'
         };
 
-        // Fill ~/bin based on installed software
-        const userHome = ((homeNode.vfs.children.home as Directory).children.user as Directory);
-        const binDir = userHome.children.bin as Directory;
-        const software = playerState.installedSoftware || ['ls', 'cd', 'help', 'market', 'exit'];
-        software.forEach((soft: string) => {
-            binDir.children[soft] = { type: 'file', name: soft, content: '[BINARY]', size: this.getFileSize(soft, '[BINARY]') };
-        });
+        // ~/bin is now synced dynamically via VFSService.ts
 
         // Populate ~/loot from player inventory
+        const userHome = ((homeNode.vfs.children.home as Directory).children.user as Directory);
         const lootDir = userHome.children.loot as Directory;
         if (playerState.inventory) {
             playerState.inventory.forEach(node => {

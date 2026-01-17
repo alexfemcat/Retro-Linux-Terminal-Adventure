@@ -11,6 +11,7 @@ import { TaskManager } from './TaskManager';
 import { KernelPanic } from './KernelPanic';
 import { TutorialService, TUTORIAL_STEPS } from '../services/TutorialService';
 import { TutorialOverlay } from './TutorialOverlay';
+import { syncBinDirectory } from '../services/VFSService';
 
 export interface TerminalProps {
     gameState: GameState;
@@ -286,6 +287,15 @@ export const Terminal: React.FC<TerminalProps> = ({
         }
         return node;
     }, [vfs]);
+
+    useEffect(() => {
+        if (activeNode.id === 'localhost' || activeNode.id === 'local') {
+            const newVFS = syncBinDirectory(playerState, vfs);
+            if (onVFSChange) {
+                onVFSChange(newVFS);
+            }
+        }
+    }, [playerState.installedSoftware, activeNode.id]);
 
     useEffect(() => {
         const bashrcPath = resolvePath('~/.bashrc');
