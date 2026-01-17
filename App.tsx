@@ -30,6 +30,8 @@ const App: React.FC = () => {
 
     const [transition, setTransition] = useState<{ type: 'entering' | 'aborting', mission?: any } | null>(null);
 
+    const performance = usePerformance(playerState, activeProcesses);
+
     const startNewGame = useCallback((initialPlayerState: PlayerState) => {
         // Initialize missions if needed
         if (!initialPlayerState.availableMissions || initialPlayerState.availableMissions.length === 0) {
@@ -227,7 +229,6 @@ const App: React.FC = () => {
     }
 
     const activeNode = gameState.nodes[gameState.activeNodeIndex];
-    const performance = usePerformance(playerState, activeProcesses);
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
