@@ -1,5 +1,5 @@
 import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState, MissionConfig, Vulnerability, VulnerabilityType } from '../types';
-import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens } from '../data/gameData';
+import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens, trashFiles } from '../data/gameData';
 
 class PuzzleGenerator {
     private getRandom<T>(arr: T[]): T {
@@ -351,11 +351,14 @@ class PuzzleGenerator {
             "Pictures": { "profile_pic.png": "[IMAGE DATA]" }
         };
 
+        // Add random trash files to standard dirs for variety
         Object.entries(standardDirs).forEach(([dirName, files]) => {
             if (!userHome.children[dirName]) {
                 userHome.children[dirName] = { type: 'directory', name: dirName, children: {} };
             }
             const dir = userHome.children[dirName] as Directory;
+
+            // Add fixed files
             Object.entries(files).forEach(([fName, fContent]) => {
                 dir.children[fName] = {
                     type: 'file',
@@ -364,6 +367,22 @@ class PuzzleGenerator {
                     size: this.getFileSize(fName, fContent)
                 };
             });
+
+            // Add 1-3 random trash files
+            const numTrash = 1 + Math.floor(Math.random() * 3);
+            const trashKeys = Object.keys(trashFiles);
+            for (let i = 0; i < numTrash; i++) {
+                const trashName = this.getRandom(trashKeys);
+                if (!dir.children[trashName]) {
+                    const content = trashFiles[trashName];
+                    dir.children[trashName] = {
+                        type: 'file',
+                        name: trashName,
+                        content: content,
+                        size: this.getFileSize(trashName, content)
+                    };
+                }
+            }
         });
 
         // Add .ssh directory
@@ -381,7 +400,7 @@ class PuzzleGenerator {
         };
     }
 
-    private placeClues(node: NetworkNode, clues: { file: string, content: string }[]): void {
+    private placeClues(node: NetworkNode, puzzle: { hint: string, components: { file: string, content: string }[] }): void {
         const home = ((node.vfs.children['home'] as Directory).children['user'] as Directory);
 
         // Create Documents/network_intel if needed
@@ -395,7 +414,8 @@ class PuzzleGenerator {
         }
         const intelDir = docs.children['network_intel'] as Directory;
 
-        clues.forEach(clue => {
+        // Place component files
+        puzzle.components.forEach(clue => {
             intelDir.children[clue.file] = {
                 type: 'file',
                 name: clue.file,
@@ -403,6 +423,15 @@ class PuzzleGenerator {
                 size: this.getFileSize(clue.file, clue.content)
             };
         });
+
+        // Place Hint File
+        const hintFile = "PASSWORD_HINT.txt";
+        intelDir.children[hintFile] = {
+            type: 'file',
+            name: hintFile,
+            content: `[RECOVERED FRAGMENT]\n\nTo access the next node, I used the following memory aid:\n\n"${puzzle.hint}"\n\nThe components of this key should be scattered in this folder.`,
+            size: this.getFileSize(hintFile, '')
+        };
     }
 
     private generateNode(scenario: Scenario, type: 'workstation' | 'server' | 'database', id: string, hostname: string, ip: string): { node: NetworkNode, puzzle: { password: string, hint: string, components: any[] }, users: string[] } {
@@ -496,7 +525,7 @@ class PuzzleGenerator {
         nodeData.push({ puzzle: localGen.puzzle, users: localGen.users });
 
         // Place Localhost clues on Localhost (needed for sudo)
-        this.placeClues(localGen.node, localGen.puzzle.components);
+        this.placeClues(localGen.node, localGen.puzzle);
 
         // 2. Generate Remote Nodes with unique hostnames and IPs
         const usedHostnames = new Set<string>(['localhost']);
@@ -535,7 +564,7 @@ class PuzzleGenerator {
             const nextData = nodeData[i + 1];
 
             // A. Place Next Node's Password Clues on Current Node
-            this.placeClues(currentNode, nextData.puzzle.components);
+            this.placeClues(currentNode, nextData.puzzle);
 
             // B. Pick a specific user from the Next Node to hack
             const targetUser = this.getRandom(nextData.users) || 'user';

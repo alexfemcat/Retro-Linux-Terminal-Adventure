@@ -258,9 +258,9 @@ export const Terminal: React.FC<TerminalProps> = ({
     };
 
     const COMMAND_NOISE: Record<string, number> = {
-        'ls': 1,
-        'cat': 2,
-        'cd': 1,
+        'ls': 0,
+        'cat': 0,
+        'cd': 0,
         'pwd': 0,
         'whoami': 0,
         'nmap': 10,
@@ -284,7 +284,7 @@ export const Terminal: React.FC<TerminalProps> = ({
         // Trace Logic
         if (isMissionActive && onGameStateChange) {
             const [cmd] = command.trim().split(/\s+/);
-            const noise = COMMAND_NOISE[cmd] || 2;
+            const noise = COMMAND_NOISE[cmd] !== undefined ? COMMAND_NOISE[cmd] : 2;
             const newTrace = Math.min(100, gameState.traceProgress + noise);
 
             if (newTrace >= 100) {
