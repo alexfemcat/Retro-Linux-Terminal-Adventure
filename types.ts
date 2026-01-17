@@ -87,6 +87,42 @@ export interface HardwareSpecs {
   cooling: { id: string; level: number; heatDissipation: number };
 }
 
+export type MarketItemCategory = 'utility' | 'exploit' | 'sniffing' | 'hardware' | 'consumable';
+
+export interface SoftwareItem {
+  id: string;
+  name: string;
+  category: 'utility' | 'exploit' | 'sniffing';
+  tier: number;
+  cpuReq: number; // Percentage of 1 core (0-100)
+  ramReq: number; // Memory in MB
+  storageSize: number; // Size in MB
+  description: string;
+  cost: number;
+  reputationReq?: number;
+}
+
+export interface HardwareModule {
+  id: string;
+  name: string;
+  category: 'hardware';
+  description: string;
+  cost: number;
+  hardwareKey?: keyof HardwareSpecs;
+  stats?: any;
+}
+
+export interface ConsumableItem {
+  id: string;
+  name: string;
+  category: 'consumable';
+  description: string;
+  cost: number;
+  maxUses?: number;
+}
+
+export type MarketItem = SoftwareItem | HardwareModule | ConsumableItem;
+
 export interface Mission {
   id: string;
   title: string;

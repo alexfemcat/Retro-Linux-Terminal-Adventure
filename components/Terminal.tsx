@@ -422,15 +422,36 @@ export const Terminal: React.FC<TerminalProps> = ({
                     } else {
                         const result = buyItem(itemId, playerState);
                         if (result.success && result.updatedPlayerState) {
-                            output = (
-                                <div className="text-green-400">
-                                    [SUCCESS] Purchased {itemId}. Credits remaining: {result.updatedPlayerState.credits}c
-                                </div>
-                            );
-                            onPlayerStateChange(result.updatedPlayerState);
-                            // Auto-save logic
-                            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
-                            writeSave(slotId, result.updatedPlayerState);
+                            const updatedState = result.updatedPlayerState;
+                            setIsDiskActive(true);
+
+                            // Installation Animation
+                            let progress = 0;
+                            const progId = Date.now();
+                            setHistory(prev => [...prev, <div key={`buy-${progId}`} className="text-yellow-400">Initializing secure download for {itemId}...</div>]);
+
+                            const interval = setInterval(() => {
+                                progress += 20;
+                                if (progress <= 100) {
+                                    setHistory(prev => {
+                                        const next = [...prev];
+                                        next[next.length - 1] = <div key={`buy-${progId}`} className="text-yellow-400">Downloading {itemId}: [{'='.repeat(progress / 10)}{' '.repeat(10 - progress / 10)}] {progress}%</div>;
+                                        return next;
+                                    });
+                                } else {
+                                    clearInterval(interval);
+                                    setIsDiskActive(false);
+                                    setHistory(prev => [...prev, (
+                                        <div className="text-green-400 font-bold">
+                                            [SUCCESS] {itemId} installed successfully. Credits: {updatedState.credits}c
+                                        </div>
+                                    )]);
+                                    onPlayerStateChange(updatedState);
+                                    const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+                                    writeSave(slotId, updatedState);
+                                }
+                            }, 300);
+                            return; // Async
                         } else {
                             output = <div className="text-red-500">[ERROR] {result.error}</div>;
                         }
@@ -494,40 +515,53 @@ export const Terminal: React.FC<TerminalProps> = ({
                         }
                     }
                 } else {
-                    const software = MARKET_CATALOG.filter(i => i.type === 'software');
-                    const hardware = MARKET_CATALOG.filter(i => i.type === 'hardware');
+                    const categoryFilter = args[0] === '--software' ? ['utility', 'exploit', 'sniffing'] :
+                        args[0] === '--hardware' ? ['hardware'] :
+                            args[0] === '--consumable' ? ['consumable'] : null;
+
+                    const items = categoryFilter
+                        ? MARKET_CATALOG.filter(i => categoryFilter.includes(i.category))
+                        : MARKET_CATALOG;
+
                     output = (
-                        <div className="text-yellow-400">
-                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">MARKETPLACE - HARDWARE & SOFTWARE</div>
+                        <div className="text-yellow-400 font-mono text-sm">
+                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">RETRO-MARKET v2.0 - SECURE TRADING TERMINAL</div>
 
-                            <div className="mb-1 text-xs opacity-70">SOFTWARE</div>
-                            <div className="grid grid-cols-[100px_80px_1fr] gap-x-4 mb-4">
-                                {software.map(item => (
-                                    <React.Fragment key={item.id}>
-                                        <div className={playerState.installedSoftware.includes(item.id) ? 'line-through opacity-50' : 'font-bold'}>{item.id}</div>
-                                        <div>{item.cost}c</div>
-                                        <div className="text-gray-400 text-sm">{item.description}</div>
-                                    </React.Fragment>
-                                ))}
+                            <div className="grid grid-cols-[140px_60px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-1 pb-1">
+                                <div>ID</div>
+                                <div>COST</div>
+                                <div>TIER</div>
+                                <div>REQ (C/R)</div>
+                                <div>DESCRIPTION</div>
                             </div>
 
-                            <div className="mb-1 text-xs opacity-70">HARDWARE</div>
-                            <div className="grid grid-cols-[100px_80px_1fr] gap-x-4 mb-4">
-                                {hardware.map(item => {
-                                    const currentLevel = playerState.hardware[item.hardwareKey!].level;
-                                    const isOwned = currentLevel >= (item.stats?.level || 0);
-                                    return (
-                                        <React.Fragment key={item.id}>
-                                            <div className={isOwned ? 'line-through opacity-50' : 'font-bold'}>{item.id}</div>
-                                            <div>{item.cost}c</div>
-                                            <div className="text-gray-400 text-sm">{item.description}</div>
-                                        </React.Fragment>
-                                    );
-                                })}
-                            </div>
+                            {items.map(item => {
+                                let isOwned = false;
+                                if (item.category === 'hardware') {
+                                    if (item.hardwareKey) {
+                                        isOwned = playerState.hardware[item.hardwareKey].level >= (item.stats?.level || 0);
+                                    }
+                                } else if (item.category !== 'consumable') {
+                                    isOwned = playerState.installedSoftware.includes(item.id);
+                                }
 
-                            <div className="text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
-                                Usage: market buy [item_id] | market sell [filename]
+                                const software = item as any;
+                                const reqs = software.cpuReq ? `${software.cpuReq}%/${software.ramReq}MB` : '-';
+
+                                return (
+                                    <div key={item.id} className={`grid grid-cols-[140px_60px_60px_100px_1fr] gap-x-4 ${isOwned ? 'opacity-30 line-through' : ''}`}>
+                                        <div className="font-bold">{item.id}</div>
+                                        <div className="text-green-500">{item.cost}c</div>
+                                        <div>{software.tier || '-'}</div>
+                                        <div className="text-cyan-600">{reqs}</div>
+                                        <div className="text-gray-400 truncate">{item.description}</div>
+                                    </div>
+                                );
+                            })}
+
+                            <div className="mt-4 text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2 flex justify-between">
+                                <span>Usage: market buy [id] | market sell [file]</span>
+                                <span>Filters: --software, --hardware, --consumable</span>
                             </div>
                         </div>
                     );
@@ -1178,7 +1212,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     onPlayerStateChange({ ...playerState, installedSoftware: [...new Set([...playerState.installedSoftware, spawnId])] });
                     output = `[SPAWN] Software '${spawnId}' installed.`;
                 } else if (spawnType === 'hardware') {
-                    const hwItem = MARKET_CATALOG.find(i => i.id === spawnId && i.type === 'hardware');
+                    const hwItem = MARKET_CATALOG.find(i => i.id === spawnId && i.category === 'hardware') as any;
                     if (!hwItem || !hwItem.hardwareKey) { output = "usage: spawn hardware [valid_hardware_id]"; break; }
                     onPlayerStateChange({
                         ...playerState,
