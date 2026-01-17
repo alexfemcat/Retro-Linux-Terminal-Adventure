@@ -34,7 +34,7 @@ const App: React.FC = () => {
     const [worldEvent, setWorldEvent] = useState<any | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
 
-    const performance = usePerformance(playerState, activeProcesses);
+    const performance = usePerformance(playerState, gameState, activeProcesses);
 
     const startNewGame = useCallback((initialPlayerState: PlayerState) => {
         // Initialize missions if needed

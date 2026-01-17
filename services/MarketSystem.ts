@@ -100,7 +100,7 @@ export function buyItem(itemId: string, playerState: PlayerState): PurchaseResul
 function calculateTotalStorageUsed(playerState: PlayerState): number {
     let total = 0;
 
-    // 1. Files in inventory
+    // 1. Files in inventory (includes consumables)
     if (playerState.inventory) {
         total += playerState.inventory.reduce((sum, node) => sum + (node.type === 'file' ? (node.size || 0) : 0), 0);
     }

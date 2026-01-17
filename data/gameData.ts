@@ -1,4 +1,4 @@
-import type { Scenario } from '../types';
+import type { Scenario, WorldEvent } from '../types';
 
 export const petNames = [
     "Bella", "Max", "Charlie", "Luna", "Lucy", "Cooper", "Bailey", "Daisy", "Sadie", "Molly", "Buddy", "Lola", "Stella", "Tucker", "Bentley", "Bear", "Duke", "Penny", "Zoe", "Riley", "Roxy", "Coco", "Maggie", "Piper", "Sasha", "Harley", "Ruby", "Chloe", "Teddy", "Finn", "Jake", "Gus", "Murphy", "Koda", "Scout", "Winston", "Zeus", "Oliver", "Ginger", "Sophie", "Dixie", "Jack", "Shadow", "Sam", "Willow", "Baxter", "Bandit", "Izzy", "Bruno", "Hazel",
@@ -811,30 +811,35 @@ export const envVarValues: string[] = [
     "api.internal.net", "localhost", "XJ9-99-AA", "Bearer_XYZ", "Salty_Pretzel", "/etc/config", "8"
 ];
 
-export const worldEvents = [
+export const worldEvents: WorldEvent[] = [
     {
         title: "Network Blackout",
         description: "A solar flare has knocked out a major network hub. All mission difficulties are increased by +1.",
-        modifier: { difficulty: 1 }
+        modifier: { difficulty: 1 },
+        breaking: true
     },
     {
         title: "Market Crash",
         description: "A major corporation has gone bankrupt. Hardware prices are 30% off for a limited time.",
-        modifier: { market: { hardware: 0.7 } }
+        modifier: { market: { hardware: 0.7 } },
+        breaking: false
     },
     {
         title: "Software Exploit",
         description: "A new zero-day exploit has been discovered. Exploit software is 50% more expensive.",
-        modifier: { market: { exploit: 1.5 } }
+        modifier: { market: { exploit: 1.5 } },
+        breaking: false
     },
     {
         title: "Data Rush",
         description: "A data breach has flooded the market with stolen data. Selling data is 50% more profitable.",
-        modifier: { sell: 1.5 }
+        modifier: { sell: 1.5 },
+        breaking: false
     },
     {
         title: "System Update",
         description: "A new system update has patched many vulnerabilities. All mission difficulties are increased by +2.",
-        modifier: { difficulty: 2 }
+        modifier: { difficulty: 2 },
+        breaking: true
     }
 ];

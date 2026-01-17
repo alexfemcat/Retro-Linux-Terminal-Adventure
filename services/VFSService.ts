@@ -1,16 +1,27 @@
 import { PlayerState, Directory, VFSNode } from '../types';
 import { MARKET_CATALOG } from '../data/marketData';
+import { COMMAND_REGISTRY } from './CommandRegistry';
 
 function getFileSize(name: string, content: string): number {
     const ext = name.split('.').pop()?.toLowerCase();
 
     // Binaries / Executables
-    if (ext === 'exe' || ext === 'bin' || ext === 'deb' || ext === 'sh' || content.includes('[BINARY]')) {
+    // Endgame binaries can be quite large, up to 1.5GB to fit into purchasable storage.
+    if (content.includes('[CRITICAL BINARY]') || name === 'final_exploit.bin' || name === 'master_override.exe') {
+        return 500 * 1024 + Math.random() * 1000 * 1024; // 500MB - 1.5GB in KB
+    }
+
+    const smallBinaries = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs', 'sudo', 'connect', 'scan'];
+    if (smallBinaries.includes(name) || ext === 'sh') {
+        return 50 + Math.random() * 450; // 50KB - 500KB
+    }
+
+    if (ext === 'exe' || ext === 'bin' || ext === 'deb' || content.includes('[BINARY]')) {
         const software = MARKET_CATALOG.find(i => i.id === name);
         if (software && 'storageSize' in software) {
             return software.storageSize * 1024; // MB to KB
         }
-        return 20 * 1024 + Math.random() * 1000 * 1024; // 20MB - 1GB in KB
+        return 10 * 1024 + Math.random() * 190 * 1024; // 10MB - 200MB in KB
     }
 
     // Default for other file types
@@ -41,7 +52,9 @@ export function syncBinDirectory(playerState: PlayerState, vfs: VFSNode): VFSNod
     const softwareToInstall = playerState.installedSoftware || [];
 
     // Add default commands that should always be present
-    const defaultCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs'];
+    const defaultCommands = Object.values(COMMAND_REGISTRY)
+        .filter(cmd => cmd.isDefaultCommand)
+        .map(cmd => cmd.id);
     const allSoftware = [...new Set([...defaultCommands, ...softwareToInstall])];
 
 

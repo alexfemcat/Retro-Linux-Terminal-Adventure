@@ -509,6 +509,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                             <div className="border-b border-yellow-300/30 pb-1">USAGE</div>
                             <div className="border-b border-yellow-300/30 pb-1">DESCRIPTION</div>
                             {Object.values(COMMAND_REGISTRY).filter(def => {
+                                // Only show default commands or commands the player has actually installed
+                                const isUnlocked = def.isDefaultCommand || playerState.installedSoftware.includes(def.id) || (def.requiredSoftware && playerState.installedSoftware.includes(def.requiredSoftware));
+                                if (!isUnlocked) return false;
+
                                 const availability = checkCommandAvailability(def.id, {
                                     playerState,
                                     isMissionActive,
@@ -630,13 +634,6 @@ export const Terminal: React.FC<TerminalProps> = ({
                     } else {
                         const result = buyItem(itemId, playerState);
                         if (result.success && result.updatedPlayerState) {
-                            const item = MARKET_CATALOG.find(i => i.id === itemId);
-                            if (item?.category === 'consumable' && item.id.startsWith('theme_')) {
-                                const updatedState = { ...result.updatedPlayerState, themes: [...(result.updatedPlayerState.themes || []), item.id] };
-                                onPlayerStateChange(updatedState);
-                                output = `Theme '${item.name}' purchased and available.`
-                                break;
-                            }
                             const updatedState = result.updatedPlayerState;
                             setIsDiskActive(true);
 
@@ -754,50 +751,77 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 --- RETRO-MARKET v2.0 - Global Asset Exchange ---
                             </div>
 
-                            {Object.entries(groupedItems).map(([category, catItems]) => (
-                                <div key={category} className="mb-6">
-                                    <div className="text-white font-bold mb-2 flex items-center gap-2">
-                                        <span className="bg-yellow-600/20 px-2 py-0.5 border border-yellow-600/50 text-[10px]">{category}</span>
-                                        <div className="h-[1px] flex-grow bg-yellow-600/20"></div>
-                                    </div>
-                                    <div className="grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
-                                        <div>Designation</div>
-                                        <div>Price</div>
-                                        <div>Tier</div>
-                                        <div>System Req</div>
-                                        <div>Capabilities</div>
-                                    </div>
-                                    {catItems.map(item => {
-                                        let isOwned = false;
-                                        if (item.category === 'hardware') {
-                                            if (item.hardwareKey) {
-                                                isOwned = playerState.hardware[item.hardwareKey as keyof typeof playerState.hardware].level >= (item.stats?.level || 0);
-                                            }
-                                        } else if (item.category !== 'consumable') {
-                                            isOwned = playerState.installedSoftware.includes(item.id);
-                                        }
-
-                                        const software = item as any;
-                                        const reqs = software.cpuReq !== undefined ? `${software.cpuReq}% / ${software.ramReq}MB` : 'N/A';
-                                        let cost = item.cost;
-                                        if (worldEvent?.modifier?.market) {
-                                            if (worldEvent.modifier.market[item.category]) {
-                                                cost *= worldEvent.modifier.market[item.category];
-                                            }
-                                        }
-
-                                        return (
-                                            <div key={item.id} className={`grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
-                                                <div className="font-bold text-yellow-300">{item.id}</div>
-                                                <div className="text-green-500">{cost.toLocaleString()}c</div>
-                                                <div className="text-center">{software.tier || '-'}</div>
-                                                <div className="text-cyan-600 text-[10px]">{reqs}</div>
-                                                <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
+                            {Object.entries(groupedItems).map(([category, catItems]) => {
+                                const isHardware = category === 'HARDWARE';
+                                return (
+                                    <div key={category} className="mb-6">
+                                        <div className="text-white font-bold mb-2 flex items-center gap-2">
+                                            <span className="bg-yellow-600/20 px-2 py-0.5 border border-yellow-600/50 text-[10px]">{category}</span>
+                                            <div className="h-[1px] flex-grow bg-yellow-600/20"></div>
+                                        </div>
+                                        {isHardware ? (
+                                            <div className="grid grid-cols-[160px_80px_60px_1fr_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
+                                                <div>Designation</div>
+                                                <div>Price</div>
+                                                <div>Level</div>
+                                                <div>Specs</div>
+                                                <div>Description</div>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                            ))}
+                                        ) : (
+                                            <div className="grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
+                                                <div>Designation</div>
+                                                <div>Price</div>
+                                                <div>Tier</div>
+                                                <div>System Req</div>
+                                                <div>Capabilities</div>
+                                            </div>
+                                        )}
+                                        {catItems.map(item => {
+                                            let isOwned = false;
+                                            if (item.category === 'hardware') {
+                                                if (item.hardwareKey) {
+                                                    isOwned = playerState.hardware[item.hardwareKey as keyof typeof playerState.hardware].level >= (item.stats?.level || 0);
+                                                }
+                                            } else if (item.category !== 'consumable') {
+                                                isOwned = playerState.installedSoftware.includes(item.id);
+                                            }
+
+                                            const software = item as any;
+                                            const reqs = software.cpuReq !== undefined ? `${software.cpuReq}% / ${software.ramReq}MB` : 'N/A';
+                                            let cost = item.cost;
+                                            if (worldEvent?.modifier?.market) {
+                                                if (worldEvent.modifier.market[item.category]) {
+                                                    cost *= worldEvent.modifier.market[item.category];
+                                                }
+                                            }
+
+                                            if (isHardware) {
+                                                const stats = (item as any).stats;
+                                                const specs = stats ? Object.entries(stats).map(([key, value]) => `${key}: ${value}`).join(', ') : 'N/A';
+                                                return (
+                                                    <div key={item.id} className={`grid grid-cols-[160px_80px_60px_1fr_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
+                                                        <div className="font-bold text-yellow-300">{item.id}</div>
+                                                        <div className="text-green-500">{cost.toLocaleString()}c</div>
+                                                        <div className="text-center">{stats?.level || '-'}</div>
+                                                        <div className="text-cyan-600 text-[10px]">{specs}</div>
+                                                        <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
+                                                    </div>
+                                                );
+                                            }
+
+                                            return (
+                                                <div key={item.id} className={`grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
+                                                    <div className="font-bold text-yellow-300">{item.id}</div>
+                                                    <div className="text-green-500">{cost.toLocaleString()}c</div>
+                                                    <div className="text-center">{software.tier || '-'}</div>
+                                                    <div className="text-cyan-600 text-[10px]">{reqs}</div>
+                                                    <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
 
                             <div className="mt-6 p-3 bg-black border border-yellow-500/20 rounded-md">
                                 <div className="text-xs text-gray-500 flex justify-between gap-4">
@@ -1081,7 +1105,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             const fileSizeKB = fNode.size || 1;
 
                             // 1. Check Storage Capacity (Phase 5)
-                            const currentUsageKB = HardwareService.calculateStorageUsage(playerState);
+                            const currentUsageKB = HardwareService.calculateStorageUsage(playerState, vfs);
                             const capacityKB = playerState.hardware.storage.capacity * 1024 * 1024;
                             if (currentUsageKB + fileSizeKB > capacityKB) {
                                 output = (
@@ -1175,7 +1199,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 break;
             case 'inv':
-                const invStorageUsed = HardwareService.calculateStorageUsage(playerState);
+                const invStorageUsed = HardwareService.calculateStorageUsage(playerState, vfs);
                 const invCapacity = playerState.hardware.storage.capacity * 1024 * 1024;
                 const invPercent = (invStorageUsed / invCapacity) * 100;
 
@@ -1356,7 +1380,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                 const pFlagIndex = args.indexOf('-P');
                 if (pFlagIndex !== -1) {
                     const wordlistName = args[pFlagIndex + 1];
-                    const hasWordlist = playerState.inventory.some(item => item.name === wordlistName);
+                    // Check for both the exact name and the .tool extension used for consumables
+                    const hasWordlist = playerState.inventory.some(item =>
+                        item.name === wordlistName || item.name === `${wordlistName}.tool`
+                    );
                     if (!hasWordlist) {
                         output = <div className="text-red-500">Error: Wordlist file '{wordlistName}' not found in local storage. Purchase one from the market first.</div>;
                         break;
@@ -2055,12 +2082,19 @@ export const Terminal: React.FC<TerminalProps> = ({
                 break;
             case 'theme':
                 const themeName = args[0];
+                const availableThemes = playerState.inventory
+                    .filter(item => item.name.startsWith('theme_') && item.name.endsWith('.tool'))
+                    .map(item => item.name.replace('.tool', ''));
+
                 if (!themeName) {
-                    output = `Usage: theme [theme_name]\nAvailable themes: ${playerState.themes?.join(', ') || 'none'}`;
+                    output = `Usage: theme [theme_name]\nAvailable themes: ${availableThemes.join(', ') || 'none'}`;
                     break;
                 }
-                if (playerState.themes?.includes(`theme_${themeName}`)) {
-                    onPlayerStateChange({ ...playerState, theme: `theme_${themeName}` });
+
+                const fullThemeId = themeName.startsWith('theme_') ? themeName : `theme_${themeName}`;
+
+                if (availableThemes.includes(fullThemeId)) {
+                    onPlayerStateChange({ ...playerState, theme: fullThemeId });
                     output = `Theme set to ${themeName}.`;
                 } else {
                     output = `Theme '${themeName}' not purchased.`;
@@ -2179,7 +2213,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                         RAM: {performance.ramUsed.toFixed(1)}/{performance.ramCapacity}GB
                     </span>
                     <span className={`${(performance.storageUsed / performance.storageCapacity) > 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
-                        DISK: {(performance.storageUsed / (1024 * 1024)).toFixed(2)}/{(performance.storageCapacity / (1024 * 1024)).toFixed(0)}GB
+                        DISK: {(performance.storageUsed / (1024 * 1024)).toFixed(2)}/{(performance.storageCapacity / (1024 * 1024)).toFixed(2)} GB
                     </span>
                     {isMissionActive && (
                         <span className="flex items-center gap-2">

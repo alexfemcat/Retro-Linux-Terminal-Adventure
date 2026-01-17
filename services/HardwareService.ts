@@ -1,5 +1,4 @@
 import { PlayerState } from '../types';
-import { MARKET_CATALOG } from '../data/marketData';
 
 /**
  * Global Hardware Simulation Configuration
@@ -148,29 +147,37 @@ export class HardwareService {
     /**
      * Calculates current storage usage in KB (Inventory + Installed Software).
      */
-    static calculateStorageUsage(playerState: PlayerState): number {
+    static calculateStorageUsage(_playerState: PlayerState, vfs: any): number {
         let total = 0;
 
-        // 1. Files in inventory
-        if (playerState.inventory) {
-            total += playerState.inventory.reduce((sum, node) => {
-                if (node.type === 'file') {
-                    return sum + (node.size || 0);
-                }
-                return sum;
-            }, 0);
+        // 1. VFS size
+        if (vfs) {
+            total += this.getDirectorySize(vfs);
         }
 
-        // 2. Installed Software
-        if (playerState.installedSoftware) {
-            playerState.installedSoftware.forEach(id => {
-                const soft = MARKET_CATALOG.find(i => i.id === id);
-                if (soft && (soft as any).storageSize) {
-                    total += (soft as any).storageSize;
-                }
-            });
-        }
+        // 2. Installed Software - this is now part of the VFS in ~/bin
+        // if (playerState.installedSoftware) {
+        //     playerState.installedSoftware.forEach(id => {
+        //         const soft = MARKET_CATALOG.find(i => i.id === id);
+        //         if (soft && (soft as any).storageSize) {
+        //             total += (soft as any).storageSize * 1024; // Convert MB to KB
+        //         }
+        //     });
+        // }
 
         return total;
+    }
+
+    private static getDirectorySize(directory: any): number {
+        let size = 0;
+        for (const key in directory.children) {
+            const child = directory.children[key];
+            if (child.type === 'file') {
+                size += child.size || 0;
+            } else if (child.type === 'directory') {
+                size += this.getDirectorySize(child);
+            }
+        }
+        return size;
     }
 }

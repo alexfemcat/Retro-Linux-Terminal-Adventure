@@ -25,8 +25,19 @@ class PuzzleGenerator {
         }
 
         // 3. Binaries / Executables
-        if (ext === 'exe' || ext === 'bin' || ext === 'deb' || ext === 'sh' || content.includes('[BINARY]')) {
-            return 20 * 1024 + Math.random() * 1000 * 1024; // 20MB - 1GB in KB
+        // 3. Binaries / Executables
+        // Endgame binaries can be quite large, up to 1.5GB to fit into purchasable storage.
+        if (content.includes('[CRITICAL BINARY]') || name === 'final_exploit.bin' || name === 'master_override.exe') {
+            return 500 * 1024 + Math.random() * 1000 * 1024; // 500MB - 1.5GB in KB
+        }
+
+        const smallBinaries = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs', 'sudo', 'connect', 'scan'];
+        if (smallBinaries.includes(name) || ext === 'sh') {
+            return 50 + Math.random() * 450; // 50KB - 500KB
+        }
+
+        if (ext === 'exe' || ext === 'bin' || ext === 'deb' || content.includes('[BINARY]')) {
+            return 10 * 1024 + Math.random() * 190 * 1024; // 10MB - 200MB in KB
         }
 
         // 4. Logs

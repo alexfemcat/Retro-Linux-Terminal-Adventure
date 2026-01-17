@@ -6,19 +6,21 @@ export interface PerformanceStats {
     cpuLoad: number; // 0-100%
     ramUsed: number; // GB
     ramCapacity: number; // GB
-    storageUsed: number; // MB
-    storageCapacity: number; // MB
+    storageUsed: number; // KB
+    storageCapacity: number; // KB
     isThrashing: boolean;
     isOverheating: boolean;
     isCritical: boolean;
 }
 
+import { GameState } from '../types';
 export const usePerformance = (
     playerState: PlayerState | null,
+    gameState: GameState | null,
     activeProcesses: { id: string; name: string; ram: number }[]
 ): PerformanceStats => {
     return useMemo(() => {
-        if (!playerState) {
+        if (!playerState || !gameState) {
             return {
                 cpuLoad: 0,
                 ramUsed: 0,
@@ -32,14 +34,15 @@ export const usePerformance = (
         }
 
         const ramCapacity = playerState.hardware.ram.capacity;
-        const storageCapacity = playerState.hardware.storage.capacity * 1024; // Convert GB to MB
+        const storageCapacity = playerState.hardware.storage.capacity * 1024 * 1024; // Convert GB to KB
 
         // Calculate Total RAM
         const ramUsed = activeProcesses.reduce((acc, p) => acc + p.ram, 0);
         const isThrashing = ramUsed > ramCapacity * 0.9; // Thrashing starts at 90%
 
         // Calculate Storage Usage
-        const storageUsed = HardwareService.calculateStorageUsage(playerState);
+        const activeNode = gameState.nodes[gameState.activeNodeIndex];
+        const storageUsed = HardwareService.calculateStorageUsage(playerState, activeNode.vfs);
 
         // Calculate CPU Load
         // We use the base process costs to estimate load
@@ -67,5 +70,5 @@ export const usePerformance = (
             isOverheating,
             isCritical
         };
-    }, [playerState, activeProcesses]);
+    }, [playerState, gameState, activeProcesses]);
 };

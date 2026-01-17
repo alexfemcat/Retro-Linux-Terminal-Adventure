@@ -14,6 +14,16 @@ export interface Directory {
   size: number; // in KB
 }
 
+export interface CommandDefinition {
+  id: string;
+  description: string;
+  usage: string;
+  isDefaultCommand: boolean; // help, ls, cd, etc.
+  isLocalOnly: boolean; // market, jobs
+  isRemoteOnly?: boolean; // abort
+  requiredSoftware?: string; // id from marketData
+}
+
 export type VFSNode = File | Directory;
 
 export interface Scenario {
@@ -94,6 +104,13 @@ export interface GameState {
 export interface ChatMessage {
   sender: 'user' | 'ai';
   text: string;
+}
+
+export interface WorldEvent {
+  title: string;
+  description: string;
+  modifier: any;
+  breaking: boolean;
 }
 
 export interface HardwareSpecs {

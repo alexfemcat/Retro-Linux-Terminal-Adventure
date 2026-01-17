@@ -2,35 +2,35 @@ import { MarketItem } from '../types';
 
 export const MARKET_CATALOG: MarketItem[] = [
     // --- SOFTWARE: Tier 1 ---
-    { id: 'ping', name: 'ping', category: 'utility', tier: 1, description: 'Network connectivity tester', cost: 100, cpuReq: 1, ramReq: 4, storageSize: 5 * 1024 },
-    { id: 'nmap-lite', name: 'nmap-lite', category: 'sniffing', tier: 1, description: 'Basic port scanner (Open/Closed only)', cost: 250, cpuReq: 5, ramReq: 16, storageSize: 15 * 1024 },
-    { id: 'brute-force.sh', name: 'brute-force.sh', category: 'exploit', tier: 1, description: 'Basic noisy brute-force script', cost: 400, cpuReq: 20, ramReq: 32, storageSize: 2 * 1024 },
+    { id: 'ping', name: 'ping', category: 'utility', tier: 1, description: 'Network connectivity tester', cost: 100, cpuReq: 1, ramReq: 4, storageSize: 10 },
+    { id: 'nmap-lite', name: 'nmap-lite', category: 'sniffing', tier: 1, description: 'Basic port scanner (Open/Closed only)', cost: 250, cpuReq: 5, ramReq: 16, storageSize: 30 },
+    { id: 'brute-force.sh', name: 'brute-force.sh', category: 'exploit', tier: 1, description: 'Basic noisy brute-force script', cost: 400, cpuReq: 20, ramReq: 32, storageSize: 5 },
 
     // --- SOFTWARE: Tier 2 ---
-    { id: 'nmap', name: 'nmap', category: 'sniffing', tier: 2, description: 'Standard network scanner with service detection', cost: 800, cpuReq: 10, ramReq: 64, storageSize: 45 * 1024 },
-    { id: 'hydra', name: 'hydra', category: 'exploit', tier: 2, description: 'Multi-threaded password brute-force tool', cost: 1500, cpuReq: 25, ramReq: 128, storageSize: 30 * 1024 },
-    { id: 'ssh-crack-v1', name: 'ssh-crack-v1', category: 'exploit', tier: 2, description: 'Specialized SSH credential harvester', cost: 2000, cpuReq: 15, ramReq: 96, storageSize: 20 * 1024 },
-    { id: 'overclock', name: 'overclock', category: 'utility', tier: 2, description: 'Unlock CPU frequency controls and voltage scaling.', cost: 1200, cpuReq: 2, ramReq: 8, storageSize: 10 * 1024 },
+    { id: 'nmap', name: 'nmap', category: 'sniffing', tier: 2, description: 'Standard network scanner with service detection', cost: 800, cpuReq: 10, ramReq: 64, storageSize: 90 },
+    { id: 'hydra', name: 'hydra', category: 'exploit', tier: 2, description: 'Multi-threaded password brute-force tool', cost: 1500, cpuReq: 25, ramReq: 128, storageSize: 60 },
+    { id: 'ssh-crack-v1', name: 'ssh-crack-v1', category: 'exploit', tier: 2, description: 'Specialized SSH credential harvester', cost: 2000, cpuReq: 15, ramReq: 96, storageSize: 40 },
+    { id: 'overclock', name: 'overclock', category: 'utility', tier: 2, description: 'Unlock CPU frequency controls and voltage scaling.', cost: 1200, cpuReq: 2, ramReq: 8, storageSize: 20 },
 
     // --- SOFTWARE: Tier 3 ---
-    { id: 'sqlmap', name: 'sqlmap', category: 'exploit', tier: 3, description: 'Automatic SQL injection and database takeover tool', cost: 5000, cpuReq: 30, ramReq: 256, storageSize: 80 * 1024 },
-    { id: 'john', name: 'john', category: 'exploit', tier: 3, description: 'Offline password hash cracker', cost: 4500, cpuReq: 80, ramReq: 512, storageSize: 60 * 1024 },
-    { id: 'proxy-tunnel', name: 'proxy-tunnel', category: 'utility', tier: 3, description: 'Encrypted traffic tunneling to hide origin', cost: 3500, cpuReq: 5, ramReq: 128, storageSize: 25 * 1024 },
+    { id: 'sqlmap', name: 'sqlmap', category: 'exploit', tier: 3, description: 'Automatic SQL injection and database takeover tool', cost: 5000, cpuReq: 30, ramReq: 256, storageSize: 160 },
+    { id: 'john', name: 'john', category: 'exploit', tier: 3, description: 'Offline password hash cracker', cost: 4500, cpuReq: 80, ramReq: 512, storageSize: 120 },
+    { id: 'proxy-tunnel', name: 'proxy-tunnel', category: 'utility', tier: 3, description: 'Encrypted traffic tunneling to hide origin', cost: 3500, cpuReq: 5, ramReq: 128, storageSize: 50 },
 
     // --- SOFTWARE: Tier 4 ---
-    { id: 'msfconsole', name: 'msfconsole', category: 'exploit', tier: 4, description: 'Advanced exploitation framework', cost: 15000, cpuReq: 50, ramReq: 1024, storageSize: 500 * 1024 },
-    { id: 'dist-crack', name: 'dist-crack', category: 'exploit', tier: 4, description: 'Coordinated multi-node brute force attack', cost: 25000, cpuReq: 40, ramReq: 2048, storageSize: 150 * 1024 },
+    { id: 'msfconsole', name: 'msfconsole', category: 'exploit', tier: 4, description: 'Advanced exploitation framework', cost: 15000, cpuReq: 50, ramReq: 1024, storageSize: 1000 },
+    { id: 'dist-crack', name: 'dist-crack', category: 'exploit', tier: 4, description: 'Coordinated multi-node brute force attack', cost: 25000, cpuReq: 40, ramReq: 2048, storageSize: 300 },
 
     // --- SOFTWARE: Tier 5 ---
-    { id: '0day-pack', name: '0day-pack', category: 'exploit', tier: 5, description: 'Instant-access exploit for specific OS versions', cost: 100000, cpuReq: 10, ramReq: 512, storageSize: 10 * 1024 },
-    { id: 'neuro-crack', name: 'neuro-crack', category: 'exploit', tier: 5, description: 'AI-driven heuristic encryption bypass', cost: 250000, cpuReq: 95, ramReq: 4096, storageSize: 1200 * 1024 },
-    { id: 'nmap-pro', name: 'nmap-pro', category: 'sniffing', tier: 4, description: 'Advanced OS fingerprinting and version detection.', cost: 8000, cpuReq: 20, ramReq: 256, storageSize: 120 * 1024 },
+    { id: '0day-pack', name: '0day-pack', category: 'exploit', tier: 5, description: 'Instant-access exploit for specific OS versions', cost: 100000, cpuReq: 10, ramReq: 512, storageSize: 20 },
+    { id: 'neuro-crack', name: 'neuro-crack', category: 'exploit', tier: 5, description: 'AI-driven heuristic encryption bypass', cost: 250000, cpuReq: 95, ramReq: 4096, storageSize: 2400 },
+    { id: 'nmap-pro', name: 'nmap-pro', category: 'sniffing', tier: 4, description: 'Advanced OS fingerprinting and version detection.', cost: 8000, cpuReq: 20, ramReq: 256, storageSize: 240 },
 
     // --- CONSUMABLES ---
     { id: 'proxy_list', name: 'Disposable Proxy List', category: 'consumable', description: 'One-time use proxy chain (5 uses)', cost: 500 },
     { id: 'vpn_tunnel', name: 'Encrypted VPN Tunnel', category: 'consumable', description: 'Masks identity for 1 mission', cost: 1200 },
-    { id: 'wordlist_small', name: 'Common Passwords (Small)', category: 'utility', description: 'Small wordlist for hydra', cost: 200, tier: 1, cpuReq: 0, ramReq: 0, storageSize: 10 * 1024 },
-    { id: 'wordlist_big', name: 'RockYou.txt (Modified)', category: 'utility', description: 'Massive wordlist for hydra', cost: 1000, tier: 2, cpuReq: 0, ramReq: 0, storageSize: 150 * 1024 },
+    { id: 'wordlist_small', name: 'Common Passwords (Small)', category: 'consumable', description: 'Small wordlist for hydra', cost: 200 },
+    { id: 'wordlist_big', name: 'RockYou.txt (Modified)', category: 'consumable', description: 'Massive wordlist for hydra', cost: 1000 },
 
     // --- HARDWARE: CPU ---
     { id: 'cpu_v2', name: 'CPU v2 (1.1GHz)', category: 'hardware', description: 'Minor clock adjustment.', cost: 250, hardwareKey: 'cpu', stats: { level: 2, clockSpeed: 1.1, cores: 1 } },
