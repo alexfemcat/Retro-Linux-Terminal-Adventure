@@ -2202,8 +2202,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                         </span>
                     )}
                 </div>
-                <div className="text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
-                    BAL: {playerState.credits.toLocaleString()} CR
+                <div className="flex flex-col items-end gap-1">
+                    <div className="text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
+                        BAL: {playerState.credits.toLocaleString()} CR
+                    </div>
+                    <div className="text-cyan-400 font-bold bg-cyan-400/10 px-2 py-0.5 rounded border border-cyan-400/20 shadow-[0_0_10px_rgba(34,211,238,0.2)]">
+                        REP: {playerState.reputation.toLocaleString()} XP
+                    </div>
                 </div>
             </div>
 
