@@ -51,9 +51,15 @@ class MissionGenerator {
 
         const description = `${scenario.welcomeMessage(targetFileName)}\n\nIntel suggests a potential ${chosenVector} vector might be viable. Use advanced recon tools for confirmation.`;
 
+        // Node count scaling based on difficulty
+        let numNodes = 2;
+        if (difficulty === 1) numNodes = 2;
+        else if (difficulty === 2) numNodes = 2 + Math.floor(Math.random() * 2); // 2 or 3
+        else numNodes = 2 + Math.floor(Math.random() * 4); // 2 to 5
+
         const config: MissionConfig = {
             scenarioIndex,
-            numNodes: 2 + difficulty,
+            numNodes,
             targetFileName,
             difficultyMultiplier: difficulty
         };

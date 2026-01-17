@@ -120,7 +120,7 @@ export function createInitialPlayerState(): PlayerState {
         version: CURRENT_VERSION,
         credits: 0,
         reputation: 0,
-        installedSoftware: ['ls', 'cd', 'help', 'market', 'jobs', 'exit'],
+        installedSoftware: ['ls', 'cd', 'help', 'market', 'jobs', 'exit', 'nmap'],
         inventory: [],
         hardware: {
             cpu: { id: 'cpu_v1', level: 1, clockSpeed: 1.0, cores: 1 },

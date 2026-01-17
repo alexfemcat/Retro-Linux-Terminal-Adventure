@@ -1,0 +1,158 @@
+import { GameState, NetworkNode, PlayerState, Directory } from '../types';
+
+export interface TutorialStep {
+    id: string;
+    message: string;
+    expectedCommand?: string; // Regex or specific command
+    check: (command: string, args: string[], gameState: GameState, playerState: PlayerState) => boolean;
+    onComplete?: (gameState: GameState, playerState: PlayerState) => Partial<GameState | PlayerState> | void;
+}
+
+export const TUTORIAL_STEPS: TutorialStep[] = [
+    {
+        id: 'welcome',
+        message: "INITIATING TRAINING SIMULATION...\n\n[THE ARCHITECT]: Welcome, Initiate. I am The Architect. I will guide you through your basic training.\nWe must first assess your situational awareness.\n\nThe 'ls' command (List) reveals the contents of your current location. Use it now to scan your surroundings.\n\nType 'ls' and press Enter.",
+        check: (cmd) => cmd === 'ls'
+    },
+    {
+        id: 'read_file',
+        message: "[THE ARCHITECT]: Good. I detect a text file 'welcome.txt'.\nThe 'cat' command (Concatenate) reads and displays file contents.\n\nRead the file by typing 'cat welcome.txt'.",
+        check: (cmd, args) => cmd === 'cat' && args[0] === 'welcome.txt'
+    },
+    {
+        id: 'change_dir',
+        message: "[THE ARCHITECT]: Excellent. The file system is a tree of directories. We need to move deeper.\nUse 'cd' (Change Directory) to enter the 'bin' folder.\n\nType 'cd bin'.",
+        check: (cmd, args) => cmd === 'cd' && args[0] === 'bin'
+    },
+    {
+        id: 'go_back',
+        message: "[THE ARCHITECT]: You are now in the binary folder. To move 'up' one level back to your home, use the parent directory shortcut '..'.\n\nReturn home by typing 'cd ..'.",
+        check: (cmd, args) => cmd === 'cd' && args[0] === '..'
+    },
+    {
+        id: 'scan_network',
+        message: "[THE ARCHITECT]: Basic navigation confirmed. Phase 2: Network Reconnaissance.\nWe have detected a target device on the local training subnet.\nTo find open doors, we use 'nmap' (Network Mapper).\n\nScan the IP '192.168.1.55'. Type 'nmap 192.168.1.55'.",
+        check: (cmd, args) => cmd === 'nmap' && args[0] === '192.168.1.55'
+    },
+    {
+        id: 'ssh_connect',
+        message: "[THE ARCHITECT]: Analysis: Port 22 is open. This indicates an SSH (Secure Shell) service, allowing remote control.\nConnect to the target using the standard user protocol.\n\nType 'ssh user@192.168.1.55'.\n(Hint: The training password is 'training')",
+        check: (cmd, args) => cmd === 'ssh' && args[0] === 'user@192.168.1.55'
+    },
+    {
+        id: 'infiltrate_docs',
+        message: "[THE ARCHITECT]: Access Granted. You are now inside the remote system.\nOur objective is the training data. It is likely in the Documents folder.\n\nNavigate there: Type 'cd Documents'.",
+        check: (cmd, args, gameState) => cmd === 'cd' && args[0] === 'Documents' && gameState.nodes[gameState.activeNodeIndex].id === 'tutorial-target'
+    },
+    {
+        id: 'download_file',
+        message: "[THE ARCHITECT]: Target located: 'TRAINING_DATA.dat'. We need to extract this to your local machine.\nThe 'download' command transfers files securely.\n\nType 'download TRAINING_DATA.dat'.",
+        check: (cmd, args) => (cmd === 'download' || cmd === 'scp') && args[0] === 'TRAINING_DATA.dat'
+    },
+    {
+        id: 'disconnect',
+        message: "[THE ARCHITECT]: Transfer Complete. Never linger on a compromised node.\nDisconnect and return to your own terminal.\n\nType 'exit'.",
+        check: (cmd) => cmd === 'exit'
+    },
+    {
+        id: 'check_inv',
+        message: "[THE ARCHITECT]: Welcome back. Let's verify the asset.\nThe 'inv' command inspects your local storage capacity and loot.\n\nType 'inv'.",
+        check: (cmd, args) => cmd === 'inv' || (cmd === 'ls' && args && args[0] === 'loot')
+    },
+    {
+        id: 'check_market',
+        message: "[THE ARCHITECT]: Successful operations yield Credits. You use these to upgrade your rig or buy software tools.\nOpen the exchange.\n\nType 'market'.",
+        check: (cmd) => cmd === 'market'
+    }
+];
+
+export class TutorialService {
+    public static generateTutorialState(_playerState: PlayerState): GameState {
+        // Create a contained environment
+        const localNode: NetworkNode = {
+            id: 'local',
+            hostname: 'training-terminal',
+            ip: '127.0.0.1',
+            osVersion: 'RetroOS 2.0 (Training Mode)',
+            themeColor: 'text-green-400',
+            vfs: {
+                type: 'directory', name: '', children: {
+                    home: {
+                        type: 'directory', name: 'home', children: {
+                            user: {
+                                type: 'directory', name: 'user', children: {
+                                    'welcome.txt': { type: 'file', name: 'welcome.txt', content: "Welcome to the training program.\nFollow The Architect's instructions carefully.", size: 0.1 },
+                                    bin: { type: 'directory', name: 'bin', children: {} },
+                                    loot: { type: 'directory', name: 'loot', children: {} }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            processes: [],
+            envVars: { USER: 'initiate', SHELL: '/bin/bash' },
+            ports: [],
+            vulnerabilities: [],
+            isDiscovered: true,
+            currentUser: 'user'
+        };
+
+        const targetNode: NetworkNode = {
+            id: 'tutorial-target',
+            hostname: 'dummy-target',
+            ip: '192.168.1.55',
+            osVersion: 'Training OS',
+            themeColor: 'text-amber-400',
+            vfs: {
+                type: 'directory', name: '', children: {
+                    home: {
+                        type: 'directory', name: 'home', children: {
+                            user: {
+                                type: 'directory', name: 'user', children: {
+                                    Documents: {
+                                        type: 'directory', name: 'Documents', children: {
+                                            'TRAINING_DATA.dat': { type: 'file', name: 'TRAINING_DATA.dat', content: '[SECRET TRAINING DATA]', size: 10 }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            processes: [],
+            envVars: {},
+            ports: [{ port: 22, service: 'ssh', version: 'OpenSSH', isOpen: true }],
+            vulnerabilities: [],
+            isDiscovered: true, // Auto-discover for simplicity in recon phase? Or keep hidden until nmap? Let's say hidden but accessible.
+            rootPassword: 'training',
+            currentUser: 'user'
+        };
+
+        // Populate local bin with essential tools
+        const userHome = ((localNode.vfs.children.home as Directory).children.user as Directory);
+        const binDir = userHome.children.bin as Directory;
+        ['ls', 'cd', 'cat', 'nmap', 'ssh', 'download', 'exit', 'inv', 'market', 'help'].forEach(cmd => {
+            binDir.children[cmd] = { type: 'file', name: cmd, content: '[BINARY]', size: 1 };
+        });
+
+        return {
+            nodes: [localNode, targetNode],
+            activeNodeIndex: 0,
+            winCondition: { type: 'file_found', nodeId: 'tutorial-target', path: [] }, // Dummy win condition
+            scenario: {
+                theme: 'Training Simulation',
+                welcomeMessage: 'TRAINING MODE ACTIVE',
+                clueTemplate: () => '',
+                starterClueTemplate: () => '',
+                clueFileNameOptions: [],
+                distractionFiles: {},
+                distractionDirs: []
+            },
+            bootTime: Date.now(),
+            traceProgress: 0,
+            isTraceActive: false
+        };
+    }
+}

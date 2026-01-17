@@ -28,11 +28,13 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'whoami': { id: 'whoami', description: 'Current user.', usage: 'whoami', isAlwaysAvailable: true, isLocalOnly: false },
     'clear': { id: 'clear', description: 'Clear screen.', usage: 'clear', isAlwaysAvailable: true, isLocalOnly: false },
     'exit': { id: 'exit', description: 'Disconnect/Logout.', usage: 'exit', isAlwaysAvailable: true, isLocalOnly: false },
+    'inv': { id: 'inv', description: 'Show storage usage and inventory.', usage: 'inv', isAlwaysAvailable: true, isLocalOnly: false },
     'rm': { id: 'rm', description: 'Remove a file.', usage: 'rm [file]', isAlwaysAvailable: true, isLocalOnly: false },
     'kill': { id: 'kill', description: 'Terminate a process by PID.', usage: 'kill [pid]', isAlwaysAvailable: true, isLocalOnly: false },
     'echo': { id: 'echo', description: 'Write text to a file.', usage: 'echo "text" > [file]', isAlwaysAvailable: true, isLocalOnly: false },
 
     // Mission Control
+    'tutorial': { id: 'tutorial', description: 'Start the training simulation.', usage: 'tutorial', isAlwaysAvailable: true, isLocalOnly: true },
     'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },
     'market': { id: 'market', description: 'Browse/Sell items.', usage: 'market [buy <id>|sell <file>]', isAlwaysAvailable: true, isLocalOnly: true },
     'overclock': { id: 'overclock', description: 'Toggle CPU overclocking.', usage: 'overclock [on|off]', isAlwaysAvailable: false, isLocalOnly: false },

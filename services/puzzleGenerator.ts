@@ -156,11 +156,12 @@ class PuzzleGenerator {
     }
 
     private generateSocialPuzzle(): { password: string, hint: string, components: { type: string, value: string, file: string, content: string }[] } {
+        // Updated schemes to match the actual file content generated below
         const schemes = [
-            { types: ['pet', 'year'], template: "my first dog's name and the year I was born" },
-            { types: ['city', 'color'], template: "my favorite city and the color of my first car" },
-            { types: ['color', 'pet'], template: "the color of the sunset and my cat's name" },
-            { types: ['year', 'city'], template: "the year of the great quake and the city it destroyed" },
+            { types: ['pet', 'year'], template: "the name of the pet in the photo followed by the year I was born" },
+            { types: ['city', 'color'], template: "the destination of my trip followed by the color of the dress in my diary" },
+            { types: ['color', 'pet'], template: "the color of the dress in my diary followed by the name of the pet in the photo" },
+            { types: ['year', 'city'], template: "the year I was born followed by the destination of my trip" },
         ];
 
         const scheme = this.getRandom(schemes);
@@ -669,10 +670,20 @@ class PuzzleGenerator {
             case 'file_modified': objectiveText = `Deface the server ${targetNode.hostname} by modifying /var/www/html/index.html.`; break;
         }
 
+        // Tier 1 guidance vs Higher Tier ambiguity
+        const difficulty = config?.difficultyMultiplier || 1;
+        let briefingContent = "";
+
+        if (difficulty === 1) {
+            briefingContent = `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\nINTEL:\nInitial reconnaissance data has been uploaded to your terminal.\nLocation: ~/Documents/network_intel/\n\nINSTRUCTIONS:\n1. Review the intel for credentials.\n2. Connect to the first remote node via SSH.\n3. Pivot through the network to reach the target.\n\nGood luck, operative.`;
+        } else {
+            briefingContent = `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\nINTEL:\nStandard recon package uploaded. Check your documents.\n\nWARNING:\nTarget security is elevated (Tier ${difficulty}).\nExpect hidden trails, advanced encryption, and active countermeasures.\n\nGood luck, operative.`;
+        }
+
         userHome.children['MISSION.txt'] = {
             type: 'file',
             name: 'MISSION.txt',
-            content: `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\n1. Investigate the network.\n2. Follow the clues across nodes.\n3. Infiltrate the target system.\n\nGood luck, operative.`,
+            content: briefingContent,
             size: this.getFileSize('MISSION.txt', '')
         };
 

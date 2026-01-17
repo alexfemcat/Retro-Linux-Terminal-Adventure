@@ -9,6 +9,8 @@ import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/Har
 import { PerformanceStats } from '../hooks/usePerformance';
 import { TaskManager } from './TaskManager';
 import { KernelPanic } from './KernelPanic';
+import { TutorialService, TUTORIAL_STEPS } from '../services/TutorialService';
+import { TutorialOverlay } from './TutorialOverlay';
 
 export interface TerminalProps {
     gameState: GameState;
@@ -185,6 +187,10 @@ export const Terminal: React.FC<TerminalProps> = ({
     const { vfs, processes, envVars, hostname, themeColor } = activeNode;
     const { scenario } = gameState;
 
+    const isTutorialActive = playerState.activeMissionId === 'tutorial';
+    const tutorialStepIndex = playerState.tutorialStep || 0;
+    const currentTutorialStep = isTutorialActive && tutorialStepIndex < TUTORIAL_STEPS.length ? TUTORIAL_STEPS[tutorialStepIndex] : null;
+
     // Helper to generate welcome message
     const getWelcomeLines = useCallback(() => {
         const welcomeLines = scenario.welcomeMessage.split('\n').map((line: string, i: number) => <div key={`welcome-${i}`}>{line}</div>);
@@ -200,9 +206,33 @@ export const Terminal: React.FC<TerminalProps> = ({
     // Initial Welcome
     useEffect(() => {
         if (history.length === 0) {
-            setHistory(getWelcomeLines());
+            const lines = getWelcomeLines();
+            // Check for new game (0 rep, empty inventory) to suggest tutorial
+            if (playerState.reputation === 0 && playerState.inventory.length === 0 && !playerState.activeMissionId) {
+                lines.push(
+                    <div key="new-user-tip" className="mt-4 p-2 border border-cyan-500/50 text-cyan-400 bg-cyan-900/10 animate-pulse">
+                        <div className="font-bold tracking-widest">NEW USER DETECTED</div>
+                        <div className="text-sm">Type <span className="text-white font-bold mx-1">tutorial</span> and press Enter to begin training simulation.</div>
+                    </div>
+                );
+            }
+            setHistory(lines);
         }
-    }, [getWelcomeLines]);
+    }, [getWelcomeLines, playerState.reputation, playerState.inventory.length, playerState.activeMissionId]);
+
+    const exitTutorial = () => {
+        const resetState: PlayerState = { ...playerState, activeMissionId: null };
+        delete resetState.tutorialStep;
+
+        const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+        writeSave(slotId, resetState);
+
+        if (onReboot) {
+            onReboot(resetState);
+        } else {
+            window.location.reload(); // Fallback
+        }
+    };
 
     useEffect(() => {
         terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -343,6 +373,33 @@ export const Terminal: React.FC<TerminalProps> = ({
         const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
         let output: React.ReactNode | null = null;
 
+        // Tutorial Check Logic
+        if (isTutorialActive && currentTutorialStep) {
+            if (currentTutorialStep.check(cmd, args, gameState, playerState)) {
+                // Execute Step Completion Logic
+                if (currentTutorialStep.onComplete) {
+                    currentTutorialStep.onComplete(gameState, playerState);
+                }
+
+                // Step Completed
+                const nextIndex = tutorialStepIndex + 1;
+                const nextStep = nextIndex < TUTORIAL_STEPS.length ? TUTORIAL_STEPS[nextIndex] : null;
+
+                // Update State
+                const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
+
+                if (!nextStep) {
+                    // Tutorial Finished
+                    updatedState.activeMissionId = null;
+                    updatedState.tutorialStep = undefined;
+                    // Could add a completion bonus here
+                }
+
+                onPlayerStateChange(updatedState);
+                writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+            }
+        }
+
         const availability = checkCommandAvailability(cmd, {
             playerState,
             isMissionActive,
@@ -357,6 +414,41 @@ export const Terminal: React.FC<TerminalProps> = ({
         }
 
         switch (cmd) {
+            case 'tutorial':
+                if (args[0] === 'reset') {
+                    if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                        output = <div className="text-red-500">Error: Can only reset from Homebase. Disconnect first.</div>;
+                        break;
+                    }
+                    const tutorialState = TutorialService.generateTutorialState(playerState);
+                    const tutorialPlayerState = {
+                        ...playerState,
+                        activeMissionId: 'tutorial',
+                        tutorialStep: 0
+                    };
+                    if (onGameStateChange) onGameStateChange(tutorialState);
+                    onPlayerStateChange(tutorialPlayerState);
+                    setHistory([<div className="text-cyan-400 font-bold">SIMULATION RESET. RE-INITIALIZING...</div>]);
+                    return;
+                }
+
+                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                    output = <div className="text-red-500">Error: Simulation can only be accessed from secure Homebase terminals. Disconnect first.</div>;
+                } else {
+                    const tutorialState = TutorialService.generateTutorialState(playerState);
+                    const tutorialPlayerState = {
+                        ...playerState,
+                        activeMissionId: 'tutorial',
+                        tutorialStep: 0
+                    };
+
+                    if (onGameStateChange) onGameStateChange(tutorialState);
+                    onPlayerStateChange(tutorialPlayerState);
+                    // Force refresh history
+                    setHistory([<div className="text-cyan-400 font-bold">LOADING TRAINING SIMULATION...</div>]);
+                    return;
+                }
+                break;
             case 'help':
                 output = (
                     <div className="whitespace-pre-wrap text-yellow-300">
@@ -1905,7 +1997,17 @@ export const Terminal: React.FC<TerminalProps> = ({
                         <span className={`w-1.5 h-1.5 rounded-full ${showTaskManager ? 'bg-cyan-400' : 'bg-green-500 animate-pulse'}`}></span>
                         {showTaskManager ? 'HIDE_MONITOR' : 'SYS: ONLINE'}
                     </button>
-                    <span>MODE: {isMissionActive ? 'MISSION_OPS' : 'HOMEBASE'}</span>
+
+                    {isTutorialActive ? (
+                        <button
+                            onClick={exitTutorial}
+                            className="bg-red-900/30 text-red-400 px-2 py-0.5 rounded border border-red-500/30 hover:bg-red-900/50 transition-all animate-pulse"
+                        >
+                            EXIT SIMULATION
+                        </button>
+                    ) : (
+                        <span>MODE: {isMissionActive ? 'MISSION_OPS' : 'HOMEBASE'}</span>
+                    )}
                     <span className={`flex items-center gap-2 ${playerState.systemHeat > 80 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                         TEMP: {playerState.systemHeat.toFixed(1)}°C
                     </span>
@@ -1958,6 +2060,9 @@ export const Terminal: React.FC<TerminalProps> = ({
                     <div ref={terminalEndRef} />
                 </div>
             </div>
+            {isTutorialActive && currentTutorialStep && (
+                <TutorialOverlay message={currentTutorialStep.message} />
+            )}
             {!isLockedOut && (
                 <InputLine
                     currentPath={currentPath}

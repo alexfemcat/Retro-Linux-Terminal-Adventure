@@ -165,6 +165,7 @@ export interface PlayerState {
   inventory: VFSNode[]; // Stolen files/items
   hardware: HardwareSpecs;
   activeMissionId: string | null;
+  tutorialStep?: number;
   availableMissions: Mission[];
   // Phase 4 Hardware Simulation
   systemHeat: number;
