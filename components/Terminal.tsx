@@ -1190,7 +1190,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 };
                                 onPlayerStateChange(updatedPlayerState);
 
-                                // Auto-save
+                                // Auto-save (respect dev mode)
                                 const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
                                 writeSave(slotId, updatedPlayerState);
 

@@ -211,12 +211,12 @@ const App: React.FC = () => {
             reputation: playerState.reputation + repGain,
             activeMissionId: null,
             availableMissions: missionGenerator.generateMissions(playerState.reputation + repGain),
-            inventory: [...playerState.inventory, ...(playerState.missionInventory || [])],
+            inventory: [...(playerState.inventory || []), ...(playerState.missionInventory || [])],
             missionInventory: []
         };
 
-        // Auto-save immediately
-        const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+        // Auto-save immediately (respect dev mode)
+        const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
         writeSave(slotId, updatedPlayerState);
 
         let i = 0;
@@ -230,6 +230,10 @@ const App: React.FC = () => {
         }, 300);
 
         setPlayerState(updatedPlayerState);
+
+        // Move mission inventory files to ~/loot in the homebase VFS
+        const homebaseGameState = puzzleGenerator.generateHomebase(updatedPlayerState);
+        setGameState(homebaseGameState);
     };
 
     if (isBooting && bootingPlayerState) {
@@ -362,7 +366,13 @@ const App: React.FC = () => {
                         {winMessage}
                     </div>
                     <button
-                        onClick={() => startNewGame(playerState!)}
+                        onClick={() => {
+                            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+                            writeSave(slotId, playerState).then(() => {
+                                // Force a full reload to ensure all state is fresh from the save
+                                window.location.reload();
+                            });
+                        }}
                         className="mt-8 px-6 py-2 border-2 border-[#33ff00] hover:bg-[#33ff00] hover:text-black transition-colors duration-300 text-xl font-bold uppercase tracking-wider"
                     >
                         Reboot System
