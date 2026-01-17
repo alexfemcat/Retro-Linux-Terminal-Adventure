@@ -1,14 +1,17 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import type { GameState, VFSNode, NetworkNode, PlayerState } from '../types';
+import type { GameState, VFSNode, NetworkNode, PlayerState, Directory } from '../types';
 import { checkCommandAvailability, COMMAND_REGISTRY } from '../services/CommandRegistry';
 import { MARKET_CATALOG, buyItem } from '../services/MarketSystem';
 import { writeSave } from '../services/PersistenceService';
+import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
 
 export interface TerminalProps {
     gameState: GameState;
     activeNode: NetworkNode;
     playerState: PlayerState;
     isMissionActive: boolean;
+    activeProcesses: { id: string; name: string; ram: number }[];
+    setActiveProcesses: React.Dispatch<React.SetStateAction<{ id: string; name: string; ram: number }[]>>;
     onNodeChange: (index: number) => void;
     onWin: () => void;
     onMissionAccept: (mission: any) => void;
@@ -18,6 +21,7 @@ export interface TerminalProps {
     setCurrentPath: (path: string[]) => void;
     currentUser: 'user' | 'root';
     setCurrentUser: (user: 'user' | 'root') => void;
+    onVFSChange?: (newVFS: VFSNode) => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -133,6 +137,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     activeNode,
     playerState,
     isMissionActive,
+    activeProcesses,
+    setActiveProcesses,
     onNodeChange,
     onWin,
     onMissionAccept,
@@ -141,7 +147,8 @@ export const Terminal: React.FC<TerminalProps> = ({
     currentPath,
     setCurrentPath,
     currentUser,
-    setCurrentUser
+    setCurrentUser,
+    onVFSChange
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
@@ -153,6 +160,7 @@ export const Terminal: React.FC<TerminalProps> = ({
     const [isLockedOut] = useState<boolean>(false);
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
 
+    const [isDiskActive, setIsDiskActive] = useState<boolean>(false);
     const inputRef = useRef<HTMLInputElement>(null);
     const terminalEndRef = useRef<HTMLDivElement>(null);
 
@@ -287,7 +295,16 @@ export const Terminal: React.FC<TerminalProps> = ({
                             <div className="border-b border-yellow-300/30 pb-1">COMMAND</div>
                             <div className="border-b border-yellow-300/30 pb-1">USAGE</div>
                             <div className="border-b border-yellow-300/30 pb-1">DESCRIPTION</div>
-                            {Object.values(COMMAND_REGISTRY).map(def => (
+                            {Object.values(COMMAND_REGISTRY).filter(def => {
+                                const availability = checkCommandAvailability(def.id, {
+                                    playerState,
+                                    isMissionActive,
+                                    currentPath,
+                                    currentUser,
+                                    hostname
+                                });
+                                return availability.available;
+                            }).map(def => (
                                 <React.Fragment key={def.id}>
                                     <div>{def.id}</div>
                                     <div className="text-gray-400">{def.usage}</div>
@@ -336,6 +353,46 @@ export const Terminal: React.FC<TerminalProps> = ({
                     );
                 }
                 break;
+            case 'overclock':
+                if (args[0] === 'on') {
+                    onPlayerStateChange({ ...playerState, isOverclocked: true });
+                    output = <div className="text-yellow-400">[SYSTEM] Overclocking ENABLED. Heat generation increased.</div>;
+                } else if (args[0] === 'off') {
+                    onPlayerStateChange({ ...playerState, isOverclocked: false });
+                    output = <div className="text-blue-400">[SYSTEM] Overclocking DISABLED.</div>;
+                } else {
+                    output = `Usage: overclock [on|off]. Currently: ${playerState.isOverclocked ? 'ON' : 'OFF'}`;
+                }
+                break;
+            case 'voltage':
+                const v = parseFloat(args[0]);
+                if (isNaN(v) || v < 1.0 || v > 1.5) {
+                    output = "Usage: voltage [1.0 - 1.5]. Warning: Higher voltage increases speed but creates extreme heat.";
+                } else {
+                    onPlayerStateChange({ ...playerState, voltageLevel: v });
+                    output = <div className="text-yellow-500">[SYSTEM] Voltage set to {v.toFixed(2)}V.</div>;
+                }
+                break;
+            case 'memstat':
+                const totalUsed = activeProcesses.reduce((acc, p) => acc + p.ram, 0);
+                const capacity = playerState.hardware.ram.capacity;
+                const isThrashing = totalUsed > capacity;
+                output = (
+                    <div className="text-cyan-400">
+                        <div className="font-bold border-b border-cyan-400/30 mb-2 pb-1">MEMORY STATUS</div>
+                        <div className="grid grid-cols-[100px_1fr] gap-x-4">
+                            <div>CAPACITY:</div><div>{capacity} GB</div>
+                            <div>USED:</div><div>{totalUsed.toFixed(1)} GB</div>
+                            <div>STATUS:</div><div className={isThrashing ? 'text-red-500 blink' : 'text-green-500'}>{isThrashing ? 'THRASHING (SWAP ACTIVE)' : 'OPTIMAL'}</div>
+                        </div>
+                        {isThrashing && <div className="text-red-500 text-xs mt-2 italic animate-pulse">WARNING: Memory exceeded. System is using disk swap. All operations slowed by 500%.</div>}
+                        <div className="mt-4 text-xs opacity-70">ACTIVE ALLOCATIONS:</div>
+                        {activeProcesses.map((p, i) => (
+                            <div key={i} className="text-xs ml-4">- {p.name}: {p.ram} GB (PID: {p.id})</div>
+                        ))}
+                    </div>
+                );
+                break;
             case 'market':
                 if (args[0] === 'buy') {
                     const itemId = args[1];
@@ -355,6 +412,64 @@ export const Terminal: React.FC<TerminalProps> = ({
                             writeSave(slotId, result.updatedPlayerState);
                         } else {
                             output = <div className="text-red-500">[ERROR] {result.error}</div>;
+                        }
+                    }
+                } else if (args[0] === 'sell') {
+                    const fileName = args[1];
+                    if (!fileName) {
+                        output = "Usage: market sell <filename>";
+                    } else {
+                        const lootFile = playerState.inventory.find(item => item.name === fileName);
+                        if (!lootFile || lootFile.type !== 'file') {
+                            output = <div className="text-red-500">Error: File '{fileName}' not found in loot inventory.</div>;
+                        } else {
+                            // Calculate price: size * factor + random variance
+                            const price = Math.floor((lootFile.size || 0) * 0.5 + (Math.random() * 50));
+                            const finalPrice = Math.max(10, price);
+
+                            // Animation: Transaction
+                            setIsDiskActive(true);
+                            const oldCredits = playerState.credits;
+                            const newCredits = oldCredits + finalPrice;
+
+                            setHistory(prev => [...prev, <div key={`sell-${Date.now()}`} className="text-yellow-400">Processing transaction... selling {fileName} for {finalPrice}c</div>]);
+
+                            let currentDisplayCredits = oldCredits;
+                            const steps = 10;
+                            const increment = Math.ceil(finalPrice / steps);
+
+                            const sellInterval = setInterval(() => {
+                                currentDisplayCredits += increment;
+                                if (currentDisplayCredits >= newCredits) {
+                                    currentDisplayCredits = newCredits;
+                                    clearInterval(sellInterval);
+                                    setIsDiskActive(false);
+
+                                    const updatedInventory = playerState.inventory.filter(item => item.name !== fileName);
+                                    const newState = {
+                                        ...playerState,
+                                        credits: newCredits,
+                                        inventory: updatedInventory
+                                    };
+                                    onPlayerStateChange(newState);
+
+                                    // Remove from VFS if we are at homebase
+                                    if (activeNode.id === 'localhost' || activeNode.id === 'local') {
+                                        const userHome = ((vfs.children.home as Directory).children.user as Directory);
+                                        const lootDir = userHome.children.loot as Directory;
+                                        if (lootDir.children[fileName]) {
+                                            delete lootDir.children[fileName];
+                                            if (onVFSChange) onVFSChange(vfs);
+                                        }
+                                    }
+
+                                    const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                                    writeSave(slotId, newState);
+
+                                    setHistory(prev => [...prev, <div key={`sell-done-${Date.now()}`} className="text-green-400">Transaction Complete. +{finalPrice}c added to balance.</div>]);
+                                }
+                            }, 50);
+                            return; // Async
                         }
                     }
                 } else {
@@ -391,7 +506,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             </div>
 
                             <div className="text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
-                                Usage: market buy [item_id]
+                                Usage: market buy [item_id] | market sell [filename]
                             </div>
                         </div>
                     );
@@ -405,6 +520,74 @@ export const Terminal: React.FC<TerminalProps> = ({
             case 'clear':
                 setHistory(getWelcomeLines());
                 return;
+            case 'rm':
+                const rmFileName = args[0];
+                if (!rmFileName) {
+                    output = "usage: rm [file]";
+                    break;
+                }
+                const rmPath = resolvePath(rmFileName);
+                if (!rmPath) {
+                    output = `rm: cannot remove '${rmFileName}': No such file or directory`;
+                    break;
+                }
+                const nodeToRemove = getNodeByPath(rmPath);
+                if (!nodeToRemove) {
+                    output = `rm: cannot remove '${rmFileName}': No such file or directory`;
+                    break;
+                }
+                if (nodeToRemove.type === 'directory') {
+                    output = `rm: cannot remove '${rmFileName}': Is a directory`;
+                    break;
+                }
+                if (nodeToRemove.permissions === 'root' && currentUser !== 'root') {
+                    output = `rm: cannot remove '${rmFileName}': Permission denied`;
+                    break;
+                }
+
+                // Animation: Shredding
+                const shreddingLines = [
+                    `Shredding ${rmFileName}...`,
+                    `[***       ]`,
+                    `[******    ]`,
+                    `[********* ]`,
+                    `DELETED.`
+                ];
+
+                setIsDiskActive(true);
+                let shredIdx = 0;
+                const shredInterval = setInterval(() => {
+                    if (shredIdx < shreddingLines.length) {
+                        setHistory(prev => [...prev, <div key={`shred-${Date.now()}-${shredIdx}`} className="text-red-500 opacity-70">{shreddingLines[shredIdx]}</div>]);
+                        shredIdx++;
+                    } else {
+                        clearInterval(shredInterval);
+                        setIsDiskActive(false);
+
+                        // Perform actual removal
+                        const parentPath = rmPath.slice(0, -1);
+                        const fileName = rmPath[rmPath.length - 1];
+                        const parentNode = getNodeByPath(parentPath) as Directory;
+
+                        if (parentNode && parentNode.children[fileName]) {
+                            delete parentNode.children[fileName];
+
+                            // If on localhost and in loot, remove from inventory
+                            if (activeNode.id === 'localhost' || activeNode.id === 'local') {
+                                const isLoot = rmPath[0] === 'home' && rmPath[1] === 'user' && rmPath[2] === 'loot';
+                                if (isLoot) {
+                                    const updatedInventory = playerState.inventory.filter(item => item.name !== fileName);
+                                    onPlayerStateChange({ ...playerState, inventory: updatedInventory });
+                                }
+                            }
+
+                            if (onVFSChange) {
+                                onVFSChange(vfs);
+                            }
+                        }
+                    }
+                }, 150);
+                return; // Async
             case 'ls':
                 const lsNode = getNodeByPath(currentPath);
                 if (lsNode?.type === 'directory') {
@@ -412,20 +595,50 @@ export const Terminal: React.FC<TerminalProps> = ({
                         output = `ls: cannot open directory '.': Permission denied`;
                     } else {
                         const showHidden = args.includes('-a');
+                        const isLongFormat = args.includes('-l');
                         const children = Object.keys(lsNode.children).filter(name => showHidden || !name.startsWith('.'));
-                        output = (
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-sm">
-                                {children.map(name => {
-                                    const child = (lsNode as any).children[name];
-                                    const isDir = child.type === 'directory';
-                                    return (
-                                        <div key={name} style={{ textShadow: 'none' }} className={`${isDir ? 'text-blue-400 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70' : ''}`}>
-                                            {name}{isDir ? '/' : ''}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        );
+
+                        if (isLongFormat) {
+                            output = (
+                                <div className="flex flex-col gap-1 w-full text-sm font-mono opacity-90">
+                                    <div className="grid grid-cols-[100px_80px_100px_1fr] gap-4 border-b border-gray-700 pb-1 mb-1 text-gray-500">
+                                        <span>PERMS</span>
+                                        <span>SIZE</span>
+                                        <span>OWNER</span>
+                                        <span>NAME</span>
+                                    </div>
+                                    {children.map(name => {
+                                        const child = (lsNode as any).children[name];
+                                        const isDir = child.type === 'directory';
+                                        const size = isDir ? '-' : (child.size >= 1024 ? `${(child.size / 1024).toFixed(2)}GB` : `${(child.size || 0).toFixed(1)}MB`);
+                                        return (
+                                            <div key={name} className="grid grid-cols-[100px_80px_100px_1fr] gap-4">
+                                                <span className="text-yellow-600 font-mono">{child.permissions === 'root' ? 'drwx------' : (isDir ? 'drwxr-xr-x' : '-rw-r--r--')}</span>
+                                                <span className="text-cyan-600">{size}</span>
+                                                <span className="text-gray-400">{child.permissions || 'user'}</span>
+                                                <span className={`${isDir ? 'text-blue-400 font-bold' : 'text-white'}`}>
+                                                    {name}{isDir ? '/' : ''}
+                                                </span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        } else {
+                            output = (
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full text-sm">
+                                    {children.map(name => {
+                                        const child = (lsNode as any).children[name];
+                                        const isDir = child.type === 'directory';
+                                        return (
+                                            <div key={name} style={{ textShadow: 'none' }} className={`${isDir ? 'text-blue-400 font-bold' : 'text-white'} ${child.permissions === 'root' ? 'opacity-70' : ''}`}>
+                                                {name}{isDir ? '/' : ''}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        }
                     }
                 }
                 break;
@@ -483,30 +696,95 @@ export const Terminal: React.FC<TerminalProps> = ({
                         if (fNode.permissions === 'root' && currentUser !== 'root') {
                             output = `download: ${downloadFileName}: Permission denied`;
                         } else {
-                            // SUCCESSFUL DOWNLOAD
-                            output = (
-                                <div className="text-green-400">
-                                    [SUCCESS] Downloaded '{fNode.name}' ({Math.floor(Math.random() * 50) + 1}KB) to local inventory.
-                                </div>
-                            );
+                            const fileSizeMB = fNode.size || 0.1;
+                            const fileSizeGB = fileSizeMB / 1024;
 
-                            // Add to inventory
-                            const updatedPlayerState = {
-                                ...playerState,
-                                inventory: [...playerState.inventory, fNode]
-                            };
-                            onPlayerStateChange(updatedPlayerState);
-
-                            // Auto-save
-                            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
-                            writeSave(slotId, updatedPlayerState);
-
-                            // Check Win Condition: File Found (theft)
-                            if (gameState.winCondition.type === 'file_found' &&
-                                activeNode.id === gameState.winCondition.nodeId &&
-                                fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
-                                onWin();
+                            // 1. Check Storage Capacity (Phase 5)
+                            const currentUsageMB = HardwareService.calculateStorageUsage(playerState);
+                            const capacityMB = playerState.hardware.storage.capacity * 1024;
+                            if (currentUsageMB + fileSizeMB > capacityMB) {
+                                output = (
+                                    <div className="text-red-500">
+                                        Error: Disk Full. Available: {(capacityMB - currentUsageMB).toFixed(1)}MB, Required: {fileSizeMB.toFixed(1)}MB.
+                                    </div>
+                                );
+                                break;
                             }
+
+                            // 2. Check RAM Capacity (Phase 4)
+
+                            if (fileSizeGB > playerState.hardware.ram.capacity) {
+                                output = <div className="text-red-500">Error: File '{fNode.name}' ({fileSizeMB.toFixed(1)}MB) is too large for your system's RAM ({playerState.hardware.ram.capacity}GB). Upgrade RAM to handle this buffer.</div>;
+                                break;
+                            }
+
+                            const pid = Math.floor(Math.random() * 9000) + 1000;
+                            // Download cost is base + multiplier of file size in RAM
+                            const ramCost = HARDWARE_CONFIG.DOWNLOAD_BASE_RAM + (fileSizeGB * HARDWARE_CONFIG.DOWNLOAD_SIZE_FACTOR);
+
+                            setActiveProcesses(prev => [...prev, { id: pid.toString(), name: `download:${fNode.name}`, ram: ramCost }]);
+
+                            const currentRamUsage = activeProcesses.reduce((acc, p) => acc + p.ram, 0) + ramCost;
+
+                            // 3. Calculate Delay (Phase 5: Network + CPU)
+                            const networkSpeedMBps = playerState.hardware.network.bandwidth || 1;
+                            const networkDelay = (fileSizeMB / networkSpeedMBps) * 1000;
+                            const baseProcessingDelay = 500;
+                            const totalBaseDelay = networkDelay + baseProcessingDelay;
+
+                            const delay = HardwareService.calculateProcessDelay(totalBaseDelay, playerState, currentRamUsage);
+
+                            setIsDiskActive(true);
+                            // Visual Feedback: Progress Bar
+                            let progress = 0;
+                            const progressId = Date.now();
+                            setHistory(prev => [...prev, <div key={`prog-${progressId}`} className="text-cyan-400">Downloading {fNode.name}... [          ] 0%</div>]);
+
+                            const updateProgress = setInterval(() => {
+                                progress += 10;
+                                if (progress <= 100) {
+                                    const dots = '='.repeat(progress / 10);
+                                    const spaces = ' '.repeat(10 - (progress / 10));
+                                    setHistory(prev => {
+                                        const newHist = [...prev];
+                                        newHist[newHist.length - 1] = <div key={`prog-${progressId}`} className="text-cyan-400">Downloading {fNode.name}... [{dots}{'>'}{spaces}] {progress}%</div>;
+                                        return newHist;
+                                    });
+                                } else {
+                                    clearInterval(updateProgress);
+                                }
+                            }, delay / 11);
+
+                            setTimeout(() => {
+                                setIsDiskActive(false);
+                                setHistory(prev => [...prev, (
+                                    <div className="text-green-400">
+                                        [SUCCESS] Downloaded '{fNode.name}' ({fileSizeMB.toFixed(1)}MB) in {(delay / 1000).toFixed(2)}s.
+                                    </div>
+                                )]);
+
+                                // Add to inventory
+                                const updatedPlayerState = {
+                                    ...playerState,
+                                    inventory: [...playerState.inventory, fNode]
+                                };
+                                onPlayerStateChange(updatedPlayerState);
+
+                                // Auto-save
+                                const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                                writeSave(slotId, updatedPlayerState);
+
+                                // End process
+                                setActiveProcesses(prev => prev.filter(p => p.id !== pid.toString()));
+
+                                // Check Win Condition: File Found (theft)
+                                if (gameState.winCondition.type === 'file_found' &&
+                                    activeNode.id === gameState.winCondition.nodeId &&
+                                    fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
+                                    onWin();
+                                }
+                            }, delay);
+                            return; // Async handled above
                         }
                     } else {
                         output = `download: ${downloadFileName}: Is a directory`;
@@ -558,7 +836,16 @@ export const Terminal: React.FC<TerminalProps> = ({
                 const nmapTarget = gameState.nodes.find(n => n.ip === nmapIp);
 
                 if (nmapTarget) {
-                    setHistory(prev => [...prev, <div key="scan">Starting Nmap 7.92 ( https://nmap.org ) at {new Date().toISOString()}...</div>]);
+                    const pid = Math.floor(Math.random() * 9000) + 1000;
+                    const cost = PROCESS_COSTS['nmap'];
+
+                    // Start process
+                    setActiveProcesses(prev => [...prev, { id: pid.toString(), name: 'nmap', ram: cost.ramUsage }]);
+
+                    setHistory(prev => [...prev, <div key={`scan-${pid}`}>Starting Nmap 7.92 (PID: {pid}) at {new Date().toISOString()}...</div>]);
+
+                    const currentRamUsage = activeProcesses.reduce((acc, p) => acc + p.ram, 0) + cost.ramUsage;
+                    const delay = HardwareService.calculateProcessDelay(1500, playerState, currentRamUsage);
 
                     setTimeout(() => {
                         const portLines = nmapTarget.ports.map(p =>
@@ -570,11 +857,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 <br />Host is up (0.0003s latency).
                                 <br />PORT     STATE SERVICE      VERSION
                                 <br />{portLines.join('\n')}
-                                <br /><br />Nmap done: 1 IP address (1 host up) scanned in 1.52 seconds
+                                <br /><br />Nmap done: 1 IP address (1 host up) scanned in {(delay / 1000).toFixed(2)} seconds
                             </div>
                         );
                         setHistory(prev => [...prev, result]);
-                    }, 1500);
+                        // End process
+                        setActiveProcesses(prev => prev.filter(p => p.id !== pid.toString()));
+                    }, delay);
                     return; // Async handled above
                 } else {
                     output = `Note: Host seems down. If it is really up, but blocking our ping probes, try -Pn`;
@@ -802,6 +1091,31 @@ export const Terminal: React.FC<TerminalProps> = ({
     }, [currentPath, getNodeByPath]);
 
 
+    if (playerState.systemHeat >= 100) {
+        return (
+            <div className="w-full h-full bg-blue-900 text-white p-20 font-mono flex flex-col items-start justify-center overflow-hidden">
+                <div className="bg-white text-blue-900 px-4 py-1 font-bold mb-8">FATAL SYSTEM ERROR</div>
+                <div className="text-2xl mb-4">A critical thermal exception has occurred at address 0x00000FF.</div>
+                <div className="mb-8 opacity-80">
+                    *  If this is the first time you've seen this Stop error screen,
+                    check your cooling levels and reduce voltage.
+                    <br /><br />
+                    *  Check to make sure any new hardware is properly installed.
+                    If this is a new installation, ask your hardware vendor
+                    for any driver updates you might need.
+                </div>
+                <div className="mb-4">Technical information:</div>
+                <div className="mb-12">*** STOP: 0x0000001E (0xC0000005, 0x804B518F, 0x00000000, 0x00000000)</div>
+                <div className="animate-pulse">REBOOTING IN 5 SECONDS...</div>
+                {/* Auto-reboot logic */}
+                {(() => {
+                    setTimeout(() => onMissionAbort(), 5000);
+                    return null;
+                })()}
+            </div>
+        );
+    }
+
     return (
         <div
             className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning ? 'glitch-text blur-sm brightness-150' : ''}`}
@@ -819,6 +1133,19 @@ export const Terminal: React.FC<TerminalProps> = ({
                         SYS: ONLINE
                     </span>
                     <span>MODE: {isMissionActive ? 'MISSION_OPS' : 'HOMEBASE'}</span>
+                    <span className={`flex items-center gap-2 ${playerState.systemHeat > 80 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
+                        TEMP: {playerState.systemHeat.toFixed(1)}°C
+                    </span>
+                    <span className={`flex items-center gap-2 ${isDiskActive ? 'text-amber-500 animate-pulse' : 'text-gray-600'}`}>
+                        <span className={`w-2 h-2 rounded-full ${isDiskActive ? 'bg-amber-500 shadow-[0_0_5px_#f59e0b]' : 'bg-gray-800'}`}></span>
+                        DISK
+                    </span>
+                    <span className="text-gray-400">
+                        RAM: {activeProcesses.reduce((acc, p) => acc + p.ram, 0).toFixed(1)}/{playerState.hardware.ram.capacity}GB
+                    </span>
+                    <span className="text-gray-400">
+                        DISK: {(HardwareService.calculateStorageUsage(playerState) / 1024).toFixed(2)}/{playerState.hardware.storage.capacity}GB
+                    </span>
                 </div>
                 <div className="text-yellow-500 font-bold bg-yellow-500/10 px-2 py-0.5 rounded border border-yellow-500/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]">
                     BAL: {playerState.credits.toLocaleString()} CR

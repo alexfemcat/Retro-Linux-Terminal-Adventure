@@ -11,6 +11,33 @@ class PuzzleGenerator {
         return shuffled.slice(0, Math.min(count, arr.length));
     }
 
+    private getFileSize(name: string, content: string): number {
+        const ext = name.split('.').pop()?.toLowerCase();
+
+        // 1. Databases / High Value Loot
+        if (name.includes('SECRET') || name.includes('database') || name.includes('vault') || name.includes('classified')) {
+            return 500 + Math.random() * 7500; // 0.5GB - 8GB
+        }
+
+        // 2. Media / Video / Images
+        if (ext === 'mp4' || ext === 'mov' || ext === 'avi' || ext === 'jpg' || ext === 'png' || ext === 'bmp') {
+            return 5 + Math.random() * 3995; // 5MB - 4GB
+        }
+
+        // 3. Binaries / Executables
+        if (ext === 'exe' || ext === 'bin' || ext === 'deb' || ext === 'sh' || content.includes('[BINARY]')) {
+            return 20 + Math.random() * 980; // 20MB - 1GB
+        }
+
+        // 4. Logs
+        if (ext === 'log' || name.includes('history')) {
+            return 1 + Math.random() * 9; // 1MB - 10MB
+        }
+
+        // 5. Documents / Text / Clues
+        return 0.1 + Math.random() * 0.4; // 0.1MB - 0.5MB
+    }
+
     private generateSystemState(scenarioTheme: string): { bootTime: number, processes: Process[], envVars: Record<string, string> } {
         // 1. Boot Time (random time in the last 24 hours)
         const bootTime = Date.now() - Math.floor(Math.random() * 24 * 60 * 60 * 1000);
@@ -154,7 +181,8 @@ class PuzzleGenerator {
         logDir.children['auth.log'] = {
             type: 'file',
             name: 'auth.log',
-            content: fakeAuthEntries.join('\n')
+            content: fakeAuthEntries.join('\n'),
+            size: this.getFileSize('auth.log', '')
         };
 
         // Generate fake password dump with 200-300 entries
@@ -163,21 +191,24 @@ class PuzzleGenerator {
         tmpDir.children['password_dump.txt'] = {
             type: 'file',
             name: 'password_dump.txt',
-            content: `# Password dump from unknown source\n# WARNING: These may be compromised\n\n` + fakePasswordList.join('\n')
+            content: `# Password dump from unknown source\n# WARNING: These may be compromised\n\n` + fakePasswordList.join('\n'),
+            size: this.getFileSize('password_dump.txt', '')
         };
 
         // Generate fake IP list
         tmpDir.children['ip_scan_results.txt'] = {
             type: 'file',
             name: 'ip_scan_results.txt',
-            content: `# Network scan results\n# Discovered hosts:\n\n` + this.getRandomSubset(fakeIPs, 50).join('\n')
+            content: `# Network scan results\n# Discovered hosts:\n\n` + this.getRandomSubset(fakeIPs, 50).join('\n'),
+            size: this.getFileSize('ip_scan_results.txt', '')
         };
 
         // Generate fake tokens
         tmpDir.children['leaked_tokens.txt'] = {
             type: 'file',
             name: 'leaked_tokens.txt',
-            content: `# Leaked authentication tokens\n\n` + fakeTokens.join('\n')
+            content: `# Leaked authentication tokens\n\n` + fakeTokens.join('\n'),
+            size: this.getFileSize('leaked_tokens.txt', '')
         };
     }
 
@@ -220,7 +251,8 @@ class PuzzleGenerator {
         logDir.children['auth.log'] = {
             type: 'file',
             name: 'auth.log',
-            content: authEntries.join('\n')
+            content: authEntries.join('\n'),
+            size: this.getFileSize('auth.log', '')
         };
     }
 
@@ -257,7 +289,8 @@ class PuzzleGenerator {
         userDir.children['.bash_history'] = {
             type: 'file',
             name: '.bash_history',
-            content: history.join('\n')
+            content: history.join('\n'),
+            size: this.getFileSize('.bash_history', '')
         };
     }
 
@@ -281,7 +314,12 @@ class PuzzleGenerator {
             }
             const dir = userHome.children[dirName] as Directory;
             Object.entries(files).forEach(([fName, fContent]) => {
-                dir.children[fName] = { type: 'file', name: fName, content: fContent };
+                dir.children[fName] = {
+                    type: 'file',
+                    name: fName,
+                    content: fContent,
+                    size: this.getFileSize(fName, fContent)
+                };
             });
         });
 
@@ -293,7 +331,8 @@ class PuzzleGenerator {
                 'config': {
                     type: 'file',
                     name: 'config',
-                    content: '# SSH client configuration\nHost *\n  StrictHostKeyChecking no'
+                    content: '# SSH client configuration\nHost *\n  StrictHostKeyChecking no',
+                    size: this.getFileSize('config', '')
                 }
             }
         };
@@ -314,7 +353,12 @@ class PuzzleGenerator {
         const intelDir = docs.children['network_intel'] as Directory;
 
         clues.forEach(clue => {
-            intelDir.children[clue.file] = { type: 'file', name: clue.file, content: clue.content };
+            intelDir.children[clue.file] = {
+                type: 'file',
+                name: clue.file,
+                content: clue.content,
+                size: this.getFileSize(clue.file, clue.content)
+            };
         });
     }
 
@@ -352,14 +396,14 @@ class PuzzleGenerator {
         // Add System Dirs
         root.children['etc'] = {
             type: 'directory', name: 'etc', children: {
-                'hosts': { type: 'file', name: 'hosts', content: '127.0.0.1 localhost' },
-                'passwd': { type: 'file', name: 'passwd', content: 'root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user:/home/user:/bin/bash' }
+                'hosts': { type: 'file', name: 'hosts', content: '127.0.0.1 localhost', size: this.getFileSize('hosts', '') },
+                'passwd': { type: 'file', name: 'passwd', content: 'root:x:0:0:root:/root:/bin/bash\nuser:x:1000:1000:user:/home/user:/bin/bash', size: this.getFileSize('passwd', '') }
             }, permissions: 'root'
         };
 
         root.children['var'] = { type: 'directory', name: 'var', children: { 'log': { type: 'directory', name: 'log', children: {} } } };
         root.children['tmp'] = { type: 'directory', name: 'tmp', children: {} };
-        root.children['bin'] = { type: 'directory', name: 'bin', children: { 'ls': { type: 'file', name: 'ls', content: '[BINARY]' } } };
+        root.children['bin'] = { type: 'directory', name: 'bin', children: { 'ls': { type: 'file', name: 'ls', content: '[BINARY]', size: this.getFileSize('ls', '[BINARY]') } } };
 
         // Social Puzzle for Root Access
         const puzzle = this.generateSocialPuzzle();
@@ -500,7 +544,8 @@ class PuzzleGenerator {
             docs.children[targetFileName] = {
                 type: 'file',
                 name: targetFileName,
-                content: `[CLASSIFIED DATA]\nThis file contains high-value information.\n${scenario.theme} mission target.`
+                content: `[CLASSIFIED DATA]\nThis file contains high-value information.\n${scenario.theme} mission target.`,
+                size: this.getFileSize(targetFileName, '')
             };
         }
 
@@ -515,7 +560,8 @@ class PuzzleGenerator {
         userHome.children['MISSION.txt'] = {
             type: 'file',
             name: 'MISSION.txt',
-            content: `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\n1. Investigate the network.\n2. Follow the clues across nodes.\n3. Infiltrate the target system.\n\nGood luck, operative.`
+            content: `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\n1. Investigate the network.\n2. Follow the clues across nodes.\n3. Infiltrate the target system.\n\nGood luck, operative.`,
+            size: this.getFileSize('MISSION.txt', '')
         };
 
         return {
@@ -573,15 +619,24 @@ class PuzzleGenerator {
         const binDir = userHome.children.bin as Directory;
         const software = playerState.installedSoftware || ['ls', 'cd', 'help', 'market', 'exit'];
         software.forEach((soft: string) => {
-            binDir.children[soft] = { type: 'file', name: soft, content: '[BINARY]' };
+            binDir.children[soft] = { type: 'file', name: soft, content: '[BINARY]', size: this.getFileSize(soft, '[BINARY]') };
         });
+
+        // Populate ~/loot from player inventory
+        const lootDir = userHome.children.loot as Directory;
+        if (playerState.inventory) {
+            playerState.inventory.forEach(node => {
+                lootDir.children[node.name] = node;
+            });
+        }
 
         // Add some dummy jobs for now (Phase 3 will generate these properly)
         const jobsDir = userHome.children.jobs as Directory;
         jobsDir.children['readme.txt'] = {
             type: 'file',
             name: 'readme.txt',
-            content: 'Check here for available contracts.\nUse "jobs" command to list active offers.'
+            content: 'Check here for available contracts.\nUse "jobs" command to list active offers.',
+            size: this.getFileSize('readme.txt', '')
         };
 
         return {

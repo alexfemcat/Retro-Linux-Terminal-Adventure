@@ -16,6 +16,7 @@ export const MARKET_CATALOG: MarketItem[] = [
     { id: 'ping', name: 'ping', type: 'software', description: 'Network connectivity tester', cost: 100 },
     { id: 'nmap', name: 'nmap', type: 'software', description: 'Advanced network scanner', cost: 500 },
     { id: 'hydra', name: 'hydra', type: 'software', description: 'Password brute-force tool', cost: 1500 },
+    { id: 'overclock', name: 'overclock', type: 'software', description: 'Unlock CPU frequency controls and voltage scaling.', cost: 1200 },
 
     // Hardware
     {

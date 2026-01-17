@@ -3,9 +3,10 @@ import { Terminal } from './components/Terminal';
 import { puzzleGenerator } from './services/puzzleGenerator';
 import { missionGenerator } from './services/MissionGenerator';
 import { writeSave } from './services/PersistenceService';
+import { HardwareService } from './services/HardwareService';
 import { DebugOverlay } from './components/DebugOverlay';
 import TitleScreen from './components/TitleScreen';
-import type { GameState, PlayerState } from './types';
+import type { GameState, PlayerState, Directory } from './types';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -21,6 +22,7 @@ const App: React.FC = () => {
     const [currentUser, setCurrentUser] = useState<'user' | 'root'>('user');
 
     const [showDebug, setShowDebug] = useState<boolean>(false);
+    const [activeProcesses, setActiveProcesses] = useState<{ id: string; name: string; ram: number }[]>([]);
 
     const startNewGame = useCallback((initialPlayerState: PlayerState) => {
         // Initialize missions if needed
@@ -93,13 +95,38 @@ const App: React.FC = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, []);
 
+    // Hardware Simulation Heartbeat
     useEffect(() => {
-        if (gameState) {
-            // In a real app we might want to persits path per node, but for now
-            // resetting to ~ is fine or keeping it if we want.
-            // Actually, let's just make sure the Terminal receives the RIGHT stuff.
-        }
-    }, [gameState?.activeNodeIndex]);
+        if (!playerState || showTitleScreen) return;
+
+        const interval = setInterval(() => {
+            setPlayerState(prev => {
+                if (!prev) return null;
+
+                const heatDelta = HardwareService.calculateHeatDelta(prev, activeProcesses.length);
+                let newHeat = Math.max(0, prev.systemHeat + heatDelta);
+
+                // Handle Overheat
+                if (newHeat >= 100) {
+                    // Trigger System Crash
+                    newHeat = 100;
+                    // We'll let the Terminal UI handle the visual crash before aborting
+                }
+
+                // Check for Degradation
+                if (newHeat > 95 && HardwareService.shouldDegrade(newHeat)) {
+                    const { updatedState, degradedComponent } = HardwareService.degradeHardware(prev);
+                    // We might want to alert the user here, but for now just update state
+                    console.warn(`CRITICAL HEAT: ${degradedComponent} DEGRADED!`);
+                    return { ...updatedState, systemHeat: newHeat };
+                }
+
+                return { ...prev, systemHeat: newHeat };
+            });
+        }, 1000);
+
+        return () => clearInterval(interval);
+    }, [playerState === null, showTitleScreen, activeProcesses.length]);
 
     const handleWin = () => {
         if (!playerState) return;
@@ -187,6 +214,8 @@ const App: React.FC = () => {
                                 activeNode={activeNode} // Explicitly pass active node
                                 playerState={playerState!}
                                 isMissionActive={isMissionActive}
+                                activeProcesses={activeProcesses}
+                                setActiveProcesses={setActiveProcesses}
                                 onWin={handleWin}
                                 onMissionAccept={handleMissionAccept}
                                 onMissionAbort={handleMissionAbort}
@@ -195,6 +224,16 @@ const App: React.FC = () => {
                                 setCurrentPath={setCurrentPath}
                                 currentUser={currentUser}
                                 setCurrentUser={setCurrentUser}
+                                onVFSChange={(newVFS) => {
+                                    if (gameState) {
+                                        const newNodes = [...gameState.nodes];
+                                        newNodes[gameState.activeNodeIndex] = {
+                                            ...newNodes[gameState.activeNodeIndex],
+                                            vfs: newVFS as Directory
+                                        };
+                                        setGameState({ ...gameState, nodes: newNodes });
+                                    }
+                                }}
                                 onNodeChange={(index) => {
                                     // Handle Node Switch
                                     setGameState({ ...gameState, activeNodeIndex: index });

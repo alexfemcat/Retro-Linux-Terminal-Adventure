@@ -3,6 +3,7 @@ export interface File {
   name: string;
   content: string;
   permissions?: 'user' | 'root';
+  size?: number; // in MB
 }
 
 export interface Directory {
@@ -111,6 +112,10 @@ export interface PlayerState {
   hardware: HardwareSpecs;
   activeMissionId: string | null;
   availableMissions: Mission[];
+  // Phase 4 Hardware Simulation
+  systemHeat: number;
+  isOverclocked: boolean;
+  voltageLevel: number; // 1.0 to 1.5
 }
 
 export interface SaveSlot {

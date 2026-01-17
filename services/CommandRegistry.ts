@@ -19,17 +19,21 @@ export interface CommandDefinition {
 
 export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'help': { id: 'help', description: 'Shows this list.', usage: 'help', isAlwaysAvailable: true, isLocalOnly: false },
-    'ls': { id: 'ls', description: 'Lists files.', usage: 'ls [-a]', isAlwaysAvailable: true, isLocalOnly: false },
+    'ls': { id: 'ls', description: 'Lists files.', usage: 'ls [-a] [-l]', isAlwaysAvailable: true, isLocalOnly: false },
     'cd': { id: 'cd', description: 'Changes directory.', usage: 'cd [dir]', isAlwaysAvailable: true, isLocalOnly: false },
     'cat': { id: 'cat', description: 'Reads file content.', usage: 'cat [file]', isAlwaysAvailable: true, isLocalOnly: false },
     'pwd': { id: 'pwd', description: 'Current directory path.', usage: 'pwd', isAlwaysAvailable: true, isLocalOnly: false },
     'whoami': { id: 'whoami', description: 'Current user.', usage: 'whoami', isAlwaysAvailable: true, isLocalOnly: false },
     'clear': { id: 'clear', description: 'Clear screen.', usage: 'clear', isAlwaysAvailable: true, isLocalOnly: false },
     'exit': { id: 'exit', description: 'Disconnect/Logout.', usage: 'exit', isAlwaysAvailable: true, isLocalOnly: false },
+    'rm': { id: 'rm', description: 'Remove a file.', usage: 'rm [file]', isAlwaysAvailable: true, isLocalOnly: false },
 
     // Mission Control
     'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },
-    'market': { id: 'market', description: 'Browse/Buy upgrades.', usage: 'market [buy <id>]', isAlwaysAvailable: true, isLocalOnly: true },
+    'market': { id: 'market', description: 'Browse/Sell items.', usage: 'market [buy <id>|sell <file>]', isAlwaysAvailable: true, isLocalOnly: true },
+    'overclock': { id: 'overclock', description: 'Toggle CPU overclocking.', usage: 'overclock [on|off]', isAlwaysAvailable: false, isLocalOnly: false },
+    'voltage': { id: 'voltage', description: 'Set CPU voltage (1.0 - 1.5).', usage: 'voltage [value]', isAlwaysAvailable: false, isLocalOnly: false },
+    'memstat': { id: 'memstat', description: 'Show memory usage.', usage: 'memstat', isAlwaysAvailable: true, isLocalOnly: false },
     'abort': { id: 'abort', description: 'Abandon current mission.', usage: 'abort', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
     'disconnect': { id: 'disconnect', description: 'Alias for abort.', usage: 'disconnect', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
     'download': { id: 'download', description: 'Download file from remote.', usage: 'download [file]', isAlwaysAvailable: false, isLocalOnly: false, isRemoteOnly: true },
@@ -72,6 +76,11 @@ export function checkCommandAvailability(command: string, context: CommandContex
 
     // 4. Check if Installed
     if (context.playerState.installedSoftware.includes(command)) {
+        return { available: true };
+    }
+
+    // Special Case: voltage requires overclock binary
+    if (command === 'voltage' && context.playerState.installedSoftware.includes('overclock')) {
         return { available: true };
     }
 

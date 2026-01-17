@@ -78,7 +78,10 @@ export function createInitialPlayerState(): PlayerState {
             cooling: { id: 'cool_v1', level: 1, heatDissipation: 1.0 }
         },
         activeMissionId: null,
-        availableMissions: []
+        availableMissions: [],
+        systemHeat: 0,
+        isOverclocked: false,
+        voltageLevel: 1.0
     };
 }
 
