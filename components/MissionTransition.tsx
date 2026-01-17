@@ -14,12 +14,14 @@ interface MissionTransitionProps {
 export const MissionTransition: React.FC<MissionTransitionProps> = ({ type, missionData, onComplete }) => {
     const [lines, setLines] = useState<string[]>([]);
     const [progress, setProgress] = useState(0);
-    const hasStarted = React.useRef(false);
+
+    // Keep latest onComplete in a ref to avoid re-triggering effect when it changes
+    const onCompleteRef = React.useRef(onComplete);
+    useEffect(() => {
+        onCompleteRef.current = onComplete;
+    }, [onComplete]);
 
     useEffect(() => {
-        if (hasStarted.current) return;
-        hasStarted.current = true;
-
         const sequence = type === 'entering' ? [
             ">>> INITIATING SECURE LINK...",
             ">>> BYPASSING FIREWALLS...",
@@ -46,12 +48,12 @@ export const MissionTransition: React.FC<MissionTransitionProps> = ({ type, miss
                 setProgress((i / sequence.length) * 100);
             } else {
                 clearInterval(interval);
-                setTimeout(onComplete, 1000);
+                setTimeout(() => onCompleteRef.current(), 1000);
             }
         }, 300);
 
         return () => clearInterval(interval);
-    }, [type, missionData, onComplete]);
+    }, [type, missionData]); // Removed onComplete from deps
 
     return (
         <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center font-vt323 text-[#33ff00] p-10 overflow-hidden">

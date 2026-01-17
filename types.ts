@@ -154,6 +154,7 @@ export interface MissionConfig {
   numNodes?: number;
   targetFileName?: string;
   difficultyMultiplier?: number;
+  winConditionType?: 'file_found' | 'root_access' | 'process_killed' | 'file_modified';
 }
 
 export interface PlayerState {

@@ -575,32 +575,42 @@ class PuzzleGenerator {
         // Randomly choose win condition if not specified
         let winCondition: WinCondition;
 
-        if (config?.targetFileName) {
-            winCondition = { type: 'file_found', nodeId: targetNode.id, path: ['home', 'user', 'Documents', targetFileName] };
-        } else {
-            const roll = Math.random();
-            if (roll > 0.6) {
-                winCondition = { type: 'root_access', nodeId: targetNode.id };
-            } else if (roll > 0.3) {
-                const proc = this.getRandom(targetNode.processes);
-                winCondition = { type: 'process_killed', nodeId: targetNode.id, processName: proc.name };
+        // Determine Win Type
+        let type = config?.winConditionType;
+        if (!type) {
+            if (config?.targetFileName) {
+                type = 'file_found';
             } else {
-                winCondition = {
-                    type: 'file_modified',
-                    nodeId: targetNode.id,
-                    path: ['var', 'www', 'html', 'index.html'],
-                    targetContent: 'HACKED BY RETRO-TERM'
-                };
-
-                // Ensure the path exists for defacement
-                if (!targetNode.vfs.children['var']) targetNode.vfs.children['var'] = { type: 'directory', name: 'var', children: {} };
-                const v = targetNode.vfs.children['var'] as Directory;
-                if (!v.children['www']) v.children['www'] = { type: 'directory', name: 'www', children: {} };
-                const w = v.children['www'] as Directory;
-                if (!w.children['html']) w.children['html'] = { type: 'directory', name: 'html', children: {} };
-                const h = w.children['html'] as Directory;
-                h.children['index.html'] = { type: 'file', name: 'index.html', content: 'Welcome to our secure website.', size: 0.1 };
+                const roll = Math.random();
+                if (roll > 0.6) type = 'root_access';
+                else if (roll > 0.3) type = 'process_killed';
+                else type = 'file_modified';
             }
+        }
+
+        if (type === 'file_found') {
+            winCondition = { type: 'file_found', nodeId: targetNode.id, path: ['home', 'user', 'Documents', targetFileName] };
+        } else if (type === 'root_access') {
+            winCondition = { type: 'root_access', nodeId: targetNode.id };
+        } else if (type === 'process_killed') {
+            const proc = this.getRandom(targetNode.processes) || { name: 'systemd' };
+            winCondition = { type: 'process_killed', nodeId: targetNode.id, processName: proc.name };
+        } else {
+            winCondition = {
+                type: 'file_modified',
+                nodeId: targetNode.id,
+                path: ['var', 'www', 'html', 'index.html'],
+                targetContent: 'HACKED BY RETRO-TERM'
+            };
+
+            // Ensure the path exists for defacement
+            if (!targetNode.vfs.children['var']) targetNode.vfs.children['var'] = { type: 'directory', name: 'var', children: {} };
+            const v = targetNode.vfs.children['var'] as Directory;
+            if (!v.children['www']) v.children['www'] = { type: 'directory', name: 'www', children: {} };
+            const w = v.children['www'] as Directory;
+            if (!w.children['html']) w.children['html'] = { type: 'directory', name: 'html', children: {} };
+            const h = w.children['html'] as Directory;
+            h.children['index.html'] = { type: 'file', name: 'index.html', content: 'Welcome to our secure website.', size: 0.1 };
         }
 
         // Place the target file if it's a file found mission

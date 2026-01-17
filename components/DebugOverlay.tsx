@@ -28,7 +28,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
     // Custom Mission Generation State
     const [customNodes, setCustomNodes] = useState(3);
     const [customDifficulty, setCustomDifficulty] = useState(2);
-    const [customType, setCustomType] = useState<'data' | 'root'>('data');
+    const [customType, setCustomType] = useState<'file_found' | 'root_access' | 'process_killed' | 'file_modified'>('file_found');
 
     const modifyCredits = (amount: number) => {
         onPlayerStateChange({ ...playerState, credits: Math.max(0, playerState.credits + amount) });
@@ -73,7 +73,8 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
         const config = {
             numNodes: customNodes,
             difficultyMultiplier: customDifficulty,
-            targetFileName: customType === 'data' ? `SECRET_${Math.floor(Math.random() * 1000)}.dat` : undefined
+            winConditionType: customType,
+            targetFileName: customType === 'file_found' ? `SECRET_${Math.floor(Math.random() * 1000)}.dat` : undefined
         };
         const fakeMission = {
             id: `custom_${Date.now()}`,
@@ -300,9 +301,11 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
                                         </div>
                                         <div>
                                             <div className="text-[8px] mb-1 uppercase opacity-50">Objective Type</div>
-                                            <div className="flex gap-1">
-                                                <button onClick={() => setCustomType('data')} className={`flex-1 py-1 rounded border ${customType === 'data' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>DATA THEFT</button>
-                                                <button onClick={() => setCustomType('root')} className={`flex-1 py-1 rounded border ${customType === 'root' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>ROOT ACCESS</button>
+                                            <div className="grid grid-cols-2 gap-1">
+                                                <button onClick={() => setCustomType('file_found')} className={`py-1 rounded border text-[9px] ${customType === 'file_found' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>DATA THEFT</button>
+                                                <button onClick={() => setCustomType('root_access')} className={`py-1 rounded border text-[9px] ${customType === 'root_access' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>ROOT ACCESS</button>
+                                                <button onClick={() => setCustomType('process_killed')} className={`py-1 rounded border text-[9px] ${customType === 'process_killed' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>ASSASSINATION</button>
+                                                <button onClick={() => setCustomType('file_modified')} className={`py-1 rounded border text-[9px] ${customType === 'file_modified' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>DEFACEMENT</button>
                                             </div>
                                         </div>
                                         <button
