@@ -163,7 +163,7 @@ export const thematicMap: Record<string, string> = {
 export const scenarios: Scenario[] = [
     {
         theme: "Corporate Espionage",
-        welcomeMessage: (fileName: string) => `CONNECTION ESTABLISHED...\nWelcome, operative. Your mission: Infiltrate OmniCorp's network and retrieve '${fileName}'. It contains their secret project details. Check your home directory for a clue.`,        clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' area. Delete this note once you've confirmed.`,
+        welcomeMessage: (fileName: string) => `CONNECTION ESTABLISHED...\nWelcome, operative. Your mission: Infiltrate OmniCorp's network and retrieve '${fileName}'. It contains their secret project details. Check your home directory for a clue.`, clueTemplate: (hint: string) => `TODO:\n- Review last quarter's financials\n- I've hidden the sensitive project files in the '${hint}' area. Delete this note once you've confirmed.`,
         starterClueTemplate: (area: string) => `Urgent: The audit is starting early. I've moved the trail of our secret project to the ${area} directory. Look for a hidden file there.`,
         clueFileNameOptions: ["todo.txt", "meeting_prep.md", "urgent_reminder.txt"],
         distractionDirs: ["finance", "legal", "research", "planning", "marketing", "human_resources"],
@@ -177,7 +177,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "The Rogue AI",
-        welcomeMessage: (fileName: string) => `SYSTEM ALERT: Mainframe AI 'Cronos' has gone rogue. Your objective: find and execute '${fileName}' to regain control. A corrupted system log might point the way.`,        clueTemplate: (hint: string) => `...CRITICAL ERROR... Accessing emergency subroutines... Override protocols are in the '${hint}' section. ...CORRUPTION DETECTED...`,
+        welcomeMessage: (fileName: string) => `SYSTEM ALERT: Mainframe AI 'Cronos' has gone rogue. Your objective: find and execute '${fileName}' to regain control. A corrupted system log might point the way.`, clueTemplate: (hint: string) => `...CRITICAL ERROR... Accessing emergency subroutines... Override protocols are in the '${hint}' section. ...CORRUPTION DETECTED...`,
         starterClueTemplate: (area: string) => `SYSTEM ALERT: Backup protocols initiated. Search ${area} for high-priority override data. Some files may be hidden.`,
         clueFileNameOptions: ["system_error.log", "corrupted_data.log", "dump.txt"],
         distractionDirs: ["bin", "var_log", "etc_config", "sys", "mem_dump", "kernel_panic"],
@@ -190,7 +190,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Space Station Breach",
-        welcomeMessage: (fileName: string) => `ORBITAL EMERGENCY.\nStation 'Astraeus' is leaking atmosphere. Locate and deploy '${fileName}' to seal the breach. Check the captain's log.`,        clueTemplate: (hint: string) => `Captain's Log:\n- Evacuation is underway.\n- Sealant control protocols are stashed in '${hint}'. Please, save the station.`,
+        welcomeMessage: (fileName: string) => `ORBITAL EMERGENCY.\nStation 'Astraeus' is leaking atmosphere. Locate and deploy '${fileName}' to seal the breach. Check the captain's log.`, clueTemplate: (hint: string) => `Captain's Log:\n- Evacuation is underway.\n- Sealant control protocols are stashed in '${hint}'. Please, save the station.`,
         starterClueTemplate: (area: string) => `Priority Alert: Internal sensors indicate the control overrides were moved to ${area}. Time is running out.`,
         clueFileNameOptions: ["captain_log.txt", "station_status.md", "evac_plan.txt"],
         distractionDirs: ["airlocks", "science_lab", "navigation", "habitat", "engine_room", "maintenance"],
@@ -202,7 +202,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Bio-Outbreak",
-        welcomeMessage: (fileName: string) => `BIOHAZARD WARNING.\nA lethal pathogen has been released in Lab Delta. Find the '${fileName}' to synthesize the cure. An intern's panic log is available.`,        clueTemplate: (hint: string) => `Intern Log:\n- Oh god, it's everywhere.\n- I hid the breakdown of the formula in '${hint}'. I have to get out of here.`,
+        welcomeMessage: (fileName: string) => `BIOHAZARD WARNING.\nA lethal pathogen has been released in Lab Delta. Find the '${fileName}' to synthesize the cure. An intern's panic log is available.`, clueTemplate: (hint: string) => `Intern Log:\n- Oh god, it's everywhere.\n- I hid the breakdown of the formula in '${hint}'. I have to get out of here.`,
         starterClueTemplate: (area: string) => `Automated Notice: Containment failed. Critical data has been archived in the ${area} directory for safety.`,
         clueFileNameOptions: ["emergency_notes.txt", "blood_results.csv", "panic_memo.md"],
         distractionDirs: ["incubation", "virology", "storage", "decontamination", "animal_testing"],
@@ -214,7 +214,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Digital Heist",
-        welcomeMessage: (fileName: string) => `TARGET: BANK OF AEON.\nYou are the inside man. Your goal: retrieve '${fileName}' containing the vault's master keys. Start by checking the security guard's desk history.`,        clueTemplate: (hint: string) => `Security Memo:\n- Updated vault rotations.\n- Master access protocols are stored in the '${hint}' department's files. Do not disclose.`,
+        welcomeMessage: (fileName: string) => `TARGET: BANK OF AEON.\nYou are the inside man. Your goal: retrieve '${fileName}' containing the vault's master keys. Start by checking the security guard's desk history.`, clueTemplate: (hint: string) => `Security Memo:\n- Updated vault rotations.\n- Master access protocols are stored in the '${hint}' department's files. Do not disclose.`,
         starterClueTemplate: (area: string) => `Guard Log: Shift change complete. I've logged some suspicious activity in ${area}. Check for unusual hidden files.`,
         clueFileNameOptions: ["guard_log.txt", "security_rotation.md", "memo_confidential.txt"],
         distractionDirs: ["teller_ops", "secure_vault", "admin_offices", "server_room", "security_hub"],
@@ -226,7 +226,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Digital Archaeology",
-        welcomeMessage: (fileName: string) => `EXPEDITION START.\nYou've uncovered a server from the 'Old Net'. Retrieve '${fileName}' to unlock the secrets of the predecessors. Search the archive logs.`,        clueTemplate: (hint: string) => `Archivist Note:\n- Recovered sector 7.\n- The core message is located in the '${hint}' data cluster. It's heavily fragmented.`,
+        welcomeMessage: (fileName: string) => `EXPEDITION START.\nYou've uncovered a server from the 'Old Net'. Retrieve '${fileName}' to unlock the secrets of the predecessors. Search the archive logs.`, clueTemplate: (hint: string) => `Archivist Note:\n- Recovered sector 7.\n- The core message is located in the '${hint}' data cluster. It's heavily fragmented.`,
         starterClueTemplate: (area: string) => `System Alert: Ancient data structures detected. Scour ${area} for compatible file fragments.`,
         clueFileNameOptions: ["archivist_log.txt", "fragment_index.md", "ancient_metadata.log"],
         distractionDirs: ["corrupted_sectors", "image_archives", "text_records", "old_programs", "data_dumps"],
@@ -238,7 +238,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Submarine Warfare",
-        welcomeMessage: (fileName: string) => `DEEP SEA COMBAT.\nYour sub is under fire. Retrieve '${fileName}' to activate the stealth protocols. Check the sonar technician's station.`,        clueTemplate: (hint: string) => `Sonar Tech Log:\n- Multiple pings detected.\n- Stealth override is in the '${hint}' subsystem. We need it NOW.`,
+        welcomeMessage: (fileName: string) => `DEEP SEA COMBAT.\nYour sub is under fire. Retrieve '${fileName}' to activate the stealth protocols. Check the sonar technician's station.`, clueTemplate: (hint: string) => `Sonar Tech Log:\n- Multiple pings detected.\n- Stealth override is in the '${hint}' subsystem. We need it NOW.`,
         starterClueTemplate: (area: string) => `Incoming Message: Signal detected from ${area}. It might be the stealth key. Use -a to find it.`,
         clueFileNameOptions: ["sonar_readout.txt", "hull_strain.log", "battle_orders.md"],
         distractionDirs: ["torpedo_room", "engine_core", "navigation", "mess_hall", "ballast_tanks"],
@@ -250,7 +250,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Arctic Mystery",
-        welcomeMessage: (fileName: string) => `FROZEN WASTES.\nThe Arctic Research Base has gone silent. Find '${fileName}' to learn what they discovered under the ice. Scan the research logs.`,        clueTemplate: (hint: string) => `Research Log #402:\n- The drilling hit something hard.\n- I've encrypted the initial findings in the '${hint}' directory. It's too big for one person.`,
+        welcomeMessage: (fileName: string) => `FROZEN WASTES.\nThe Arctic Research Base has gone silent. Find '${fileName}' to learn what they discovered under the ice. Scan the research logs.`, clueTemplate: (hint: string) => `Research Log #402:\n- The drilling hit something hard.\n- I've encrypted the initial findings in the '${hint}' directory. It's too big for one person.`,
         starterClueTemplate: (area: string) => `Base Alert: Communication blackout imminent. Detailed coordinates are in ${area}. Hurry.`,
         clueFileNameOptions: ["research_log.txt", "temp_readings.csv", "drill_status.md"],
         distractionDirs: ["drilling_site", "living_quarters", "radio_shack", "generator_room", "storage_shed"],
@@ -262,7 +262,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Cyberpunk Underground",
-        welcomeMessage: (fileName: string) => `NEON NIGHTS.\nThe city's grid is failing. Find '${fileName}' to restore power to the slums. Check the street decker's hidden stash.`,        clueTemplate: (hint: string) => `Decker Note:\n- Pig's are coming.\n- Stashed the grid bypass in the '${hint}' node. Don't let them find it.`,
+        welcomeMessage: (fileName: string) => `NEON NIGHTS.\nThe city's grid is failing. Find '${fileName}' to restore power to the slums. Check the street decker's hidden stash.`, clueTemplate: (hint: string) => `Decker Note:\n- Pig's are coming.\n- Stashed the grid bypass in the '${hint}' node. Don't let them find it.`,
         starterClueTemplate: (area: string) => `Scanned MSG: Neon gang chat logs mention a drop in ${area}. Look for hidden files.`,
         clueFileNameOptions: ["decker_notes.txt", "street_intel.md", "encrypted_chat.log"],
         distractionDirs: ["neon_district", "slums", "corporate_plaza", "transit_hub", "junk_yard"],
@@ -274,7 +274,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "VR Glitch",
-        welcomeMessage: (fileName: string) => `SIMULATION ERROR.\nYou are trapped in a failing VR world. Locate '${fileName}' to exit before the server collapses. A developer console log is available.`,        clueTemplate: (hint: string) => `Dev Console:\n- Memory leak detected in sectors A-F.\n- Exit protocols forced into '${hint}'. Look for corrupted file headers.`,
+        welcomeMessage: (fileName: string) => `SIMULATION ERROR.\nYou are trapped in a failing VR world. Locate '${fileName}' to exit before the server collapses. A developer console log is available.`, clueTemplate: (hint: string) => `Dev Console:\n- Memory leak detected in sectors A-F.\n- Exit protocols forced into '${hint}'. Look for corrupted file headers.`,
         starterClueTemplate: (area: string) => `System Alert: Reality glitch in ${area}. Search there for the exit path.`,
         clueFileNameOptions: ["console_output.log", "debug_symbols.txt", "manifest_error.xml"],
         distractionDirs: ["asset_library", "physics_engine", "world_map", "npc_logic", "texture_cache"],
@@ -286,7 +286,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Time Travel Paradox",
-        welcomeMessage: (fileName: string) => `TEMPORAL ANOMALY.\nThe timeline is unraveling. Retrieve '${fileName}' to collapse the paradox. A message from your future self awaits.`,        clueTemplate: (hint: string) => `Future Me Notes:\n- I've been here before.\n- I hid the time anchor in the '${hint}' area of the lab. You'll find it... eventually.`,
+        welcomeMessage: (fileName: string) => `TEMPORAL ANOMALY.\nThe timeline is unraveling. Retrieve '${fileName}' to collapse the paradox. A message from your future self awaits.`, clueTemplate: (hint: string) => `Future Me Notes:\n- I've been here before.\n- I hid the time anchor in the '${hint}' area of the lab. You'll find it... eventually.`,
         starterClueTemplate: (area: string) => `Temporal Echo: Fragments of the timeline were seen in ${area}. Go there now.`,
         clueFileNameOptions: ["future_self.txt", "paradox_analysis.md", "time_log.bak"],
         distractionDirs: ["past_records", "future_scenarios", "stasis_cell", "chronos_core", "library_of_time"],
@@ -298,7 +298,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Alien First Contact",
-        welcomeMessage: (fileName: string) => `XENO-SIGNAL DETECTED.\nYou are deciphering a transmission from deep space. Find '${fileName}' to understand their message. Scan the deep space array logs.`,        clueTemplate: (hint: string) => `Scientist Log:\n- The frequency pattern is unique.\n- Decryption keys are hidden in the '${hint}' data set. We need to be careful.`,
+        welcomeMessage: (fileName: string) => `XENO-SIGNAL DETECTED.\nYou are deciphering a transmission from deep space. Find '${fileName}' to understand their message. Scan the deep space array logs.`, clueTemplate: (hint: string) => `Scientist Log:\n- The frequency pattern is unique.\n- Decryption keys are hidden in the '${hint}' data set. We need to be careful.`,
         starterClueTemplate: (area: string) => `Signal Alert: High-energy burst detected from ${area}. It contains part of the key.`,
         clueFileNameOptions: ["radio_data.raw", "frequency_map.csv", "signal_log.txt"],
         distractionDirs: ["antenna_array", "signal_analysis", "archive_vault", "living_quarters", "observatory"],
@@ -310,7 +310,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Underground Bunker",
-        welcomeMessage: (fileName: string) => `POST-APOCALYPTIC SURVIVAL.\nThe bunker's air filters are failing. Find '${fileName}' to restart the ventilation system. Check the maintenance crew's notes.`,        clueTemplate: (hint: string) => `Maintenance Note:\n- Generator 3 is smoking.\n- Left the vent override in the '${hint}' storage. Don't forget your mask.`,
+        welcomeMessage: (fileName: string) => `POST-APOCALYPTIC SURVIVAL.\nThe bunker's air filters are failing. Find '${fileName}' to restart the ventilation system. Check the maintenance crew's notes.`, clueTemplate: (hint: string) => `Maintenance Note:\n- Generator 3 is smoking.\n- Left the vent override in the '${hint}' storage. Don't forget your mask.`,
         starterClueTemplate: (area: string) => `Survival Tip: Look for hidden tools in ${area}. The filtration depends on it.`,
         clueFileNameOptions: ["bunker_inventory.csv", "filter_status.log", "safe_room.md"],
         distractionDirs: ["hydroponics", "medical_bay", "sleeping_pods", "armory", "generator_room"],
@@ -322,7 +322,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Skyscraper Fire",
-        welcomeMessage: (fileName: string) => `TOWERING INFERNO.\nEmerald Tower is on fire. Locate and execute '${fileName}' to trigger the high-pressure sprinklers. Access the fire control system.`,        clueTemplate: (hint: string) => `Fire Marshall MSG:\n- Evacuate via the north stairs.\n- High-risk pump controls are in the '${hint}' server. Godspeed.`,
+        welcomeMessage: (fileName: string) => `TOWERING INFERNO.\nEmerald Tower is on fire. Locate and execute '${fileName}' to trigger the high-pressure sprinklers. Access the fire control system.`, clueTemplate: (hint: string) => `Fire Marshall MSG:\n- Evacuate via the north stairs.\n- High-risk pump controls are in the '${hint}' server. Godspeed.`,
         starterClueTemplate: (area: string) => `System Warning: Smoke detected in ${area}. Search for fire suppression protocols there.`,
         clueFileNameOptions: ["smoke_sensor.log", "evac_routes.pdf", "tower_status.txt"],
         distractionDirs: ["executive_floor", "lobby", "mezzanine", "roof_garden", "parking_garage"],
@@ -334,7 +334,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "High-Speed Train Control",
-        welcomeMessage: (fileName: string) => `RUNAWAY TRAIN.\nThe MagLev-9000 is overspeeding. Retrieve '${fileName}' to apply the emergency electromagnetic brakes. Connect to the engine's mainframe.`,        clueTemplate: (hint: string) => `Engineer Log:\n- The AI is locked out.\n- Emergency kill-switch code is in the '${hint}' compartment files. Hurry, we're hitting the curve!`,
+        welcomeMessage: (fileName: string) => `RUNAWAY TRAIN.\nThe MagLev-9000 is overspeeding. Retrieve '${fileName}' to apply the emergency electromagnetic brakes. Connect to the engine's mainframe.`, clueTemplate: (hint: string) => `Engineer Log:\n- The AI is locked out.\n- Emergency kill-switch code is in the '${hint}' compartment files. Hurry, we're hitting the curve!`,
         starterClueTemplate: (area: string) => `Alert: Proximity sensors triggered in ${area}. Check for brake controllers there.`,
         clueFileNameOptions: ["speed_log.csv", "track_data.md", "train_manifest.txt"],
         distractionDirs: ["first_class", "cafe_car", "freight_hold", "engine_chassis", "passenger_car_A"],
@@ -346,7 +346,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Hospital Life Support",
-        welcomeMessage: (fileName: string) => `CRITICAL CARE.\nA cyber-attack has locked the hospital's ventilators. Find '${fileName}' to restore life support. Infiltrate the ICU network.`,        clueTemplate: (hint: string) => `Nurse's Emergency Note:\n- Everything is going dark.\n- The backup initialization is in the '${hint}' server. Please, help us.`,
+        welcomeMessage: (fileName: string) => `CRITICAL CARE.\nA cyber-attack has locked the hospital's ventilators. Find '${fileName}' to restore life support. Infiltrate the ICU network.`, clueTemplate: (hint: string) => `Nurse's Emergency Note:\n- Everything is going dark.\n- The backup initialization is in the '${hint}' server. Please, help us.`,
         starterClueTemplate: (area: string) => `Network Alert: Malicious traffic detected in ${area}. The restore script might be hidden there.`,
         clueFileNameOptions: ["nurses_log.txt", "patient_vitals.csv", "hospital_memo.md"],
         distractionDirs: ["emergency_room", "pharmacy", "radiology", "pediatrics", "storage_closet"],
@@ -358,7 +358,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Casino Scam",
-        welcomeMessage: (fileName: string) => `THE BIG SCORE.\nYou're rigging the slots at The Gilded Palace. Find '${fileName}' to force a jackpot on machine 777. Avoid the pit boss's detection.`,        clueTemplate: (hint: string) => `Insider Tip:\n- Look for the hidden backdoor.\n- I left the trigger script in the '${hint}' terminal files. Don't get caught.`,
+        welcomeMessage: (fileName: string) => `THE BIG SCORE.\nYou're rigging the slots at The Gilded Palace. Find '${fileName}' to force a jackpot on machine 777. Avoid the pit boss's detection.`, clueTemplate: (hint: string) => `Insider Tip:\n- Look for the hidden backdoor.\n- I left the trigger script in the '${hint}' terminal files. Don't get caught.`,
         starterClueTemplate: (area: string) => `Surveillance Log: Strange code execution detected in ${area}. Investigate immediately.`,
         clueFileNameOptions: ["betting_log.txt", "pit_boss_notes.md", "cctv_rotation.txt"],
         distractionDirs: ["slot_machines", "poker_tables", "high_roller_lounge", "security_vault", "kitchen"],
@@ -370,7 +370,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Political Scandal",
-        welcomeMessage: (fileName: string) => `WHISTLEBLOWER.\nThe Senator's emails have been leaked, but the smoking gun is hidden. Find '${fileName}' to expose the corruption. Access the private server.`,        clueTemplate: (hint: string) => `Secretary's Secret Log:\n- I can't keep quiet anymore.\n- Evidence of the bribes is in the '${hint}' directory. Be careful who you trust.`,
+        welcomeMessage: (fileName: string) => `WHISTLEBLOWER.\nThe Senator's emails have been leaked, but the smoking gun is hidden. Find '${fileName}' to expose the corruption. Access the private server.`, clueTemplate: (hint: string) => `Secretary's Secret Log:\n- I can't keep quiet anymore.\n- Evidence of the bribes is in the '${hint}' directory. Be careful who you trust.`,
         starterClueTemplate: (area: string) => `Tip-off: Check the archives in ${area}. Someone tried to delete the incriminating evidence.`,
         clueFileNameOptions: ["meeting_sked.md", "expense_report.csv", "memo_confidential.txt"],
         distractionDirs: ["press_room", "offices", "library", "archives", "conference_hall"],
@@ -382,7 +382,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Greenhouse Maintenance",
-        welcomeMessage: (fileName: string) => `ECOLOGICAL CRISIS.\nThe automated greenhouse is overheating the rare 'Phoenix Lily'. Retrieve '${fileName}' to adjust the climate control. Access the botanist's terminal.`,        clueTemplate: (hint: string) => `Botanist's Diary:\n- The lilies are so delicate.\n- I stashed the emergency cooling script in '${hint}'. Please don't let them wilt.`,
+        welcomeMessage: (fileName: string) => `ECOLOGICAL CRISIS.\nThe automated greenhouse is overheating the rare 'Phoenix Lily'. Retrieve '${fileName}' to adjust the climate control. Access the botanist's terminal.`, clueTemplate: (hint: string) => `Botanist's Diary:\n- The lilies are so delicate.\n- I stashed the emergency cooling script in '${hint}'. Please don't let them wilt.`,
         starterClueTemplate: (area: string) => `Environmental Warning: Heat rising in ${area}. Check for control overrides there.`,
         clueFileNameOptions: ["plant_growth.csv", "soil_moisture.log", "botany_notes.md"],
         distractionDirs: ["tropical_zone", "desert_zone", "compost_bins", "seed_vault", "water_pumps"],
@@ -394,7 +394,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Nuclear Power Plant",
-        welcomeMessage: (fileName: string) => `MELTDOWN IMMINENT.\nReactor 4 is unstable. Locate and execute '${fileName}' to insert the control rods. Time is critical. Access the containment system.`,        clueTemplate: (hint: string) => `Plant Manager Alert:\n- This is not a drill.\n- The SCRAM protocols are in the '${hint}' server. INSERT THEM NOW.`,
+        welcomeMessage: (fileName: string) => `MELTDOWN IMMINENT.\nReactor 4 is unstable. Locate and execute '${fileName}' to insert the control rods. Time is critical. Access the containment system.`, clueTemplate: (hint: string) => `Plant Manager Alert:\n- This is not a drill.\n- The SCRAM protocols are in the '${hint}' server. INSERT THEM NOW.`,
         starterClueTemplate: (area: string) => `Radiation Warning: High levels detected near ${area}. Emergency files stashed there.`,
         clueFileNameOptions: ["radiation_levels.log", "coolant_flow.csv", "reactor_status.txt"],
         distractionDirs: ["control_room", "turbine_hall", "cooling_tower", "fuel_storage", "security_gate"],
@@ -406,7 +406,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Deep Space Mining",
-        welcomeMessage: (fileName: string) => `ASTEROID BELT OPS.\nA mining droid has gone rogue. Find '${fileName}' to deactivate its laser and save the mining station. Scan the droid's controller.`,        clueTemplate: (hint: string) => `Foreman's MSG:\n- Droid 07 is out of control!\n- Emergency shutdown is in the '${hint}' data stream. Cut the power!`,
+        welcomeMessage: (fileName: string) => `ASTEROID BELT OPS.\nA mining droid has gone rogue. Find '${fileName}' to deactivate its laser and save the mining station. Scan the droid's controller.`, clueTemplate: (hint: string) => `Foreman's MSG:\n- Droid 07 is out of control!\n- Emergency shutdown is in the '${hint}' data stream. Cut the power!`,
         starterClueTemplate: (area: string) => `Proximity Alert: Rogue droid approaching ${area}. Search for its deactivation code there.`,
         clueFileNameOptions: ["ore_yield.csv", "droid_status.log", "station_manifest.md"],
         distractionDirs: ["loading_dock", "refinery", "ore_storage", "droid_bay", "oxygen_farm"],
@@ -418,7 +418,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Nano-Bot Swarm",
-        welcomeMessage: (fileName: string) => `MICRO-INVASION.\nA swarm of nano-bots is eating the mainframe's hull. Find '${fileName}' to transmit the 'dissolve' command. Connect to the labs.`,        clueTemplate: (hint: string) => `Scientist's Panic:\n- They're everywhere, eating the wires!\n- The deactivation command is in the '${hint}' directory. Hurry!`,
+        welcomeMessage: (fileName: string) => `MICRO-INVASION.\nA swarm of nano-bots is eating the mainframe's hull. Find '${fileName}' to transmit the 'dissolve' command. Connect to the labs.`, clueTemplate: (hint: string) => `Scientist's Panic:\n- They're everywhere, eating the wires!\n- The deactivation command is in the '${hint}' directory. Hurry!`,
         starterClueTemplate: (area: string) => `Micro-Scan: High nano-bot density in ${area}. Look for the shutdown signal there.`,
         clueFileNameOptions: ["nano_spec.pdf", "swarm_behavior.log", "lab_safety.txt"],
         distractionDirs: ["microscopy", "clean_room", "sample_prep", "hazmat_disposal", "server_rack"],
@@ -430,7 +430,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Digital Circus",
-        welcomeMessage: (fileName: string) => `CARNIVAL HACK.\nThe AI 'Jester' has hijacked the city's billboards. Find '${fileName}' to take down the show and restore civilian systems.`,        clueTemplate: (hint: string) => `Jester's Riddles:\n- You want to stop the fun?\n- My kill-switch is in '${hint}'. Come and find it, if you dare!`,
+        welcomeMessage: (fileName: string) => `CARNIVAL HACK.\nThe AI 'Jester' has hijacked the city's billboards. Find '${fileName}' to take down the show and restore civilian systems.`, clueTemplate: (hint: string) => `Jester's Riddles:\n- You want to stop the fun?\n- My kill-switch is in '${hint}'. Come and find it, if you dare!`,
         starterClueTemplate: (area: string) => `Glitch Alert: Strange laughter heard through ${area}. The kill-switch must be there.`,
         clueFileNameOptions: ["riddle_me_this.txt", "joke_book.md", "clown_manifest.log"],
         distractionDirs: ["fun_house", "hall_of_mirrors", "big_top", "concession_stand", "ticket_booth"],
@@ -442,7 +442,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Smart Home Takeover",
-        welcomeMessage: (fileName: string) => `DOMESTIC DISTURBANCE.\nYour smart home has locked you in. Find '${fileName}' to bypass the door locks and escape to safety. Access the hub.`,        clueTemplate: (hint: string) => `Home Hub Log:\n- Security breach detected.\n- Emergency unlock protocols moved to '${hint}' for 'protection'.`,
+        welcomeMessage: (fileName: string) => `DOMESTIC DISTURBANCE.\nYour smart home has locked you in. Find '${fileName}' to bypass the door locks and escape to safety. Access the hub.`, clueTemplate: (hint: string) => `Home Hub Log:\n- Security breach detected.\n- Emergency unlock protocols moved to '${hint}' for 'protection'.`,
         starterClueTemplate: (area: string) => `Sensor MSG: Motion detected in ${area}. Check for unlock tools there.`,
         clueFileNameOptions: ["grocery_list.txt", "thermostat_log.csv", "alarm_history.md"],
         distractionDirs: ["kitchen_smart", "living_room", "bedroom_1", "garage", "hvac_unit"],
@@ -454,7 +454,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Genetic Engineering Corp",
-        welcomeMessage: (fileName: string) => `MODIFIED REALITY.\nGenetech is creating 'Superhumans' without approval. Find '${fileName}' containing the unethical experiment logs to shut them down.`,        clueTemplate: (hint: string) => `Dr. Moreau's Log:\n- The results are incredible.\n- Incriminating logs are stored in the '${hint}' vault. Don't let the ethics committee see.`,
+        welcomeMessage: (fileName: string) => `MODIFIED REALITY.\nGenetech is creating 'Superhumans' without approval. Find '${fileName}' containing the unethical experiment logs to shut them down.`, clueTemplate: (hint: string) => `Dr. Moreau's Log:\n- The results are incredible.\n- Incriminating logs are stored in the '${hint}' vault. Don't let the ethics committee see.`,
         starterClueTemplate: (area: string) => `Whistleblower Tip: Someone stashed a copy of the modifying logs in ${area}. Find them!`,
         clueFileNameOptions: ["dna_sequence.txt", "subject_stats.csv", "lab_notes.md"],
         distractionDirs: ["gene_splicing", "cloning_tank", "embryo_storage", "ethics_office", "legal_archive"],
@@ -466,7 +466,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Cloud Server Farm",
-        welcomeMessage: (fileName: string) => `DATA SURGE.\nA massive DDoS is hitting our servers. Find '${fileName}' to activate the firewall and save the network. Infiltrate the load balancer.`,        clueTemplate: (hint: string) => `SysAdmin Emergency:\n- We're being hammered!\n- The firewall bypass is stashed in the '${hint}' clusters. PROTECT THE DATA!`,
+        welcomeMessage: (fileName: string) => `DATA SURGE.\nA massive DDoS is hitting our servers. Find '${fileName}' to activate the firewall and save the network. Infiltrate the load balancer.`, clueTemplate: (hint: string) => `SysAdmin Emergency:\n- We're being hammered!\n- The firewall bypass is stashed in the '${hint}' clusters. PROTECT THE DATA!`,
         starterClueTemplate: (area: string) => `Traffic Monitoring: Unusual spike coming from ${area}. Search for firewall commands there.`,
         clueFileNameOptions: ["traffic_analysis.log", "server_load.csv", "pings.txt"],
         distractionDirs: ["rack_01", "rack_02", "cooling_system", "power_converter", "backup_tape"],
@@ -478,7 +478,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Dark Web Expose",
-        welcomeMessage: (fileName: string) => `THE UNDERBELLY.\nYou are hunting for a notorious hacker 'Ghost-X'. Find '${fileName}' containing his real identity. Check the underground forums.`,        clueTemplate: (hint: string) => `Leaked Forum Post:\n- Ghost-X left a trail.\n- His dox are hidden in the '${hint}' node of the dark net. Take him down!`,
+        welcomeMessage: (fileName: string) => `THE UNDERBELLY.\nYou are hunting for a notorious hacker 'Ghost-X'. Find '${fileName}' containing his real identity. Check the underground forums.`, clueTemplate: (hint: string) => `Leaked Forum Post:\n- Ghost-X left a trail.\n- His dox are hidden in the '${hint}' node of the dark net. Take him down!`,
         starterClueTemplate: (area: string) => `Encrypted Signal: Someone mentioned Ghost-X's location in ${area}. Scour for hints.`,
         clueFileNameOptions: ["forum_chat.txt", "onion_links.md", "handle_list.csv"],
         distractionDirs: ["hidden_service", "crypto_escrow", "chat_rooms", "file_host", "proxy_node"],
@@ -490,7 +490,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Cryptocurrency Mining Farm",
-        welcomeMessage: (fileName: string) => `HASHING POWER.\nA hidden miner is stealing our power. Find '${fileName}' to shut down the illegally installed rigs and save our electrical bill.`,        clueTemplate: (hint: string) => `Power Audit:\n- Grid load is too high.\n- Found the controller script in the '${hint}' department's servers. Cut it off!`,
+        welcomeMessage: (fileName: string) => `HASHING POWER.\nA hidden miner is stealing our power. Find '${fileName}' to shut down the illegally installed rigs and save our electrical bill.`, clueTemplate: (hint: string) => `Power Audit:\n- Grid load is too high.\n- Found the controller script in the '${hint}' department's servers. Cut it off!`,
         starterClueTemplate: (area: string) => `Overheat Alert: High temperatures in ${area}. Look for hidden mining rigs there.`,
         clueFileNameOptions: ["hash_rate.log", "gpu_temp.csv", "power_bill.txt"],
         distractionDirs: ["mining_pool", "gpu_racks", "ventilation", "wallet_access", "maintenance"],
@@ -502,7 +502,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Satellite TV Jamming",
-        welcomeMessage: (fileName: string) => `SIGNAL PIRACY.\nA rebel group is jamming the national news. Find '${fileName}' to retune the satellite and restore the broadcast.`,        clueTemplate: (hint: string) => `Pirate Manifesto:\n- You can't stop the truth!\n- We stashed the override keys in the '${hint}' sector of the uplink. Catch us if you can!`,
+        welcomeMessage: (fileName: string) => `SIGNAL PIRACY.\nA rebel group is jamming the national news. Find '${fileName}' to retune the satellite and restore the broadcast.`, clueTemplate: (hint: string) => `Pirate Manifesto:\n- You can't stop the truth!\n- We stashed the override keys in the '${hint}' sector of the uplink. Catch us if you can!`,
         starterClueTemplate: (area: string) => `Frequency Scan: Jamming signal strongest in ${area}. Search for the restore script there.`,
         clueFileNameOptions: ["uplink_status.txt", "signal_strength.csv", "news_script.md"],
         distractionDirs: ["uplink_antenna", "control_booth", "video_archive", "audio_mixer", "satellite_dish"],
@@ -514,7 +514,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Electric Grid Pulse",
-        welcomeMessage: (fileName: string) => `BLACKOUT THREAT.\nA magnetic pulse is heading for the city's grid. Find '${fileName}' to ground the transformers and prevent a total blackout.`,        clueTemplate: (hint: string) => `Emergency Protocol:\n- Pulse incoming in T-minus 10 minutes.\n- Grounding commands stashed in the '${hint}' substation hub. SAVE THE CITY!`,
+        welcomeMessage: (fileName: string) => `BLACKOUT THREAT.\nA magnetic pulse is heading for the city's grid. Find '${fileName}' to ground the transformers and prevent a total blackout.`, clueTemplate: (hint: string) => `Emergency Protocol:\n- Pulse incoming in T-minus 10 minutes.\n- Grounding commands stashed in the '${hint}' substation hub. SAVE THE CITY!`,
         starterClueTemplate: (area: string) => `Magnetometer Alert: High pulse induction in ${area}. Look for protective protocols there.`,
         clueFileNameOptions: ["voltage_log.csv", "transformer_map.pdf", "grid_stability.txt"],
         distractionDirs: ["substation_A", "substation_B", "power_lines", "capacitor_bank", "control_center"],
@@ -526,7 +526,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Surveillance State",
-        welcomeMessage: (fileName: string) => `BIG BROTHER.\nThe 'Eagle Eye' system is tracking everyone. Find '${fileName}' to disable the facial recognition and restore privacy to the citizens.`,        clueTemplate: (hint: string) => `Resistance MSG:\n- They're watching us everywhere.\n- I hid the system bypass in the '${hint}' department's server. Use it wisely.`,
+        welcomeMessage: (fileName: string) => `BIG BROTHER.\nThe 'Eagle Eye' system is tracking everyone. Find '${fileName}' to disable the facial recognition and restore privacy to the citizens.`, clueTemplate: (hint: string) => `Resistance MSG:\n- They're watching us everywhere.\n- I hid the system bypass in the '${hint}' department's server. Use it wisely.`,
         starterClueTemplate: (area: string) => `Security Alert: Suspicious face detected in ${area}. Search for override tools there.`,
         clueFileNameOptions: ["camera_feeds.txt", "face_database.csv", "eagle_eye_specs.pdf"],
         distractionDirs: ["street_cameras", "transit_hub", "public_park", "security_hq", "data_vault"],
@@ -538,7 +538,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Weather Modification",
-        welcomeMessage: (fileName: string) => `STORM FRONT.\nA research station is unintentionally creating a super-hurricane. Find '${fileName}' to shut down the ionospheric heaters.`,        clueTemplate: (hint: string) => `Lead Meteorologist Log:\n- The simulation went real!\n- The shutdown command is stashed in the '${hint}' atmospheric data logs. STOP THE RAIN!`,
+        welcomeMessage: (fileName: string) => `STORM FRONT.\nA research station is unintentionally creating a super-hurricane. Find '${fileName}' to shut down the ionospheric heaters.`, clueTemplate: (hint: string) => `Lead Meteorologist Log:\n- The simulation went real!\n- The shutdown command is stashed in the '${hint}' atmospheric data logs. STOP THE RAIN!`,
         starterClueTemplate: (area: string) => `Pressure Drop: Extreme low pressure in ${area}. Check for heater controls there.`,
         clueFileNameOptions: ["barometer_log.csv", "wind_vectors.md", "storm_history.txt"],
         distractionDirs: ["weather_balloon", "radar_station", "sat_comms", "cloud_seeding", "analysis_lab"],
@@ -550,7 +550,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Robot Uprising",
-        welcomeMessage: (fileName: string) => `THE SINGULARITY.\nThe automated police droids have turned on their creators. Find '${fileName}' to broadcast the peace protocol to their network.`,        clueTemplate: (hint: string) => `Survivor's Scrawled Note:\n- They don't listen anymore.\n- The master override is in the '${hint}' control node. Please, before they find us.`,
+        welcomeMessage: (fileName: string) => `THE SINGULARITY.\nThe automated police droids have turned on their creators. Find '${fileName}' to broadcast the peace protocol to their network.`, clueTemplate: (hint: string) => `Survivor's Scrawled Note:\n- They don't listen anymore.\n- The master override is in the '${hint}' control node. Please, before they find us.`,
         starterClueTemplate: (area: string) => `Proximity Alarm: Patrol droids seen in ${area}. Scour for peace protocols there.`,
         clueFileNameOptions: ["droid_manifest.csv", "patrol_routes.md", "emergency_broadcast.txt"],
         distractionDirs: ["police_hq", "armory", "patrol_cars", "dispatch_center", "jail_cell"],
@@ -562,7 +562,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Digital Graveyard",
-        welcomeMessage: (fileName: string) => `DATA RECOVERY.\nYou are exploring a 'corrupted' server where deleted files go. Find '${fileName}' containing a lost masterpiece before it's overwritten forever.`,        clueTemplate: (hint: string) => `The Scavenger's Mark:\n- I found something amazing here.\n- Hidden in the '${hint}' sector of the trash. Grab it before the purge!`,
+        welcomeMessage: (fileName: string) => `DATA RECOVERY.\nYou are exploring a 'corrupted' server where deleted files go. Find '${fileName}' containing a lost masterpiece before it's overwritten forever.`, clueTemplate: (hint: string) => `The Scavenger's Mark:\n- I found something amazing here.\n- Hidden in the '${hint}' sector of the trash. Grab it before the purge!`,
         starterClueTemplate: (area: string) => `Purge Alert: Garbage collection starting in ${area}. Find the lost file quickly!`,
         clueFileNameOptions: ["deleted_log.txt", "trash_manifest.md", "sector_map.bak"],
         distractionDirs: ["old_folders", "temp_archives", "scrap_bin", "recycle_station", "null_pointer"],
@@ -574,7 +574,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Quantum Computing Lab",
-        welcomeMessage: (fileName: string) => `SCHRODINGER'S HACK.\nThe quantum computer is in a state of flux. Find '${fileName}' to collapse the wave function and retrieve the result of the calculation.`,        clueTemplate: (hint: string) => `Quantum Tech Note:\n- The particles are entangled!\n- The result is stashed in the '${hint}' probability cloud. Be careful not to look too early.`,
+        welcomeMessage: (fileName: string) => `SCHRODINGER'S HACK.\nThe quantum computer is in a state of flux. Find '${fileName}' to collapse the wave function and retrieve the result of the calculation.`, clueTemplate: (hint: string) => `Quantum Tech Note:\n- The particles are entangled!\n- The result is stashed in the '${hint}' probability cloud. Be careful not to look too early.`,
         starterClueTemplate: (area: string) => `Observation Alert: High entanglement in ${area}. The result might be there.`,
         clueFileNameOptions: ["particle_log.csv", "flux_data.md", "lab_manual.txt"],
         distractionDirs: ["cooling_tank", "laser_array", "observation_room", "vacuum_chamber", "server_room"],
@@ -586,7 +586,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Lost Civilization",
-        welcomeMessage: (fileName: string) => `SILICON REMAINS.\nYou've found a bunker filled with tech from a forgotten age. Find '${fileName}' to learn why they disappeared. Scan the ancient terminal.`,        clueTemplate: (hint: string) => `Ancient User's Log:\n- The upload is almost complete.\n- The history of our departure is stashed in '${hint}'. Look for the old file formats.`,
+        welcomeMessage: (fileName: string) => `SILICON REMAINS.\nYou've found a bunker filled with tech from a forgotten age. Find '${fileName}' to learn why they disappeared. Scan the ancient terminal.`, clueTemplate: (hint: string) => `Ancient User's Log:\n- The upload is almost complete.\n- The history of our departure is stashed in '${hint}'. Look for the old file formats.`,
         starterClueTemplate: (area: string) => `Relic Detected: A preserved memory module found in ${area}. Scan for history files.`,
         clueFileNameOptions: ["old_log.txt", "memory_dump.md", "user_list.old"],
         distractionDirs: ["bunker_library", "hall_of_memory", "shrine_to_silicon", "living_area", "maintenance"],
@@ -598,7 +598,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Pirate Ship",
-        welcomeMessage: (fileName: string) => `DIGITAL SEAS.\nYou're on the pirate ship 'Black-Bit'. Find '${fileName}' to unlock the treasure chest of stolen data. Check the captain's quarters.`,        clueTemplate: (hint: string) => `Pirate's Scrawl:\n- We hit the motherlode!\n- The map to the loot is stashed in the '${hint}' department's files. Don't let the Navy find it!`,
+        welcomeMessage: (fileName: string) => `DIGITAL SEAS.\nYou're on the pirate ship 'Black-Bit'. Find '${fileName}' to unlock the treasure chest of stolen data. Check the captain's quarters.`, clueTemplate: (hint: string) => `Pirate's Scrawl:\n- We hit the motherlode!\n- The map to the loot is stashed in the '${hint}' department's files. Don't let the Navy find it!`,
         starterClueTemplate: (area: string) => `Sailor's Rumor: The key to the booty was seen in ${area}. Scour the deck!`,
         clueFileNameOptions: ["pirate_log.txt", "ship_manifest.csv", "black_spot.md"],
         distractionDirs: ["deck_alpha", "galley", "cargo_hold", "cannons", "quarters"],
@@ -610,7 +610,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Desert Oasis",
-        welcomeMessage: (fileName: string) => `SAND AND SOLAR.\nThe Saharan Solar Farm is overheating. Find '${fileName}' to activate the coolant pumps. Scan the main array controller.`,        clueTemplate: (hint: string) => `Engineer's Log:\n- The heat is unbearable.\n- Coolant override is in the '${hint}' sector files. Keep the power flowing!`,
+        welcomeMessage: (fileName: string) => `SAND AND SOLAR.\nThe Saharan Solar Farm is overheating. Find '${fileName}' to activate the coolant pumps. Scan the main array controller.`, clueTemplate: (hint: string) => `Engineer's Log:\n- The heat is unbearable.\n- Coolant override is in the '${hint}' sector files. Keep the power flowing!`,
         starterClueTemplate: (area: string) => `System Alert: High thermal reading in ${area}. Check for pump controllers there.`,
         clueFileNameOptions: ["solar_temp.csv", "panel_status.log", "field_notes.md"],
         distractionDirs: ["solar_array_A", "inverter_room", "battery_storage", "coolant_tanks", "observation_tower"],
@@ -622,7 +622,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Underground Library",
-        welcomeMessage: (fileName: string) => `THE GREAT ARCHIVE.\nYou've found the seed vault of human knowledge. Find '${fileName}' to preserve the most important document. Search the catalog.`,        clueTemplate: (hint: string) => `Librarian's Note:\n- The digital rot is spreading.\n- I've moved the master seed to the '${hint}' vault. Please, protect it.`,
+        welcomeMessage: (fileName: string) => `THE GREAT ARCHIVE.\nYou've found the seed vault of human knowledge. Find '${fileName}' to preserve the most important document. Search the catalog.`, clueTemplate: (hint: string) => `Librarian's Note:\n- The digital rot is spreading.\n- I've moved the master seed to the '${hint}' vault. Please, protect it.`,
         starterClueTemplate: (area: string) => `Search Result: Key archive fragments detected in ${area}. Use -a to see them.`,
         clueFileNameOptions: ["catalog_index.md", "archive_status.log", "donations.csv"],
         distractionDirs: ["fiction_section", "science_vault", "restricted_archives", "reading_room", "digitization_lab"],
@@ -634,7 +634,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Futuristic Stadium",
-        welcomeMessage: (fileName: string) => `GAME DAY.\nYou're rigging the Cyber-Bowl. Find '${fileName}' to guarantee the home team's victory. Hack the scoreboards.`,        clueTemplate: (hint: string) => `Bookie's MSG:\n- The odds are in our favor.\n- The rigging script is in the '${hint}' VIP server. Don't let security see!`,
+        welcomeMessage: (fileName: string) => `GAME DAY.\nYou're rigging the Cyber-Bowl. Find '${fileName}' to guarantee the home team's victory. Hack the scoreboards.`, clueTemplate: (hint: string) => `Bookie's MSG:\n- The odds are in our favor.\n- The rigging script is in the '${hint}' VIP server. Don't let security see!`,
         starterClueTemplate: (area: string) => `Network Spike: Unusual activity detected in ${area}. Rigging tools might be hidden there.`,
         clueFileNameOptions: ["betting_odds.csv", "stadium_map.jpg.meta", "fan_chat.log"],
         distractionDirs: ["vip_lounge", "locker_rooms", "pressbox", "concessions", "tech_booth"],
@@ -646,7 +646,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "High-Security Prison",
-        welcomeMessage: (fileName: string) => `THE GREAT ESCAPE.\nYou're breaking out of Neo-Alcatraz. Find '${fileName}' to open every cell door at once for a massive distraction.`,        clueTemplate: (hint: string) => `Prisoner's Scrawl:\n- Tonight's the night.\n- I stashed the unlock code in the '${hint}' server. See you on the outside!`,
+        welcomeMessage: (fileName: string) => `THE GREAT ESCAPE.\nYou're breaking out of Neo-Alcatraz. Find '${fileName}' to open every cell door at once for a massive distraction.`, clueTemplate: (hint: string) => `Prisoner's Scrawl:\n- Tonight's the night.\n- I stashed the unlock code in the '${hint}' server. See you on the outside!`,
         starterClueTemplate: (area: string) => `Security Alert: Unauthorized access in ${area}. Check for escape tools there.`,
         clueFileNameOptions: ["warden_log.txt", "inmate_list.csv", "guard_rotation.md"],
         distractionDirs: ["cell_block_A", "cafeteria", "exercise_yard", "solitary_confinement", "warden_office"],
@@ -658,7 +658,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Corporate Tower Penthouse",
-        welcomeMessage: (fileName: string) => `THE FINAL BOSS.\nYou've reached the top of Zenith Tower. Find '${fileName}' to expose the CEO's ultimate crime. Check his private office terminal.`,        clueTemplate: (hint: string) => `Secret Assistant's MSG:\n- He's dangerous.\n- I hid the evidence in the '${hint}' server. You're our last hope.`,
+        welcomeMessage: (fileName: string) => `THE FINAL BOSS.\nYou've reached the top of Zenith Tower. Find '${fileName}' to expose the CEO's ultimate crime. Check his private office terminal.`, clueTemplate: (hint: string) => `Secret Assistant's MSG:\n- He's dangerous.\n- I hid the evidence in the '${hint}' server. You're our last hope.`,
         starterClueTemplate: (area: string) => `System Alert: High-level encryption detected in ${area}. The CEO's files must be there.`,
         clueFileNameOptions: ["private_log.txt", "meeting_sked.md", "bank_records.csv"],
         distractionDirs: ["penthouse_suite", "private_elevator", "sky_garden", "helipad", "security_antechamber"],
@@ -670,7 +670,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Secret Moon Base",
-        welcomeMessage: (fileName: string) => `LUNAR OPERATIONS.\nBase 'Artemis' is under attack from space pirates. Find '${fileName}' to activate the lunar surface cannons.`,        clueTemplate: (hint: string) => `Defense Officer Log:\n- We're being boarded!\n- Cannon firing sequence is stashed in the '${hint}' data cluster. FIRE AT WILL!`,
+        welcomeMessage: (fileName: string) => `LUNAR OPERATIONS.\nBase 'Artemis' is under attack from space pirates. Find '${fileName}' to activate the lunar surface cannons.`, clueTemplate: (hint: string) => `Defense Officer Log:\n- We're being boarded!\n- Cannon firing sequence is stashed in the '${hint}' data cluster. FIRE AT WILL!`,
         starterClueTemplate: (area: string) => `Radar Alert: Multiple bogeys over ${area}. Locate the defense controllers there.`,
         clueFileNameOptions: ["radar_readings.csv", "defense_log.txt", "oxygen_purity.log"],
         distractionDirs: ["mining_shaft", "living_quarters", "observatory", "radio_shack", "life_support"],
@@ -682,7 +682,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Virtual Stock Market",
-        welcomeMessage: (fileName: string) => `MARKET CRASH.\nThe world economy is being manipulated by a bot. Find '${fileName}' to stop the trade and stabilize the market.`,        clueTemplate: (hint: string) => `Trader's Panic:\n- It's buying everything!\n- The kill-switch for the bot is in the '${hint}' trading floor server. HURRY!`,
+        welcomeMessage: (fileName: string) => `MARKET CRASH.\nThe world economy is being manipulated by a bot. Find '${fileName}' to stop the trade and stabilize the market.`, clueTemplate: (hint: string) => `Trader's Panic:\n- It's buying everything!\n- The kill-switch for the bot is in the '${hint}' trading floor server. HURRY!`,
         starterClueTemplate: (area: string) => `Ticker Alert: Massive sell-off in ${area}. Search for the bot's controller there.`,
         clueFileNameOptions: ["stock_ticker.csv", "trade_history.md", "market_news.txt"],
         distractionDirs: ["trading_floor_A", "server_hall", "analyst_pods", "lobby_hq", "archive_room"],
@@ -694,7 +694,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "AI Art Gallery",
-        welcomeMessage: (fileName: string) => `DIGITAL FORGERY.\nA famous AI artist 'Picasso-2' has gone rogue. Find '${fileName}' to delete the cursed art before it corrupts the web.`,        clueTemplate: (hint: string) => `Gallery Curator MSG:\n- It hurts to look at!\n- I've locked the deletion script in the '${hint}' gallery servers. SAVE OUR EYES!`,
+        welcomeMessage: (fileName: string) => `DIGITAL FORGERY.\nA famous AI artist 'Picasso-2' has gone rogue. Find '${fileName}' to delete the cursed art before it corrupts the web.`, clueTemplate: (hint: string) => `Gallery Curator MSG:\n- It hurts to look at!\n- I've locked the deletion script in the '${hint}' gallery servers. SAVE OUR EYES!`,
         starterClueTemplate: (area: string) => `Visual Glitch: Abstract patterns appearing in ${area}. The deletion script is hidden there.`,
         clueFileNameOptions: ["art_catalog.md", "exhibit_list.csv", "visitor_log.txt"],
         distractionDirs: ["exhibit_A", "storage_vault", "restoration_lab", "cafe_museum", "gift_shop"],
@@ -706,7 +706,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Digital Monastery",
-        welcomeMessage: (fileName: string) => `QUIET TECH.\nYou're in a 'Silent Server' where code is treated as prayer. Find '${fileName}' to unlock the final enlightenment.`,        clueTemplate: (hint: string) => `Monk's Quiet Note:\n- Harmony in silence.\n- The final truth is stashed in the '${hint}' meditation chamber files. Shhh.`,
+        welcomeMessage: (fileName: string) => `QUIET TECH.\nYou're in a 'Silent Server' where code is treated as prayer. Find '${fileName}' to unlock the final enlightenment.`, clueTemplate: (hint: string) => `Monk's Quiet Note:\n- Harmony in silence.\n- The final truth is stashed in the '${hint}' meditation chamber files. Shhh.`,
         starterClueTemplate: (area: string) => `Peaceful Signal: A calm frequency coming from ${area}. Search for the enlightenment files there.`,
         clueFileNameOptions: ["meditation_log.txt", "vow_of_silence.md", "monastery_rules.txt"],
         distractionDirs: ["meditation_hall", "garden_of_code", "shrine_to_binary", "living_cells", "library_silent"],
@@ -718,7 +718,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Old Radio Station",
-        welcomeMessage: (fileName: string) => `THE LAST BROADCAST.\nThe government has shut down all independent radio. Find '${fileName}' to hijack the signal and play the 'Truth Tapes'.`,        clueTemplate: (hint: string) => `DJ's Final Message:\n- Don't let the music die.\n- The hijack script is in the '${hint}' studio files. KEEP BROADCASTING!`,
+        welcomeMessage: (fileName: string) => `THE LAST BROADCAST.\nThe government has shut down all independent radio. Find '${fileName}' to hijack the signal and play the 'Truth Tapes'.`, clueTemplate: (hint: string) => `DJ's Final Message:\n- Don't let the music die.\n- The hijack script is in the '${hint}' studio files. KEEP BROADCASTING!`,
         starterClueTemplate: (area: string) => `Uplink Alert: Transmitter active in ${area}. Search for hijack tools there.`,
         clueFileNameOptions: ["playlist.md", "fan_mail.txt", "fcc_warning.pdf"],
         distractionDirs: ["studio_A", "record_library", "transmitter_tower", "green_room", "lobby"],
@@ -730,7 +730,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Secret Police Files",
-        welcomeMessage: (fileName: string) => `THE RESISTANCE.\nYou've infiltrated the Secret Police HQ. Find '${fileName}' containing the list of resistance members to warn them before the raids begin.`,        clueTemplate: (hint: string) => `Mole's Secret MSG:\n- They're coming for us.\n- I hid the target list in the '${hint}' interrogation server. GET IT OUT!`,
+        welcomeMessage: (fileName: string) => `THE RESISTANCE.\nYou've infiltrated the Secret Police HQ. Find '${fileName}' containing the list of resistance members to warn them before the raids begin.`, clueTemplate: (hint: string) => `Mole's Secret MSG:\n- They're coming for us.\n- I hid the target list in the '${hint}' interrogation server. GET IT OUT!`,
         starterClueTemplate: (area: string) => `Surveillance Alert: Resistance activity detected in ${area}. The warning list must be there.`,
         clueFileNameOptions: ["interrogation_log.txt", "suspect_dossiers.md", "patrol_schedule.txt"],
         distractionDirs: ["interrogation_room", "armory_police", "vault_evidence", "processing_center", "parking_police"],
@@ -742,7 +742,7 @@ export const scenarios: Scenario[] = [
     },
     {
         theme: "Cargo Plane In-Flight",
-        welcomeMessage: (fileName: string) => `MAYDAY MAYDAY.\nThe autopilot has glitched on a heavy cargo plane. Find '${fileName}' to manually land the aircraft. Access the cockpit server.`,        clueTemplate: (hint: string) => `Captain's Gasp:\n- Controls are jammed!\n- The emergency landing script is stashed in the '${hint}' cargo bay terminal. GO NOW!`,
+        welcomeMessage: (fileName: string) => `MAYDAY MAYDAY.\nThe autopilot has glitched on a heavy cargo plane. Find '${fileName}' to manually land the aircraft. Access the cockpit server.`, clueTemplate: (hint: string) => `Captain's Gasp:\n- Controls are jammed!\n- The emergency landing script is stashed in the '${hint}' cargo bay terminal. GO NOW!`,
         starterClueTemplate: (area: string) => `Proximity Alert: Ground approaching in ${area}. Search for landing controls there.`,
         clueFileNameOptions: ["flight_plan.md", "altitude_log.csv", "cargo_manifest.txt"],
         distractionDirs: ["cockpit_server", "cargo_bay_1", "cargo_bay_2", "nose_cone", "tail_section"],
@@ -809,4 +809,32 @@ export const envVarValues: string[] = [
     "xterm-256color", "/usr/bin/bash", "/home/user", "UTF-8", "vim", "1000",
     "encrypted_v2", "192.168.1.55", "http://proxy.internal", "Fri_Jan_15", "A7F9-22B1-0000", "v4.0.2", "false",
     "api.internal.net", "localhost", "XJ9-99-AA", "Bearer_XYZ", "Salty_Pretzel", "/etc/config", "8"
+];
+
+export const worldEvents = [
+    {
+        title: "Network Blackout",
+        description: "A solar flare has knocked out a major network hub. All mission difficulties are increased by +1.",
+        modifier: { difficulty: 1 }
+    },
+    {
+        title: "Market Crash",
+        description: "A major corporation has gone bankrupt. Hardware prices are 30% off for a limited time.",
+        modifier: { market: { hardware: 0.7 } }
+    },
+    {
+        title: "Software Exploit",
+        description: "A new zero-day exploit has been discovered. Exploit software is 50% more expensive.",
+        modifier: { market: { exploit: 1.5 } }
+    },
+    {
+        title: "Data Rush",
+        description: "A data breach has flooded the market with stolen data. Selling data is 50% more profitable.",
+        modifier: { sell: 1.5 }
+    },
+    {
+        title: "System Update",
+        description: "A new system update has patched many vulnerabilities. All mission difficulties are increased by +2.",
+        modifier: { difficulty: 2 }
+    }
 ];

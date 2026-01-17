@@ -3,7 +3,7 @@ export interface File {
   name: string;
   content: string;
   permissions?: 'user' | 'root';
-  size?: number; // in MB
+  size: number; // in KB
 }
 
 export interface Directory {
@@ -11,6 +11,7 @@ export interface Directory {
   name: string;
   children: { [name: string]: File | Directory };
   permissions?: 'user' | 'root';
+  size: number; // in KB
 }
 
 export type VFSNode = File | Directory;
@@ -163,6 +164,7 @@ export interface PlayerState {
   reputation: number; // XP / Security Clearance
   installedSoftware: string[]; // List of binary IDs/names
   inventory: VFSNode[]; // Stolen files/items
+  missionInventory?: VFSNode[]; // Stolen files/items during a mission
   hardware: HardwareSpecs;
   activeMissionId: string | null;
   tutorialStep?: number;
@@ -172,6 +174,18 @@ export interface PlayerState {
   isOverclocked: boolean;
   voltageLevel: number; // 1.0 to 1.5
   isDevMode?: boolean;
+  theme?: string;
+  themes?: string[];
+  settings?: {
+    scanlines?: boolean;
+    flicker?: boolean;
+    chromaticAberration?: boolean;
+    fontSize?: number;
+    contrast?: 'high' | 'normal';
+    disableJitter?: boolean;
+    historyLength?: number;
+    scale?: number;
+  }
 }
 
 export interface SaveSlot {

@@ -69,6 +69,15 @@ export async function writeSave(slotId: string, data: PlayerState): Promise<void
     await writeDBToLocalStorage(dbData);
 }
 
+export function autoSavePlayerState(data: PlayerState): void {
+    if (data.isDevMode) {
+        writeSave('dev_save_slot', data);
+    } else {
+        const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+        writeSave(slotId, data);
+    }
+}
+
 /**
  * Handles migration of save data from older versions to the current schema.
  */

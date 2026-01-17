@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './components/Terminal';
 import { puzzleGenerator } from './services/puzzleGenerator';
 import { missionGenerator } from './services/MissionGenerator';
-import { writeSave } from './services/PersistenceService';
+import { writeSave, autoSavePlayerState } from './services/PersistenceService';
 import { HardwareService } from './services/HardwareService';
 import { DebugOverlay } from './components/DebugOverlay';
 import { MissionTransition } from './components/MissionTransition';
@@ -10,6 +10,8 @@ import TitleScreen from './components/TitleScreen';
 import BIOSBoot from './components/BIOSBoot';
 import type { GameState, PlayerState, Directory } from './types';
 import { usePerformance } from './hooks/usePerformance';
+import { NewsTicker } from './components/NewsTicker';
+import { Settings } from './components/Settings';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -29,6 +31,8 @@ const App: React.FC = () => {
     const [activeProcesses, setActiveProcesses] = useState<{ id: string; name: string; ram: number }[]>([]);
 
     const [transition, setTransition] = useState<{ type: 'entering' | 'aborting', mission?: any } | null>(null);
+    const [worldEvent, setWorldEvent] = useState<any | null>(null);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
 
     const performance = usePerformance(playerState, activeProcesses);
 
@@ -78,7 +82,8 @@ const App: React.FC = () => {
         if (playerState) {
             const updatedPlayerState = {
                 ...playerState,
-                activeMissionId: null
+                activeMissionId: null,
+                missionInventory: []
             };
             setPlayerState(updatedPlayerState);
             startNewGame(updatedPlayerState);
@@ -173,6 +178,12 @@ const App: React.FC = () => {
         return () => clearInterval(interval);
     }, [playerState === null, showTitleScreen, activeProcesses.length]);
 
+    useEffect(() => {
+        if (playerState) {
+            autoSavePlayerState(playerState);
+        }
+    }, [playerState]);
+
     const handleWin = () => {
         if (!playerState) return;
 
@@ -199,7 +210,9 @@ const App: React.FC = () => {
             credits: playerState.credits + reward,
             reputation: playerState.reputation + repGain,
             activeMissionId: null,
-            availableMissions: missionGenerator.generateMissions(playerState.reputation + repGain)
+            availableMissions: missionGenerator.generateMissions(playerState.reputation + repGain),
+            inventory: [...playerState.inventory, ...(playerState.missionInventory || [])],
+            missionInventory: []
         };
 
         // Auto-save immediately
@@ -239,11 +252,19 @@ const App: React.FC = () => {
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
+            <NewsTicker onEvent={setWorldEvent} />
             {transition && (
                 <MissionTransition
                     type={transition.type}
                     missionData={transition.mission}
                     onComplete={handleTransitionComplete}
+                />
+            )}
+            {showSettings && playerState && (
+                <Settings
+                    playerState={playerState}
+                    onPlayerStateChange={setPlayerState}
+                    onClose={() => setShowSettings(false)}
                 />
             )}
             {!gameWon ? (
@@ -312,7 +333,10 @@ const App: React.FC = () => {
                                     setCurrentUser('user');
                                 }}
                                 onReboot={handleReboot}
+                                worldEvent={worldEvent}
+                                onOpenSettings={() => setShowSettings(true)}
                             />
+                            <button onClick={() => setShowSettings(true)} className="absolute top-4 right-4 text-xs text-gray-500 hover:text-white">SETTINGS</button>
                         </div>
                     </div>
 

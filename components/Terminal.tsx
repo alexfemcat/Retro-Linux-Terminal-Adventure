@@ -33,6 +33,8 @@ export interface TerminalProps {
     onGameStateChange?: (newState: GameState) => void;
     onTransitionPreview?: (type: 'entering' | 'aborting') => void;
     onReboot?: (newState: PlayerState) => void;
+    worldEvent?: any;
+    onOpenSettings?: () => void;
 }
 
 const getPathDisplay = (currentPath: string[]) => {
@@ -167,10 +169,13 @@ export const Terminal: React.FC<TerminalProps> = ({
     onVFSChange,
     onGameStateChange,
     onTransitionPreview,
-    onReboot
+    onReboot,
+    worldEvent,
+    onOpenSettings
 }) => {
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
+    const [aliases, setAliases] = useState<Record<string, string>>({});
 
     // Generalized Input State
     const [inputMode, setInputMode] = useState<'command' | 'password'>('command');
@@ -282,6 +287,25 @@ export const Terminal: React.FC<TerminalProps> = ({
         return node;
     }, [vfs]);
 
+    useEffect(() => {
+        const bashrcPath = resolvePath('~/.bashrc');
+        if (bashrcPath) {
+            const bashrcNode = getNodeByPath(bashrcPath);
+            if (bashrcNode?.type === 'file') {
+                const newAliases: Record<string, string> = {};
+                bashrcNode.content.split('\n').forEach(line => {
+                    if (line.startsWith('alias ')) {
+                        const match = line.match(/alias\s+([^=]+)="([^"]+)"/);
+                        if (match) {
+                            newAliases[match[1]] = match[2];
+                        }
+                    }
+                });
+                setAliases(newAliases);
+            }
+        }
+    }, [vfs, resolvePath, getNodeByPath]);
+
     const promptPassword = (callback: (pwd: string) => void) => {
         setInputMode('password');
         setPasswordCallback(() => callback);
@@ -370,7 +394,13 @@ export const Terminal: React.FC<TerminalProps> = ({
             return;
         }
 
-        const [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
+        let [cmd, ...args] = trimmedCommand.split(/\s+/).filter(Boolean);
+        if (aliases[cmd]) {
+            const aliasCmd = aliases[cmd];
+            const aliasParts = aliasCmd.split(/\s+/);
+            cmd = aliasParts[0];
+            args = [...aliasParts.slice(1), ...args];
+        }
         let output: React.ReactNode | null = null;
 
         // Tutorial Check Logic
@@ -590,6 +620,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                     } else {
                         const result = buyItem(itemId, playerState);
                         if (result.success && result.updatedPlayerState) {
+                            const item = MARKET_CATALOG.find(i => i.id === itemId);
+                            if (item?.category === 'consumable' && item.id.startsWith('theme_')) {
+                                const updatedState = { ...result.updatedPlayerState, themes: [...(result.updatedPlayerState.themes || []), item.id] };
+                                onPlayerStateChange(updatedState);
+                                output = `Theme '${item.name}' purchased and available.`
+                                break;
+                            }
                             const updatedState = result.updatedPlayerState;
                             setIsDiskActive(true);
 
@@ -634,7 +671,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                             output = <div className="text-red-500">Error: File '{fileName}' not found in loot inventory.</div>;
                         } else {
                             // Calculate price: size * factor + random variance
-                            const price = Math.floor((lootFile.size || 0) * 0.5 + (Math.random() * 50));
+                            let price = Math.floor((lootFile.size || 0) * 0.5 + (Math.random() * 50));
+                            if (worldEvent?.modifier?.sell) {
+                                price *= worldEvent.modifier.sell;
+                            }
                             const finalPrice = Math.max(10, price);
 
                             // Animation: Transaction
@@ -729,11 +769,17 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                                         const software = item as any;
                                         const reqs = software.cpuReq !== undefined ? `${software.cpuReq}% / ${software.ramReq}MB` : 'N/A';
+                                        let cost = item.cost;
+                                        if (worldEvent?.modifier?.market) {
+                                            if (worldEvent.modifier.market[item.category]) {
+                                                cost *= worldEvent.modifier.market[item.category];
+                                            }
+                                        }
 
                                         return (
                                             <div key={item.id} className={`grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
                                                 <div className="font-bold text-yellow-300">{item.id}</div>
-                                                <div className="text-green-500">{item.cost.toLocaleString()}c</div>
+                                                <div className="text-green-500">{cost.toLocaleString()}c</div>
                                                 <div className="text-center">{software.tier || '-'}</div>
                                                 <div className="text-cyan-600 text-[10px]">{reqs}</div>
                                                 <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
@@ -844,21 +890,33 @@ export const Terminal: React.FC<TerminalProps> = ({
                         if (isLongFormat) {
                             output = (
                                 <div className="flex flex-col gap-1 w-full text-sm font-mono opacity-90">
-                                    <div className="grid grid-cols-[100px_80px_100px_1fr] gap-4 border-b border-gray-700 pb-1 mb-1 text-gray-500">
+                                    <div className="grid grid-cols-[100px_80px_100px_120px_1fr] gap-4 border-b border-gray-700 pb-1 mb-1 text-gray-500">
                                         <span>PERMS</span>
-                                        <span>SIZE</span>
                                         <span>OWNER</span>
+                                        <span>SIZE</span>
+                                        <span>MODIFIED</span>
                                         <span>NAME</span>
                                     </div>
                                     {children.map(name => {
                                         const child = (lsNode as any).children[name];
                                         const isDir = child.type === 'directory';
-                                        const size = isDir ? '-' : (child.size >= 1024 ? `${(child.size / 1024).toFixed(2)}GB` : `${(child.size || 0).toFixed(1)}MB`);
+                                        const formatSize = (kb: number) => {
+                                            if (kb < 1024) return `${kb.toFixed(1)}K`;
+                                            if (kb < 1024 * 1024) return `${(kb / 1024).toFixed(1)}M`;
+                                            return `${(kb / 1024 / 1024).toFixed(1)}G`;
+                                        };
+                                        const size = formatSize(child.size || 0);
+
+                                        // Fake date
+                                        const date = new Date(Date.now() - Math.random() * 30 * 24 * 60 * 60 * 1000);
+                                        const formattedDate = `${date.toLocaleString('default', { month: 'short' })} ${date.getDate().toString().padStart(2, ' ')} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+
                                         return (
-                                            <div key={name} className="grid grid-cols-[100px_80px_100px_1fr] gap-4">
+                                            <div key={name} className="grid grid-cols-[100px_80px_100px_120px_1fr] gap-4">
                                                 <span className="text-yellow-600 font-mono">{child.permissions === 'root' ? 'drwx------' : (isDir ? 'drwxr-xr-x' : '-rw-r--r--')}</span>
-                                                <span className="text-cyan-600">{size}</span>
                                                 <span className="text-gray-400">{child.permissions || 'user'}</span>
+                                                <span className="text-cyan-600 text-right pr-4">{size}</span>
+                                                <span className="text-gray-500">{formattedDate}</span>
                                                 <span className={`${isDir ? 'text-blue-400 font-bold' : 'text-white'}`}>
                                                     {name}{isDir ? '/' : ''}
                                                 </span>
@@ -1010,16 +1068,15 @@ export const Terminal: React.FC<TerminalProps> = ({
                         if (fNode.permissions === 'root' && currentUser !== 'root') {
                             output = `download: ${downloadFileName}: Permission denied`;
                         } else {
-                            const fileSizeMB = fNode.size || 0.1;
-                            const fileSizeGB = fileSizeMB / 1024;
+                            const fileSizeKB = fNode.size || 1;
 
                             // 1. Check Storage Capacity (Phase 5)
-                            const currentUsageMB = HardwareService.calculateStorageUsage(playerState);
-                            const capacityMB = playerState.hardware.storage.capacity * 1024;
-                            if (currentUsageMB + fileSizeMB > capacityMB) {
+                            const currentUsageKB = HardwareService.calculateStorageUsage(playerState);
+                            const capacityKB = playerState.hardware.storage.capacity * 1024 * 1024;
+                            if (currentUsageKB + fileSizeKB > capacityKB) {
                                 output = (
                                     <div className="text-red-500">
-                                        Error: Disk Full. Available: {(capacityMB - currentUsageMB).toFixed(1)}MB, Required: {fileSizeMB.toFixed(1)}MB.
+                                        Error: Disk Full. Available: {((capacityKB - currentUsageKB) / 1024).toFixed(1)}MB, Required: {(fileSizeKB / 1024).toFixed(1)}MB.
                                     </div>
                                 );
                                 break;
@@ -1027,14 +1084,14 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                             // 2. Check RAM Capacity (Phase 4)
 
-                            if (fileSizeGB > playerState.hardware.ram.capacity) {
-                                output = <div className="text-red-500">Error: File '{fNode.name}' ({fileSizeMB.toFixed(1)}MB) is too large for your system's RAM ({playerState.hardware.ram.capacity}GB). Upgrade RAM to handle this buffer.</div>;
+                            if (fileSizeKB / 1024 > playerState.hardware.ram.capacity * 1024) {
+                                output = <div className="text-red-500">Error: File '{fNode.name}' ({(fileSizeKB / 1024).toFixed(1)}MB) is too large for your system's RAM ({playerState.hardware.ram.capacity}GB). Upgrade RAM to handle this buffer.</div>;
                                 break;
                             }
 
                             const pid = Math.floor(Math.random() * 9000) + 1000;
                             // Download cost is base + multiplier of file size in RAM
-                            const ramCost = HARDWARE_CONFIG.DOWNLOAD_BASE_RAM + (fileSizeGB * HARDWARE_CONFIG.DOWNLOAD_SIZE_FACTOR);
+                            const ramCost = HARDWARE_CONFIG.DOWNLOAD_BASE_RAM + (fileSizeKB / 1024 / 1024 * HARDWARE_CONFIG.DOWNLOAD_SIZE_FACTOR);
 
                             setActiveProcesses(prev => [...prev, { id: pid.toString(), name: `download:${fNode.name}`, ram: ramCost }]);
 
@@ -1042,7 +1099,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                             // 3. Calculate Delay (Phase 5: Network + CPU)
                             const networkSpeedMBps = playerState.hardware.network.bandwidth || 1;
-                            const networkDelay = (fileSizeMB / networkSpeedMBps) * 1000;
+                            const networkDelay = (fileSizeKB / 1024 / networkSpeedMBps) * 1000;
                             const baseProcessingDelay = 500;
                             const totalBaseDelay = networkDelay + baseProcessingDelay;
 
@@ -1073,14 +1130,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 setIsDiskActive(false);
                                 setHistory(prev => [...prev, (
                                     <div className="text-green-400">
-                                        [SUCCESS] Downloaded '{fNode.name}' ({fileSizeMB.toFixed(1)}MB) in {(delay / 1000).toFixed(2)}s.
+                                        [SUCCESS] Downloaded '{fNode.name}' ({(fileSizeKB / 1024).toFixed(1)}MB) in {(delay / 1000).toFixed(2)}s.
                                     </div>
                                 )]);
 
-                                // Add to inventory
+                                // Add to mission inventory
                                 const updatedPlayerState = {
                                     ...playerState,
-                                    inventory: [...playerState.inventory, fNode]
+                                    missionInventory: [...(playerState.missionInventory || []), fNode]
                                 };
                                 onPlayerStateChange(updatedPlayerState);
 
@@ -1109,7 +1166,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 break;
             case 'inv':
                 const invStorageUsed = HardwareService.calculateStorageUsage(playerState);
-                const invCapacity = playerState.hardware.storage.capacity * 1024;
+                const invCapacity = playerState.hardware.storage.capacity * 1024 * 1024;
                 const invPercent = (invStorageUsed / invCapacity) * 100;
 
                 output = (
@@ -1119,7 +1176,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             <div className="flex justify-between text-xs mb-1">
                                 <span>STORAGE USAGE</span>
                                 <span className={invPercent > 90 ? 'text-red-500' : 'text-cyan-400'}>
-                                    {(invStorageUsed / 1024).toFixed(2)} / {(invCapacity / 1024).toFixed(2)} GB
+                                    {(invStorageUsed / (1024 * 1024)).toFixed(2)} / {(invCapacity / (1024 * 1024)).toFixed(2)} GB
                                 </span>
                             </div>
                             <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-cyan-900">
@@ -1143,7 +1200,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 <div key={idx} className="grid grid-cols-[1fr_80px_100px] gap-2 hover:bg-white/5">
                                     <span className="text-white truncate">{item.name}</span>
                                     <span className="text-gray-400 uppercase">{item.type}</span>
-                                    <span className="text-cyan-600">{item.type === 'file' ? `${(item.size || 0).toFixed(2)}MB` : '-'}</span>
+                                    <span className="text-cyan-600">{item.type === 'file' ? `${((item.size || 0) / 1024).toFixed(2)}MB` : '-'}</span>
                                 </div>
                             ))
                         )}
@@ -1155,7 +1212,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 return (
                                     <div key={softId} className="flex justify-between text-xs text-gray-400">
                                         <span>{softId}</span>
-                                        <span>{(soft as any)?.storageSize || 0} MB</span>
+                                        <span>{(((soft as any)?.storageSize || 0) / 1024).toFixed(2)} MB</span>
                                     </div>
                                 );
                             })}
@@ -1936,6 +1993,78 @@ export const Terminal: React.FC<TerminalProps> = ({
                 onMissionAccept(fakeMission);
                 output = `[DEV] Initializing Mission Tier ${tier}...`;
                 break;
+            case 'alias':
+                if (args.length === 0) {
+                    output = Object.entries(aliases).map(([key, value]) => `alias ${key}="${value}"`).join('\n');
+                    break;
+                }
+                const aliasMatch = args.join(' ').match(/([^=]+)="([^"]+)"/);
+                if (aliasMatch) {
+                    const [, key, value] = aliasMatch;
+                    const bashrcPath = resolvePath('~/.bashrc');
+                    if (bashrcPath) {
+                        const bashrcNode = getNodeByPath(bashrcPath) as VFSFile;
+                        if (bashrcNode) {
+                            bashrcNode.content += `\nalias ${key}="${value}"`;
+                            setAliases(prev => ({ ...prev, [key]: value }));
+                            if (onVFSChange) onVFSChange(vfs);
+                        }
+                    }
+                } else {
+                    output = "usage: alias [name]=\"[command]\"";
+                }
+                break;
+            case 'sh':
+                const scriptName = args[0];
+                if (!scriptName) {
+                    output = "usage: sh [file]";
+                    break;
+                }
+                const scriptPath = resolvePath(scriptName);
+                if (scriptPath) {
+                    const scriptNode = getNodeByPath(scriptPath);
+                    if (scriptNode?.type === 'file') {
+                        const commands = scriptNode.content.split('\n').filter(Boolean);
+                        const executeCommands = async () => {
+                            for (const command of commands) {
+                                if (command.startsWith('sh ')) {
+                                    setHistory(prev => [...prev, <div className="text-red-500">Error: Recursive script execution is not allowed.</div>]);
+                                    continue;
+                                }
+                                await processCommand(command);
+                                await new Promise(resolve => setTimeout(resolve, 100)); // 100ms delay
+                            }
+                        };
+                        executeCommands();
+                    } else {
+                        output = `sh: ${scriptName}: No such file or directory`;
+                    }
+                } else {
+                    output = `sh: ${scriptName}: No such file or directory`;
+                }
+                break;
+            case 'theme':
+                const themeName = args[0];
+                if (!themeName) {
+                    output = `Usage: theme [theme_name]\nAvailable themes: ${playerState.themes?.join(', ') || 'none'}`;
+                    break;
+                }
+                if (playerState.themes?.includes(`theme_${themeName}`)) {
+                    onPlayerStateChange({ ...playerState, theme: `theme_${themeName}` });
+                    output = `Theme set to ${themeName}.`;
+                } else {
+                    output = `Theme '${themeName}' not purchased.`;
+                }
+                break;
+            case 'settings':
+                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                    output = <div className="text-red-500">Error: Settings can only be changed at Homebase.</div>;
+                    break;
+                }
+                if (onOpenSettings) {
+                    onOpenSettings();
+                }
+                break;
             default:
                 output = `command not found: ${cmd}`;
         }
@@ -1997,7 +2126,11 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning || performance.isThrashing ? 'glitch-text blur-sm brightness-150' : ''}`}
+            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${playerState.theme || themeColor} ${isTransitioning || (performance.isThrashing && !playerState.settings?.disableJitter) ? 'glitch-text blur-sm brightness-150' : ''} ${playerState.settings?.scanlines ? 'scanlines' : ''} ${playerState.settings?.flicker ? 'crt-flicker' : ''} ${playerState.settings?.chromaticAberration ? 'chromatic-aberration' : ''}`}
+            style={{
+                fontSize: playerState.settings?.fontSize || 16,
+                transform: `scale(${playerState.settings?.scale || 1})`,
+            }}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();
@@ -2036,7 +2169,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                         RAM: {performance.ramUsed.toFixed(1)}/{performance.ramCapacity}GB
                     </span>
                     <span className={`${(performance.storageUsed / performance.storageCapacity) > 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
-                        DISK: {(performance.storageUsed / 1024).toFixed(2)}/{(performance.storageCapacity / 1024).toFixed(0)}GB
+                        DISK: {(performance.storageUsed / (1024 * 1024)).toFixed(2)}/{(performance.storageCapacity / (1024 * 1024)).toFixed(0)}GB
                     </span>
                     {isMissionActive && (
                         <span className="flex items-center gap-2">

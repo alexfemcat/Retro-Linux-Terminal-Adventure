@@ -33,6 +33,11 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'kill': { id: 'kill', description: 'Terminate a process by PID.', usage: 'kill [pid]', isAlwaysAvailable: true, isLocalOnly: false },
     'echo': { id: 'echo', description: 'Write text to a file.', usage: 'echo "text" > [file]', isAlwaysAvailable: true, isLocalOnly: false },
 
+    'alias': { id: 'alias', description: 'Create a command alias.', usage: 'alias [name]="[command]"', isAlwaysAvailable: true, isLocalOnly: false },
+    'sh': { id: 'sh', description: 'Execute a script.', usage: 'sh [file]', isAlwaysAvailable: true, isLocalOnly: false },
+    'theme': { id: 'theme', description: 'Set terminal theme.', usage: 'theme [theme_name]', isAlwaysAvailable: true, isLocalOnly: true },
+    'settings': { id: 'settings', description: 'Open settings menu.', usage: 'settings', isAlwaysAvailable: true, isLocalOnly: true },
+
     // Mission Control
     'tutorial': { id: 'tutorial', description: 'Start the training simulation.', usage: 'tutorial', isAlwaysAvailable: true, isLocalOnly: true },
     'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },

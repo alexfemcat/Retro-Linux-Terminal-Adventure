@@ -146,7 +146,7 @@ export class HardwareService {
     }
 
     /**
-     * Calculates current storage usage in MB (Inventory + Installed Software).
+     * Calculates current storage usage in KB (Inventory + Installed Software).
      */
     static calculateStorageUsage(playerState: PlayerState): number {
         let total = 0;
