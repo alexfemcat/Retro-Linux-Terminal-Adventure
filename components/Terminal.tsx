@@ -303,16 +303,35 @@ export const Terminal: React.FC<TerminalProps> = ({
                 break;
             case 'jobs':
                 if (args[0] === 'accept') {
-                    // For now, accept the first dummy mission
-                    output = "Mission accepted. Initiating connection...";
-                    setTimeout(() => onMissionAccept({}), 1000);
+                    const index = parseInt(args[1]) - 1;
+                    const mission = playerState.availableMissions[index];
+                    if (mission) {
+                        output = `Mission '${mission.title}' accepted. Initiating connection...`;
+                        setTimeout(() => onMissionAccept(mission), 1000);
+                    } else {
+                        output = <div className="text-red-500">Error: Invalid mission ID. Use 'jobs' to see available contracts.</div>;
+                    }
                 } else {
                     output = (
                         <div className="text-yellow-400">
-                            <div>AVAILABLE CONTRACTS:</div>
-                            <div>----------------------------</div>
-                            <div>[1] OMNICORP_DATA_RECOVERY (Diff: 1, Reward: 500c)</div>
-                            <div>Usage: jobs accept 1</div>
+                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">AVAILABLE CONTRACTS</div>
+                            <div className="grid grid-cols-[40px_1fr_60px_80px] gap-x-4">
+                                <div className="opacity-70">#</div>
+                                <div className="opacity-70">TITLE</div>
+                                <div className="opacity-70">DIFF</div>
+                                <div className="opacity-70">REWARD</div>
+                                {playerState.availableMissions.map((m, idx) => (
+                                    <React.Fragment key={m.id}>
+                                        <div>[{idx + 1}]</div>
+                                        <div className="font-bold">{m.title}</div>
+                                        <div>{'★'.repeat(m.difficulty)}</div>
+                                        <div>{m.reward}c</div>
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                            <div className="mt-4 text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
+                                Usage: jobs accept [number]
+                            </div>
                         </div>
                     );
                 }
@@ -448,6 +467,52 @@ export const Terminal: React.FC<TerminalProps> = ({
                     }
                 } else {
                     output = `cat: ${args[0]}: No such file or directory`;
+                }
+                break;
+            case 'download':
+            case 'scp':
+                const downloadFileName = args[0];
+                if (!downloadFileName) {
+                    output = "usage: download [file]";
+                    break;
+                }
+                const downloadPath = resolvePath(downloadFileName);
+                if (downloadPath) {
+                    const fNode = getNodeByPath(downloadPath);
+                    if (fNode?.type === 'file') {
+                        if (fNode.permissions === 'root' && currentUser !== 'root') {
+                            output = `download: ${downloadFileName}: Permission denied`;
+                        } else {
+                            // SUCCESSFUL DOWNLOAD
+                            output = (
+                                <div className="text-green-400">
+                                    [SUCCESS] Downloaded '{fNode.name}' ({Math.floor(Math.random() * 50) + 1}KB) to local inventory.
+                                </div>
+                            );
+
+                            // Add to inventory
+                            const updatedPlayerState = {
+                                ...playerState,
+                                inventory: [...playerState.inventory, fNode]
+                            };
+                            onPlayerStateChange(updatedPlayerState);
+
+                            // Auto-save
+                            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+                            writeSave(slotId, updatedPlayerState);
+
+                            // Check Win Condition: File Found (theft)
+                            if (gameState.winCondition.type === 'file_found' &&
+                                activeNode.id === gameState.winCondition.nodeId &&
+                                fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
+                                onWin();
+                            }
+                        }
+                    } else {
+                        output = `download: ${downloadFileName}: Is a directory`;
+                    }
+                } else {
+                    output = `download: ${downloadFileName}: No such file or directory`;
                 }
                 break;
             case 'ping':
@@ -739,7 +804,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning ? 'animate-pulse blur-sm' : ''}`}
+            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${themeColor} ${isTransitioning ? 'glitch-text blur-sm brightness-150' : ''}`}
             onClick={() => {
                 if (window.getSelection()?.toString() === '') {
                     inputRef.current?.focus();

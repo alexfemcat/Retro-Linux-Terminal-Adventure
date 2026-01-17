@@ -1,4 +1,4 @@
-import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState } from '../types';
+import type { Directory, Scenario, GameState, Process, File, NetworkNode, NetworkPort, WinCondition, PlayerState, MissionConfig } from '../types';
 import { scenarios, petNames, cities, colors, years, processNames, envVarKeys, envVarValues, usernames, hostnames, fakeIPs, fakePasswords, fakeTokens } from '../data/gameData';
 
 class PuzzleGenerator {
@@ -388,13 +388,13 @@ class PuzzleGenerator {
         return { node, puzzle, users: selectedUsers };
     }
 
-    public generateNetwork(): GameState {
-        const scenario = this.getRandom(scenarios);
+    public generateNetwork(config?: MissionConfig): GameState {
+        const scenario = config && config.scenarioIndex !== undefined ? scenarios[config.scenarioIndex] : this.getRandom(scenarios);
         const nodes: NetworkNode[] = [];
         const nodeData: { puzzle: any, users: string[] }[] = [];
 
         // Generate 3-5 nodes
-        const numNodes = 3 + Math.floor(Math.random() * 3);
+        const numNodes = config?.numNodes || (3 + Math.floor(Math.random() * 3));
 
         // Theme colors for nodes (localhost is always green)
         const themeColors = ['text-green-400', 'text-amber-400', 'text-cyan-400', 'text-red-400', 'text-blue-400', 'text-purple-400', 'text-pink-400'];
@@ -482,16 +482,40 @@ class PuzzleGenerator {
         // 4. Define Win Condition
         // Win: Get root on the last node
         const targetNode = nodes[nodes.length - 1];
-        const winCondition: WinCondition = { type: 'root_access', nodeId: targetNode.id };
+        const targetFileName = config?.targetFileName || 'SECRET.dat';
 
-        const welcomeMessage = scenario.welcomeMessage('MISSION BRIEFING');
+        // Randomly choose win condition if not specified?
+        // For now, if we have a targetFileName, it's a file theft mission.
+        const winCondition: WinCondition = config?.targetFileName
+            ? { type: 'file_found', nodeId: targetNode.id, path: ['home', 'user', 'Documents', targetFileName] }
+            : { type: 'root_access', nodeId: targetNode.id };
+
+        // Place the target file if it's a file found mission
+        if (winCondition.type === 'file_found') {
+            const home = ((targetNode.vfs.children['home'] as Directory).children['user'] as Directory);
+            if (!home.children['Documents']) {
+                home.children['Documents'] = { type: 'directory', name: 'Documents', children: {} };
+            }
+            const docs = home.children['Documents'] as Directory;
+            docs.children[targetFileName] = {
+                type: 'file',
+                name: targetFileName,
+                content: `[CLASSIFIED DATA]\nThis file contains high-value information.\n${scenario.theme} mission target.`
+            };
+        }
+
+        const welcomeMessage = scenario.welcomeMessage(targetFileName);
 
         // Add Mission Briefing to Localhost
         const userHome = ((nodes[0].vfs.children.home as Directory).children['user'] as Directory);
+        const objectiveText = winCondition.type === 'file_found'
+            ? `Download '${targetFileName}' from ${targetNode.hostname} (${targetNode.ip}).`
+            : `Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).`;
+
         userHome.children['MISSION.txt'] = {
             type: 'file',
             name: 'MISSION.txt',
-            content: `MISSION BRIEFING\n\nObjective: Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).\n\n1. Investigate the network.\n2. Follow the clues across nodes.\n3. Infiltrate the target system.\n\nGood luck, operative.`
+            content: `MISSION BRIEFING\n\nObjective: ${objectiveText}\n\n1. Investigate the network.\n2. Follow the clues across nodes.\n3. Infiltrate the target system.\n\nGood luck, operative.`
         };
 
         return {

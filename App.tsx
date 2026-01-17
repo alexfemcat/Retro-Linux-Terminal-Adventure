@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Terminal } from './components/Terminal';
 import { puzzleGenerator } from './services/puzzleGenerator';
+import { missionGenerator } from './services/MissionGenerator';
+import { writeSave } from './services/PersistenceService';
 import { DebugOverlay } from './components/DebugOverlay';
 import TitleScreen from './components/TitleScreen';
 import type { GameState, PlayerState } from './types';
@@ -12,6 +14,7 @@ const App: React.FC = () => {
     const [gameWon, setGameWon] = useState<boolean>(false);
     const [winMessage, setWinMessage] = useState<React.ReactNode[]>([]);
     const [showTitleScreen, setShowTitleScreen] = useState<boolean>(true);
+    const [isBooting, setIsBooting] = useState<boolean>(false);
     const [isMissionActive, setIsMissionActive] = useState<boolean>(false);
 
     const [currentPath, setCurrentPath] = useState<string[]>(['home', 'user']);
@@ -20,6 +23,11 @@ const App: React.FC = () => {
     const [showDebug, setShowDebug] = useState<boolean>(false);
 
     const startNewGame = useCallback((initialPlayerState: PlayerState) => {
+        // Initialize missions if needed
+        if (!initialPlayerState.availableMissions || initialPlayerState.availableMissions.length === 0) {
+            initialPlayerState.availableMissions = missionGenerator.generateMissions(initialPlayerState.reputation);
+        }
+
         // By default, start at Homebase
         const newGameState = puzzleGenerator.generateHomebase(initialPlayerState);
         setGameState(newGameState);
@@ -34,11 +42,13 @@ const App: React.FC = () => {
         setGameId(id => id + 1);
     }, []);
 
-    const handleMissionAccept = useCallback((_missionConfig: any) => {
+    const handleMissionAccept = useCallback((mission: any) => {
         // Transition to Mission Mode
-        const missionGameState = puzzleGenerator.generateNetwork(); // For now, use existing generator
+        const missionGameState = puzzleGenerator.generateNetwork(mission.targetNetworkConfig);
         setGameState(missionGameState);
         setIsMissionActive(true);
+
+        setPlayerState(prev => prev ? { ...prev, activeMissionId: mission.id } : null);
 
         setCurrentPath(['home', 'user']);
         setCurrentUser('user');
@@ -47,14 +57,30 @@ const App: React.FC = () => {
 
     const handleMissionAbort = useCallback(() => {
         if (playerState) {
-            startNewGame(playerState);
+            const updatedPlayerState = {
+                ...playerState,
+                activeMissionId: null
+            };
+            setPlayerState(updatedPlayerState);
+            startNewGame(updatedPlayerState);
+
+            // Auto-save
+            const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+            writeSave(slotId, updatedPlayerState);
         }
     }, [playerState, startNewGame]);
 
     const handleGameLoad = useCallback((loadedPlayerState: PlayerState, slotId: string) => {
         localStorage.setItem('active-save-slot', slotId);
-        startNewGame(loadedPlayerState);
-        setShowTitleScreen(false);
+
+        // Start "Sick Ass" boot sequence
+        setIsBooting(true);
+
+        setTimeout(() => {
+            startNewGame(loadedPlayerState);
+            setShowTitleScreen(false);
+            setIsBooting(false);
+        }, 2500); // 2.5s boot sequence
     }, [startNewGame]);
 
     useEffect(() => {
@@ -76,9 +102,17 @@ const App: React.FC = () => {
     }, [gameState?.activeNodeIndex]);
 
     const handleWin = () => {
+        if (!playerState) return;
+
+        const activeMission = playerState.availableMissions.find(m => m.id === playerState.activeMissionId);
+        const reward = activeMission?.reward || 0;
+        const repGain = (activeMission?.difficulty || 1) * 20;
+
         const lines = [
             '>>> ACCESS GRANTED. ROOT PRIVILEGES OBTAINED.',
             '>>> MISSION OBJECTIVE SECURED.',
+            `>>> REWARD: ${reward} CREDITS RECEIVED.`,
+            `>>> REPUTATION: +${repGain} XP.`,
             '>>> NETWORK TRACE DELETED.',
             '>>> SYSTEM SHUTDOWN IMMINENT...',
             '----------------------------------------',
@@ -87,6 +121,18 @@ const App: React.FC = () => {
         ];
 
         setGameWon(true);
+
+        const updatedPlayerState: PlayerState = {
+            ...playerState,
+            credits: playerState.credits + reward,
+            reputation: playerState.reputation + repGain,
+            activeMissionId: null,
+            availableMissions: missionGenerator.generateMissions(playerState.reputation + repGain)
+        };
+
+        // Auto-save immediately
+        const slotId = localStorage.getItem('active-save-slot') || 'slot_1';
+        writeSave(slotId, updatedPlayerState);
 
         let i = 0;
         const interval = setInterval(() => {
@@ -97,10 +143,12 @@ const App: React.FC = () => {
                 clearInterval(interval);
             }
         }, 300);
+
+        setPlayerState(updatedPlayerState);
     };
 
     if (showTitleScreen) {
-        return <TitleScreen onGameLoad={handleGameLoad} />;
+        return <TitleScreen onGameLoad={handleGameLoad} isBooting={isBooting} />;
     }
 
     if (!gameState || !playerState) {

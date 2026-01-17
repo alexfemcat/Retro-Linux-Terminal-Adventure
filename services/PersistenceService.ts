@@ -68,7 +68,7 @@ export function createInitialPlayerState(): PlayerState {
     return {
         credits: 0,
         reputation: 0,
-        installedSoftware: ['ls', 'cd', 'help', 'market', 'exit'],
+        installedSoftware: ['ls', 'cd', 'help', 'market', 'jobs', 'exit'],
         inventory: [],
         hardware: {
             cpu: { id: 'cpu_v1', level: 1, clockSpeed: 1.0, cores: 1 },
@@ -77,7 +77,8 @@ export function createInitialPlayerState(): PlayerState {
             storage: { id: 'hd_v1', level: 1, capacity: 100 },
             cooling: { id: 'cool_v1', level: 1, heatDissipation: 1.0 }
         },
-        activeMissionId: null
+        activeMissionId: null,
+        availableMissions: []
     };
 }
 

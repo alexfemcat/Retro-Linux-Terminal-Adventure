@@ -28,10 +28,11 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'exit': { id: 'exit', description: 'Disconnect/Logout.', usage: 'exit', isAlwaysAvailable: true, isLocalOnly: false },
 
     // Mission Control
-    'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: false, isLocalOnly: true },
-    'market': { id: 'market', description: 'Browse/Buy upgrades.', usage: 'market [buy <id>]', isAlwaysAvailable: false, isLocalOnly: true },
+    'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },
+    'market': { id: 'market', description: 'Browse/Buy upgrades.', usage: 'market [buy <id>]', isAlwaysAvailable: true, isLocalOnly: true },
     'abort': { id: 'abort', description: 'Abandon current mission.', usage: 'abort', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
     'disconnect': { id: 'disconnect', description: 'Alias for abort.', usage: 'disconnect', isAlwaysAvailable: true, isLocalOnly: false, isRemoteOnly: true },
+    'download': { id: 'download', description: 'Download file from remote.', usage: 'download [file]', isAlwaysAvailable: false, isLocalOnly: false, isRemoteOnly: true },
 
     // Hacking Tools (Gated)
     'ping': { id: 'ping', description: 'Check host availability.', usage: 'ping [ip]', isAlwaysAvailable: false, isLocalOnly: false },

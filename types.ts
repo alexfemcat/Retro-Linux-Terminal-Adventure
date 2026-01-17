@@ -86,6 +86,23 @@ export interface HardwareSpecs {
   cooling: { id: string; level: number; heatDissipation: number };
 }
 
+export interface Mission {
+  id: string;
+  title: string;
+  difficulty: 1 | 2 | 3 | 4 | 5;
+  reward: number;
+  description: string;
+  // Parameters to feed into the Network Generator
+  targetNetworkConfig: MissionConfig;
+}
+
+export interface MissionConfig {
+  scenarioIndex?: number; // Index in scenarios array
+  numNodes?: number;
+  targetFileName?: string;
+  difficultyMultiplier?: number;
+}
+
 export interface PlayerState {
   credits: number;
   reputation: number; // XP / Security Clearance
@@ -93,6 +110,7 @@ export interface PlayerState {
   inventory: VFSNode[]; // Stolen files/items
   hardware: HardwareSpecs;
   activeMissionId: string | null;
+  availableMissions: Mission[];
 }
 
 export interface SaveSlot {
