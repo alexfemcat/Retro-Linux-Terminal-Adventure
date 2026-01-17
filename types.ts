@@ -117,6 +117,7 @@ export interface Email {
   attachments?: VFSNode[];
   missionId?: string;
   factionId?: string;
+  reputationModifier?: number;
 }
 
 export interface WorldEvent {
