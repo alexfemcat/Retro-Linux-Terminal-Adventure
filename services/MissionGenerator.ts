@@ -42,8 +42,16 @@ class MissionGenerator {
         // Diff 3: ~2500-3500c
         // Diff 4: ~10000-14000c
         // Diff 5: ~45000-60000c
-        const baseReward = Math.pow(difficulty, 3.8) * 45 + (difficulty * 150);
-        let reward = baseReward + Math.floor(Math.random() * (baseReward * 0.15));
+        const rewardRanges: Record<number, { min: number, max: number }> = {
+            1: { min: 200, max: 250 },
+            2: { min: 600, max: 800 },
+            3: { min: 2500, max: 3500 },
+            4: { min: 10000, max: 14000 },
+            5: { min: 45000, max: 60000 }
+        };
+
+        const range = rewardRanges[difficulty];
+        let reward = Math.floor(range.min + Math.random() * (range.max - range.min));
 
         // Apply Holiday Modifiers
         if (gameState?.currentDate) {

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { PlayerState, Mission, WorldEvent, Email } from '../types';
 import { blackmailTemplates, leakNewsTemplates } from '../data/gameData';
+import { MARKET_CATALOG } from '../data/marketData';
+import { buyItem } from '../services/MarketSystem';
 import { writeSave } from '../services/PersistenceService';
 
 interface BrowserProps {
@@ -26,6 +28,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
     const [url, setUrl] = useState(initialUrl);
     const [history, setHistory] = useState<string[]>([initialUrl]);
     const [isPageLoading, setIsPageLoading] = useState(false);
+    const [marketTab, setMarketTab] = useState<'software' | 'hardware' | 'consumables'>('software');
 
     const navigate = (newUrl: string, isBack: boolean = false) => {
         if (newUrl === url) return;
@@ -49,6 +52,16 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
         }
     };
 
+    const handlePurchase = (itemId: string) => {
+        const result = buyItem(itemId, playerState);
+        if (result.success && result.updatedPlayerState) {
+            onPlayerStateChange(result.updatedPlayerState);
+            const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+            writeSave(slotId, result.updatedPlayerState);
+        } else {
+            alert(`[ERROR] ${result.error}`);
+        }
+    };
 
     const renderContent = () => {
         if (url === 'home://new-tab') {
@@ -397,6 +410,143 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                     </button>
                                 ))
                         )}
+                    </div>
+                </div>
+            );
+        }
+
+        if (url === 'web://macro-electronics') {
+            return (
+                <div className="h-full flex flex-col bg-[#0a0a0a]">
+                    {/* Header */}
+                    <div className="p-4 border-b border-green-900/50 flex justify-between items-center bg-black">
+                        <h2 className="text-xl font-bold text-green-500 tracking-tighter uppercase">Macro-Electronics v4.0</h2>
+                        <div className="text-yellow-500 font-mono font-bold bg-yellow-900/20 px-3 py-1 border border-yellow-900/50">
+                            {playerState.credits.toLocaleString()} CR
+                        </div>
+                    </div>
+
+                    <div className="flex flex-grow overflow-hidden">
+                        {/* Sidebar Tabs */}
+                        <div className="w-48 border-r border-green-900/30 bg-black flex flex-col">
+                            {(['software', 'hardware', 'consumables'] as const).map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => setMarketTab(tab)}
+                                    className={`p-4 text-left text-xs font-bold uppercase tracking-widest transition-all border-b border-green-900/10 ${marketTab === tab ? 'bg-green-900/20 text-green-400 border-r-2 border-r-green-500' : 'text-gray-600 hover:bg-white/5 hover:text-gray-400'}`}
+                                >
+                                    {tab === 'software' && '📂 '}
+                                    {tab === 'hardware' && '🔌 '}
+                                    {tab === 'consumables' && '🔋 '}
+                                    {tab}
+                                </button>
+                            ))}
+                            <div className="mt-auto p-4 opacity-20 grayscale pointer-events-none">
+                                <div className="text-[8px] text-green-500 uppercase mb-1">Authorized Dealer</div>
+                                <div className="text-[10px] text-white font-bold">MACRO_CORP</div>
+                            </div>
+                        </div>
+
+                        {/* Main Content Area */}
+                        <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+                            {marketTab === 'software' && (
+                                <div className="space-y-4">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">Available Software Suites</div>
+                                    {MARKET_CATALOG.filter(i => ['utility', 'sniffing', 'exploit'].includes(i.category)).map(item => (
+                                        <div key={item.id} className="bg-gray-900/20 border border-gray-800 p-4 flex justify-between items-center hover:border-green-900/50 transition-colors group">
+                                            <div>
+                                                <div className="text-white font-bold group-hover:text-green-400 transition-colors">{item.name}</div>
+                                                <div className="text-xs text-gray-500 max-w-md mt-1">{item.description}</div>
+                                                <div className="text-[9px] text-green-900 mt-2 uppercase font-mono">
+                                                    {'cpuReq' in item && item.cpuReq && `CPU_LOAD: ${item.cpuReq}% | `}
+                                                    {'ramReq' in item && item.ramReq && `MEM_REQ: ${item.ramReq}MB | `}
+                                                    {'storageSize' in item && item.storageSize && `DISK_USE: ${item.storageSize}MB`}
+                                                </div>
+                                            </div>
+                                            <button
+                                                onClick={() => handlePurchase(item.id)}
+                                                disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
+                                                className={`px-4 py-2 font-bold text-xs uppercase tracking-widest transition-all border ${playerState.installedSoftware.includes(item.id) ? 'bg-gray-800/50 border-gray-700 text-gray-600 cursor-not-allowed' : 'bg-green-900/10 border-green-500/50 text-green-500 hover:bg-green-500 hover:text-black'}`}
+                                            >
+                                                {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+
+                            {marketTab === 'hardware' && (
+                                <div className="space-y-8">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">System Component Upgrades</div>
+                                    {(['cpu', 'ram', 'storage', 'cooling', 'network'] as const).map(hwKey => {
+                                        const current = playerState.hardware[hwKey];
+                                        const nextUpgrade = MARKET_CATALOG.find(i =>
+                                            i.category === 'hardware' &&
+                                            (i as any).hardwareKey === hwKey &&
+                                            (i as any).stats?.level === current.level + 1
+                                        );
+
+                                        return (
+                                            <div key={hwKey} className="border border-gray-800 bg-gray-900/10 overflow-hidden">
+                                                {/* Current Spec Header */}
+                                                <div className="bg-black p-2 px-4 flex justify-between items-center border-b border-gray-800">
+                                                    <span className="text-[10px] text-gray-500 uppercase font-bold">{hwKey} status</span>
+                                                    <span className="text-[10px] text-green-700 font-mono">LEVEL {current.level} INSTALLED</span>
+                                                </div>
+
+                                                <div className="p-4 flex justify-between items-center">
+                                                    <div className="flex-grow">
+                                                        <div className="flex items-center gap-4 mb-2">
+                                                            <div className="text-white font-bold opacity-50 line-through text-sm">{current.id.replace('_', ' ').toUpperCase()}</div>
+                                                            <div className="text-green-500 text-xl">▶</div>
+                                                            {nextUpgrade ? (
+                                                                <div className="text-white font-bold text-lg">{nextUpgrade.name}</div>
+                                                            ) : (
+                                                                <div className="text-yellow-500 font-bold text-lg uppercase tracking-widest">Maximum Level Reached</div>
+                                                            )}
+                                                        </div>
+                                                        {nextUpgrade && (
+                                                            <div className="text-xs text-gray-500 max-w-md italic">"{nextUpgrade.description}"</div>
+                                                        )}
+                                                    </div>
+
+                                                    {nextUpgrade && (
+                                                        <button
+                                                            onClick={() => handlePurchase(nextUpgrade.id)}
+                                                            disabled={playerState.credits < nextUpgrade.cost}
+                                                            className="px-6 py-3 bg-green-900/10 border border-green-500 text-green-500 font-bold text-sm uppercase tracking-widest hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.1)]"
+                                                        >
+                                                            UPGRADE: {nextUpgrade.cost}c
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {marketTab === 'consumables' && (
+                                <div className="space-y-4">
+                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">Disposable Field Tools</div>
+                                    {MARKET_CATALOG.filter(i => i.category === 'consumable').map(item => (
+                                        <div key={item.id} className="bg-gray-900/20 border border-gray-800 p-4 flex justify-between items-center hover:border-green-900/50 transition-colors group">
+                                            <div>
+                                                <div className="text-white font-bold group-hover:text-green-400 transition-colors">{item.name}</div>
+                                                <div className="text-xs text-gray-500 max-w-md mt-1">{item.description}</div>
+                                            </div>
+                                            <button
+                                                onClick={() => handlePurchase(item.id)}
+                                                disabled={playerState.credits < item.cost}
+                                                className="px-4 py-2 bg-green-900/10 border border-green-500/50 text-green-500 font-bold text-xs uppercase tracking-widest hover:bg-green-500 hover:text-black transition-all"
+                                            >
+                                                {item.cost}c
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </div>
             );
