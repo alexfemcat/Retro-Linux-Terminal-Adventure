@@ -25,14 +25,29 @@ export const Browser: React.FC<BrowserProps> = ({
     initialUrl = 'home://new-tab'
 }) => {
     const [url, setUrl] = useState(initialUrl);
+    const [history, setHistory] = useState<string[]>([initialUrl]);
     const [isPageLoading, setIsPageLoading] = useState(false);
 
-    const navigate = (newUrl: string) => {
+    const navigate = (newUrl: string, isBack: boolean = false) => {
+        if (newUrl === url) return;
         setIsPageLoading(true);
         setTimeout(() => {
             setUrl(newUrl);
+            if (!isBack) {
+                setHistory(prev => [...prev, newUrl]);
+            }
             setIsPageLoading(false);
         }, 400);
+    };
+
+    const goBack = () => {
+        if (history.length > 1) {
+            const newHistory = [...history];
+            newHistory.pop(); // Remove current
+            const prevUrl = newHistory[newHistory.length - 1];
+            setHistory(newHistory);
+            navigate(prevUrl, true);
+        }
     };
 
     const handlePurchase = (itemId: string) => {
@@ -78,7 +93,7 @@ export const Browser: React.FC<BrowserProps> = ({
                         />
                         <BrowserIcon
                             icon="🤫"
-                            label="Blackmail"
+                            label="Tor Blackmail Service"
                             sublabel="Anonymous Extortion"
                             onClick={() => navigate('tor://blackmail-service')}
                         />
@@ -220,7 +235,7 @@ export const Browser: React.FC<BrowserProps> = ({
             return (
                 <div className="p-8 h-full flex flex-col items-center justify-center text-center">
                     <div className="text-6xl mb-6">🤫</div>
-                    <h2 className="text-3xl font-bold text-purple-400 mb-4 uppercase tracking-widest">Blackmail Portal</h2>
+                    <h2 className="text-3xl font-bold text-purple-400 mb-4 uppercase tracking-widest">Tor Blackmail Service</h2>
                     <p className="text-gray-400 max-w-lg mb-8 italic">
                         "Information is the only currency that never devalues."<br />
                         Upload stolen sensitive data here to begin anonymous extortion proceedings.
@@ -439,6 +454,16 @@ export const Browser: React.FC<BrowserProps> = ({
                         <button onClick={onClose} className="w-3 h-3 rounded-full bg-red-500 hover:bg-red-400"></button>
                         <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
                         <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                    </div>
+                    <div className="flex gap-2 ml-2">
+                        <button
+                            onClick={goBack}
+                            disabled={history.length <= 1}
+                            className={`text-xl ${history.length > 1 ? 'text-gray-300 hover:text-white' : 'text-gray-600 cursor-not-allowed'}`}
+                            title="Back"
+                        >
+                            ⬅️
+                        </button>
                     </div>
                     <div className="flex-grow flex items-center bg-black border border-gray-600 px-3 py-1 rounded">
                         <span className="text-gray-600 mr-2">URL:</span>
