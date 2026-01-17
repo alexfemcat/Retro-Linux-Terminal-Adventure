@@ -572,11 +572,36 @@ class PuzzleGenerator {
         const targetNode = nodes[nodes.length - 1];
         const targetFileName = config?.targetFileName || 'SECRET.dat';
 
-        // Randomly choose win condition if not specified?
-        // For now, if we have a targetFileName, it's a file theft mission.
-        const winCondition: WinCondition = config?.targetFileName
-            ? { type: 'file_found', nodeId: targetNode.id, path: ['home', 'user', 'Documents', targetFileName] }
-            : { type: 'root_access', nodeId: targetNode.id };
+        // Randomly choose win condition if not specified
+        let winCondition: WinCondition;
+
+        if (config?.targetFileName) {
+            winCondition = { type: 'file_found', nodeId: targetNode.id, path: ['home', 'user', 'Documents', targetFileName] };
+        } else {
+            const roll = Math.random();
+            if (roll > 0.6) {
+                winCondition = { type: 'root_access', nodeId: targetNode.id };
+            } else if (roll > 0.3) {
+                const proc = this.getRandom(targetNode.processes);
+                winCondition = { type: 'process_killed', nodeId: targetNode.id, processName: proc.name };
+            } else {
+                winCondition = {
+                    type: 'file_modified',
+                    nodeId: targetNode.id,
+                    path: ['var', 'www', 'html', 'index.html'],
+                    targetContent: 'HACKED BY RETRO-TERM'
+                };
+
+                // Ensure the path exists for defacement
+                if (!targetNode.vfs.children['var']) targetNode.vfs.children['var'] = { type: 'directory', name: 'var', children: {} };
+                const v = targetNode.vfs.children['var'] as Directory;
+                if (!v.children['www']) v.children['www'] = { type: 'directory', name: 'www', children: {} };
+                const w = v.children['www'] as Directory;
+                if (!w.children['html']) w.children['html'] = { type: 'directory', name: 'html', children: {} };
+                const h = w.children['html'] as Directory;
+                h.children['index.html'] = { type: 'file', name: 'index.html', content: 'Welcome to our secure website.', size: 0.1 };
+            }
+        }
 
         // Place the target file if it's a file found mission
         if (winCondition.type === 'file_found') {
@@ -597,9 +622,13 @@ class PuzzleGenerator {
 
         // Add Mission Briefing to Localhost
         const userHome = ((nodes[0].vfs.children.home as Directory).children['user'] as Directory);
-        const objectiveText = winCondition.type === 'file_found'
-            ? `Download '${targetFileName}' from ${targetNode.hostname} (${targetNode.ip}).`
-            : `Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).`;
+        let objectiveText = "";
+        switch (winCondition.type) {
+            case 'file_found': objectiveText = `Download '${targetFileName}' from ${targetNode.hostname} (${targetNode.ip}).`; break;
+            case 'root_access': objectiveText = `Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).`; break;
+            case 'process_killed': objectiveText = `Terminate the process '${winCondition.processName}' on ${targetNode.hostname}.`; break;
+            case 'file_modified': objectiveText = `Deface the server ${targetNode.hostname} by modifying /var/www/html/index.html.`; break;
+        }
 
         userHome.children['MISSION.txt'] = {
             type: 'file',

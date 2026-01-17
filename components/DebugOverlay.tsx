@@ -25,6 +25,11 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
 }) => {
     const [activeTab, setActiveTab] = useState<'mission' | 'player' | 'hardware'>('player');
 
+    // Custom Mission Generation State
+    const [customNodes, setCustomNodes] = useState(3);
+    const [customDifficulty, setCustomDifficulty] = useState(2);
+    const [customType, setCustomType] = useState<'data' | 'root'>('data');
+
     const modifyCredits = (amount: number) => {
         onPlayerStateChange({ ...playerState, credits: Math.max(0, playerState.credits + amount) });
     };
@@ -60,9 +65,24 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
             description: 'FORCE-SPAWNED VIA DEBUG MENU',
             targetNetworkConfig: config
         };
-        // This is a bit of a hack since we need to call handleMissionAccept from App
-        // But since we are debugging, we can just trigger the transition directly if we had it.
-        // For now, let's just use the existing jobs system logic.
+        const updatedMissions = [...playerState.availableMissions, fakeMission as any];
+        onPlayerStateChange({ ...playerState, availableMissions: updatedMissions });
+    };
+
+    const spawnCustomMission = () => {
+        const config = {
+            numNodes: customNodes,
+            difficultyMultiplier: customDifficulty,
+            targetFileName: customType === 'data' ? `SECRET_${Math.floor(Math.random() * 1000)}.dat` : undefined
+        };
+        const fakeMission = {
+            id: `custom_${Date.now()}`,
+            title: `CUSTOM OP: ${customType.toUpperCase()}`,
+            difficulty: Math.min(5, Math.max(1, customDifficulty)) as 1 | 2 | 3 | 4 | 5,
+            reward: customNodes * customDifficulty * 200,
+            description: `CUSTOM MISSION - TYPE: ${customType.toUpperCase()} - NODES: ${customNodes}`,
+            targetNetworkConfig: config
+        };
         const updatedMissions = [...playerState.availableMissions, fakeMission as any];
         onPlayerStateChange({ ...playerState, availableMissions: updatedMissions });
     };
@@ -138,7 +158,7 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
                         <section>
                             <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Software Binaries</h4>
                             <div className="grid grid-cols-2 gap-1">
-                                {MARKET_CATALOG.filter(i => i.type === 'software').map(item => {
+                                {MARKET_CATALOG.filter(i => ['utility', 'exploit', 'sniffing'].includes(i.category)).map(item => {
                                     const installed = playerState.installedSoftware.includes(item.id);
                                     return (
                                         <button
@@ -191,6 +211,28 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
                                 </section>
 
                                 <section>
+                                    <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Signal Trace</h4>
+                                    <div className="bg-gray-900/50 p-2 rounded">
+                                        <div className="flex justify-between mb-1">
+                                            <span>PROGRESS</span>
+                                            <span className={gameState.traceProgress > 75 ? 'text-red-500' : 'text-yellow-500'}>{gameState.traceProgress}%</span>
+                                        </div>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="100"
+                                            value={gameState.traceProgress}
+                                            onChange={(e) => onGameStateChange({ ...gameState, traceProgress: parseInt(e.target.value), isTraceActive: true })}
+                                            className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-green-500"
+                                        />
+                                        <div className="flex gap-2 mt-2">
+                                            <button onClick={() => onGameStateChange({ ...gameState, traceProgress: 0 })} className="text-[8px] bg-blue-900/20 px-1 rounded">CLEAR</button>
+                                            <button onClick={() => onGameStateChange({ ...gameState, traceProgress: 100 })} className="text-[8px] bg-red-900/20 px-1 rounded">TRIGGER DISCONNECT</button>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
                                     <div className="flex justify-between items-center mb-2">
                                         <h4 className="text-gray-500 uppercase text-[9px]">Network Topology</h4>
                                         <button
@@ -216,6 +258,17 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
                                                         {node.isDiscovered ? 'DISCOVERED' : 'HIDDEN'}
                                                     </div>
                                                 </div>
+                                                {node.vulnerabilities.length > 0 && (
+                                                    <div className="mt-2 space-y-1 border-t border-gray-800 pt-1">
+                                                        <div className="text-[7px] text-gray-500 uppercase">Vulnerabilities:</div>
+                                                        {node.vulnerabilities.map((v, i) => (
+                                                            <div key={i} className="text-[8px] flex justify-between">
+                                                                <span className="text-red-400">{v.type.toUpperCase()}</span>
+                                                                <span className="text-gray-500">Lvl {v.level}</span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>
@@ -227,24 +280,55 @@ export const DebugOverlay: React.FC<DebugOverlayProps> = ({
                                 </section>
                             </>
                         ) : (
-                            <section>
-                                <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Mission Deployment</h4>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {[1, 2, 3, 4, 5, 6].map(tier => (
+                            <>
+                                <section>
+                                    <h4 className="text-gray-500 uppercase text-[9px] mb-3 border-b border-gray-800 pb-1">Custom Mission Generator</h4>
+                                    <div className="space-y-3 bg-gray-900/40 p-3 rounded border border-green-500/10">
+                                        <div>
+                                            <div className="flex justify-between text-[8px] mb-1">
+                                                <span>NODE COUNT</span>
+                                                <span className="text-white">{customNodes}</span>
+                                            </div>
+                                            <input type="range" min="2" max="10" value={customNodes} onChange={e => setCustomNodes(parseInt(e.target.value))} className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-green-500" />
+                                        </div>
+                                        <div>
+                                            <div className="flex justify-between text-[8px] mb-1">
+                                                <span>DIFFICULTY</span>
+                                                <span className="text-white">TIER {customDifficulty}</span>
+                                            </div>
+                                            <input type="range" min="1" max="5" value={customDifficulty} onChange={e => setCustomDifficulty(parseInt(e.target.value))} className="w-full h-1 bg-gray-800 rounded-lg appearance-none cursor-pointer accent-green-500" />
+                                        </div>
+                                        <div>
+                                            <div className="text-[8px] mb-1 uppercase opacity-50">Objective Type</div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => setCustomType('data')} className={`flex-1 py-1 rounded border ${customType === 'data' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>DATA THEFT</button>
+                                                <button onClick={() => setCustomType('root')} className={`flex-1 py-1 rounded border ${customType === 'root' ? 'bg-green-500/20 border-green-500 text-white' : 'bg-gray-800 border-transparent text-gray-500'}`}>ROOT ACCESS</button>
+                                            </div>
+                                        </div>
                                         <button
-                                            key={tier}
-                                            onClick={() => spawnMission(tier)}
-                                            className="py-2 bg-green-900/30 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded flex flex-col items-center"
+                                            onClick={spawnCustomMission}
+                                            className="w-full py-2 bg-green-600 text-black font-bold hover:bg-green-500 rounded mt-2 shadow-[0_0_10px_rgba(34,197,94,0.3)] transition-all active:scale-95"
                                         >
-                                            <span className="text-xs font-bold">TIER {tier}</span>
-                                            <span className="text-[8px] opacity-50">{tier + 1} NODES</span>
+                                            DEPLOY CONTRACT
                                         </button>
-                                    ))}
-                                </div>
-                                <div className="mt-4 text-[9px] text-gray-600 italic leading-tight">
-                                    NOTE: Spawning a mission adds it to your 'jobs' list. Use 'jobs accept [n]' in the terminal to deploy.
-                                </div>
-                            </section>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h4 className="text-gray-500 uppercase text-[9px] mb-2 border-b border-gray-800 pb-1">Quick Templates</h4>
+                                    <div className="grid grid-cols-3 gap-2">
+                                        {[1, 3, 5].map(tier => (
+                                            <button
+                                                key={tier}
+                                                onClick={() => spawnMission(tier)}
+                                                className="py-2 bg-green-900/30 border border-green-500/20 hover:bg-green-500/20 text-green-400 rounded flex flex-col items-center"
+                                            >
+                                                <span className="text-[10px] font-bold">T{tier}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </section>
+                            </>
                         )}
                     </div>
                 )}

@@ -73,7 +73,8 @@ export interface NetworkNode {
 export type WinCondition =
   | { type: 'file_found'; nodeId: string; path: string[] }
   | { type: 'root_access'; nodeId: string }
-  | { type: 'process_killed'; nodeId: string; processName: string };
+  | { type: 'process_killed'; nodeId: string; processName: string }
+  | { type: 'file_modified'; nodeId: string; path: string[]; targetContent: string };
 
 export interface GameState {
   nodes: NetworkNode[];

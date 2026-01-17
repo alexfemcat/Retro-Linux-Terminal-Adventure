@@ -29,6 +29,8 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'clear': { id: 'clear', description: 'Clear screen.', usage: 'clear', isAlwaysAvailable: true, isLocalOnly: false },
     'exit': { id: 'exit', description: 'Disconnect/Logout.', usage: 'exit', isAlwaysAvailable: true, isLocalOnly: false },
     'rm': { id: 'rm', description: 'Remove a file.', usage: 'rm [file]', isAlwaysAvailable: true, isLocalOnly: false },
+    'kill': { id: 'kill', description: 'Terminate a process by PID.', usage: 'kill [pid]', isAlwaysAvailable: true, isLocalOnly: false },
+    'echo': { id: 'echo', description: 'Write text to a file.', usage: 'echo "text" > [file]', isAlwaysAvailable: true, isLocalOnly: false },
 
     // Mission Control
     'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>]', isAlwaysAvailable: true, isLocalOnly: true },

@@ -268,6 +268,8 @@ export const Terminal: React.FC<TerminalProps> = ({
         'msfconsole': 12,
         'msf-exploit': 15,
         'john': 0, // offline
+        'echo': 5,
+        'kill': 10,
     };
 
     const processCommand = async (command: string) => {
@@ -580,45 +582,65 @@ export const Terminal: React.FC<TerminalProps> = ({
                         ? MARKET_CATALOG.filter(i => categoryFilter.includes(i.category))
                         : MARKET_CATALOG;
 
-                    output = (
-                        <div className="text-yellow-400 font-mono text-sm">
-                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">RETRO-MARKET v2.0 - SECURE TRADING TERMINAL</div>
+                    const groupedItems = items.reduce((acc, item) => {
+                        const cat = item.category.toUpperCase();
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(item);
+                        return acc;
+                    }, {} as Record<string, any[]>);
 
-                            <div className="grid grid-cols-[140px_60px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-1 pb-1">
-                                <div>ID</div>
-                                <div>COST</div>
-                                <div>TIER</div>
-                                <div>REQ (C/R)</div>
-                                <div>DESCRIPTION</div>
+                    output = (
+                        <div className="text-yellow-400 font-mono text-sm max-w-4xl">
+                            <div className="font-bold border-b-2 border-yellow-400 mb-4 pb-1 text-center bg-yellow-400/10 uppercase tracking-widest">
+                                --- RETRO-MARKET v2.0 - Global Asset Exchange ---
                             </div>
 
-                            {items.map(item => {
-                                let isOwned = false;
-                                if (item.category === 'hardware') {
-                                    if (item.hardwareKey) {
-                                        isOwned = playerState.hardware[item.hardwareKey].level >= (item.stats?.level || 0);
-                                    }
-                                } else if (item.category !== 'consumable') {
-                                    isOwned = playerState.installedSoftware.includes(item.id);
-                                }
-
-                                const software = item as any;
-                                const reqs = software.cpuReq ? `${software.cpuReq}%/${software.ramReq}MB` : '-';
-
-                                return (
-                                    <div key={item.id} className={`grid grid-cols-[140px_60px_60px_100px_1fr] gap-x-4 ${isOwned ? 'opacity-30 line-through' : ''}`}>
-                                        <div className="font-bold">{item.id}</div>
-                                        <div className="text-green-500">{item.cost}c</div>
-                                        <div>{software.tier || '-'}</div>
-                                        <div className="text-cyan-600">{reqs}</div>
-                                        <div className="text-gray-400 truncate">{item.description}</div>
+                            {Object.entries(groupedItems).map(([category, catItems]) => (
+                                <div key={category} className="mb-6">
+                                    <div className="text-white font-bold mb-2 flex items-center gap-2">
+                                        <span className="bg-yellow-600/20 px-2 py-0.5 border border-yellow-600/50 text-[10px]">{category}</span>
+                                        <div className="h-[1px] flex-grow bg-yellow-600/20"></div>
                                     </div>
-                                );
-                            })}
+                                    <div className="grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 opacity-70 border-b border-yellow-400/10 mb-2 pb-1 text-[10px] uppercase">
+                                        <div>Designation</div>
+                                        <div>Price</div>
+                                        <div>Tier</div>
+                                        <div>System Req</div>
+                                        <div>Capabilities</div>
+                                    </div>
+                                    {catItems.map(item => {
+                                        let isOwned = false;
+                                        if (item.category === 'hardware') {
+                                            if (item.hardwareKey) {
+                                                isOwned = playerState.hardware[item.hardwareKey as keyof typeof playerState.hardware].level >= (item.stats?.level || 0);
+                                            }
+                                        } else if (item.category !== 'consumable') {
+                                            isOwned = playerState.installedSoftware.includes(item.id);
+                                        }
 
-                            <div className="mt-4 text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2 flex justify-between">
-                                <span>Usage: market buy [id] | market sell [file]</span>
-                                <span>Filters: --software, --hardware, --consumable</span>
+                                        const software = item as any;
+                                        const reqs = software.cpuReq !== undefined ? `${software.cpuReq}% / ${software.ramReq}MB` : 'N/A';
+
+                                        return (
+                                            <div key={item.id} className={`grid grid-cols-[160px_80px_60px_100px_1fr] gap-x-4 py-0.5 hover:bg-white/5 transition-colors ${isOwned ? 'opacity-30 line-through' : ''}`}>
+                                                <div className="font-bold text-yellow-300">{item.id}</div>
+                                                <div className="text-green-500">{item.cost.toLocaleString()}c</div>
+                                                <div className="text-center">{software.tier || '-'}</div>
+                                                <div className="text-cyan-600 text-[10px]">{reqs}</div>
+                                                <div className="text-gray-400 truncate text-[11px] italic">{item.description}</div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ))}
+
+                            <div className="mt-6 p-3 bg-black border border-yellow-500/20 rounded-md">
+                                <div className="text-xs text-gray-500 flex justify-between gap-4">
+                                    <span className="text-yellow-500 font-bold uppercase underline">Usage Protocols:</span>
+                                    <span>market buy [id]</span>
+                                    <span>market sell [filename]</span>
+                                    <span className="opacity-50">Tags: --software, --hardware, --consumable</span>
+                                </div>
                             </div>
                         </div>
                     );
@@ -792,6 +814,77 @@ export const Terminal: React.FC<TerminalProps> = ({
                     }
                 } else {
                     output = `cat: ${args[0]}: No such file or directory`;
+                }
+                break;
+            case 'echo':
+                // Usage: echo "text" > file
+                const textMatch = trimmedCommand.match(/"([^"]+)"\s*>\s*([^\s]+)/);
+                if (!textMatch) {
+                    output = "usage: echo \"text\" > [file]";
+                    break;
+                }
+                const [_, echoContent, echoFileName] = textMatch;
+                const echoPath = resolvePath(echoFileName);
+                if (echoPath) {
+                    const parentPath = echoPath.slice(0, -1);
+                    const fName = echoPath[echoPath.length - 1];
+                    const parentNode = getNodeByPath(parentPath) as Directory;
+
+                    if (parentNode) {
+                        const existing = parentNode.children[fName];
+                        if (existing && existing.type === 'directory') {
+                            output = `echo: cannot write to '${echoFileName}': Is a directory`;
+                            break;
+                        }
+                        if (existing && existing.permissions === 'root' && currentUser !== 'root') {
+                            output = `echo: cannot write to '${echoFileName}': Permission denied`;
+                            break;
+                        }
+
+                        parentNode.children[fName] = {
+                            type: 'file',
+                            name: fName,
+                            content: echoContent,
+                            size: (echoContent.length / 1024 / 1024) || 0.01
+                        };
+                        output = null;
+
+                        if (onVFSChange) onVFSChange(vfs);
+
+                        // Check Win Condition: File Modified (Defacement)
+                        if (gameState.winCondition.type === 'file_modified' &&
+                            activeNode.id === gameState.winCondition.nodeId &&
+                            echoContent === gameState.winCondition.targetContent &&
+                            fName === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
+                            onWin();
+                        }
+                    }
+                }
+                break;
+            case 'kill':
+                const pidToKill = parseInt(args[0]);
+                if (isNaN(pidToKill)) {
+                    output = "usage: kill [pid]";
+                    break;
+                }
+                const procToKill = processes.find(p => p.pid === pidToKill);
+                if (procToKill) {
+                    if (procToKill.user === 'root' && currentUser !== 'root') {
+                        output = `kill: (${pidToKill}) - Operation not permitted`;
+                        break;
+                    }
+
+                    // Trigger win condition if matching
+                    if (gameState.winCondition.type === 'process_killed' &&
+                        activeNode.id === gameState.winCondition.nodeId &&
+                        procToKill.name === gameState.winCondition.processName) {
+                        onWin();
+                    }
+
+                    // Note: This only "simulates" killing by message for now as we don't mutate processes array in activeNode directly yet in all components
+                    output = `Terminated process ${pidToKill} (${procToKill.name}).`;
+                } else {
+                    output = `kill: (${pidToKill}) - No such process`;
                 }
                 break;
             case 'download':
