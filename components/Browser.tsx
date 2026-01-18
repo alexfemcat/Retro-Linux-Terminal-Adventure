@@ -417,108 +417,260 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
 
         if (url === 'web://macro-electronics') {
             return (
-                <div className="h-full flex flex-col bg-[#0a0a0a]">
-                    {/* Header */}
-                    <div className="p-4 border-b border-green-900/50 flex justify-between items-center bg-black">
-                        <h2 className="text-xl font-bold text-green-500 tracking-tighter uppercase">Macro-Electronics v4.0</h2>
-                        <div className="text-yellow-500 font-mono font-bold bg-yellow-900/20 px-3 py-1 border border-yellow-900/50">
-                            {playerState.credits.toLocaleString()} CR
+                <div className="h-full flex flex-col bg-[#050505] text-green-500 font-mono">
+                    {/* Fancy Header */}
+                    <div className="p-6 border-b-2 border-green-500/30 flex justify-between items-center bg-black relative overflow-hidden">
+                        <div className="absolute inset-0 bg-green-500/5 animate-pulse pointer-events-none"></div>
+                        <div>
+                            <h2 className="text-3xl font-black text-green-400 tracking-tighter uppercase italic flex items-center gap-3">
+                                <span className="text-green-600">{'>>'}</span> Macro-Electronics <span className="text-xs bg-green-900/50 px-2 py-1 rounded text-green-500 border border-green-500/30">v4.0.8-STABLE</span>
+                            </h2>
+                            <div className="text-[10px] text-green-800 uppercase tracking-[0.3em] mt-1">Premium Hardware & Software Solutions</div>
+                        </div>
+                        <div className="text-right flex flex-col items-end justify-center">
+                            <div className="text-yellow-500 font-black text-2xl tracking-tighter bg-yellow-900/10 px-4 py-1 border-2 border-yellow-600/50 shadow-[0_0_15px_rgba(202,138,4,0.2)] leading-none flex items-center h-12">
+                                {playerState.credits.toLocaleString()} <span className="text-sm opacity-70 ml-2">CR</span>
+                            </div>
+                            <div className="text-[10px] text-yellow-700 uppercase mt-1 font-bold tracking-widest">Verified Account Balance</div>
                         </div>
                     </div>
 
                     <div className="flex flex-grow overflow-hidden">
-                        {/* Sidebar Tabs */}
-                        <div className="w-48 border-r border-green-900/30 bg-black flex flex-col">
+                        {/* Sidebar Tabs - Fancy Style */}
+                        <div className="w-56 border-r-2 border-green-500/20 bg-black flex flex-col">
                             {(['software', 'hardware', 'consumables'] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setMarketTab(tab)}
-                                    className={`p-4 text-left text-xs font-bold uppercase tracking-widest transition-all border-b border-green-900/10 ${marketTab === tab ? 'bg-green-900/20 text-green-400 border-r-2 border-r-green-500' : 'text-gray-600 hover:bg-white/5 hover:text-gray-400'}`}
+                                    className={`p-6 text-left text-sm font-black uppercase tracking-[0.2em] transition-all border-b border-green-500/10 relative group ${marketTab === tab ? 'bg-green-500/10 text-green-400' : 'text-green-900 hover:bg-green-500/5 hover:text-green-600'}`}
                                 >
-                                    {tab === 'software' && '📂 '}
-                                    {tab === 'hardware' && '🔌 '}
-                                    {tab === 'consumables' && '🔋 '}
-                                    {tab}
+                                    {marketTab === tab && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 shadow-[0_0_10px_#22c55e]"></div>}
+                                    <span className="flex items-center gap-3">
+                                        <span className={`text-xl ${marketTab === tab ? 'opacity-100' : 'opacity-30'}`}>
+                                            {tab === 'software' && '⧉'}
+                                            {tab === 'hardware' && '⬢'}
+                                            {tab === 'consumables' && '⌬'}
+                                        </span>
+                                        {tab}
+                                    </span>
+                                    <div className={`absolute right-4 top-1/2 -translate-y-1/2 text-xs transition-transform ${marketTab === tab ? 'translate-x-0 opacity-100' : 'translate-x-4 opacity-0'}`}>▶</div>
                                 </button>
                             ))}
-                            <div className="mt-auto p-4 opacity-20 grayscale pointer-events-none">
-                                <div className="text-[8px] text-green-500 uppercase mb-1">Authorized Dealer</div>
-                                <div className="text-[10px] text-white font-bold">MACRO_CORP</div>
+
+                            <div className="mt-auto p-6 border-t border-green-500/10">
+                                <div className="bg-green-900/10 border border-green-500/20 p-3 rounded">
+                                    <div className="text-[9px] text-green-700 uppercase font-bold mb-2">System Integrity</div>
+                                    <div className="w-full h-1 bg-green-950 rounded-full overflow-hidden">
+                                        <div className="h-full bg-green-500 w-full animate-pulse"></div>
+                                    </div>
+                                    <div className="text-[8px] text-green-900 mt-2 font-mono">SECURE_LINK: ACTIVE</div>
+                                </div>
                             </div>
                         </div>
 
                         {/* Main Content Area */}
-                        <div className="flex-grow overflow-y-auto p-6 custom-scrollbar">
+                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900/5 to-transparent">
                             {marketTab === 'software' && (
-                                <div className="space-y-4">
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">Available Software Suites</div>
-                                    {MARKET_CATALOG.filter(i => ['utility', 'sniffing', 'exploit'].includes(i.category)).map(item => (
-                                        <div key={item.id} className="bg-gray-900/20 border border-gray-800 p-4 flex justify-between items-center hover:border-green-900/50 transition-colors group">
-                                            <div>
-                                                <div className="text-white font-bold group-hover:text-green-400 transition-colors">{item.name}</div>
-                                                <div className="text-xs text-gray-500 max-w-md mt-1">{item.description}</div>
-                                                <div className="text-[9px] text-green-900 mt-2 uppercase font-mono">
-                                                    {'cpuReq' in item && item.cpuReq && `CPU_LOAD: ${item.cpuReq}% | `}
-                                                    {'ramReq' in item && item.ramReq && `MEM_REQ: ${item.ramReq}MB | `}
-                                                    {'storageSize' in item && item.storageSize && `DISK_USE: ${item.storageSize}MB`}
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Software Repository</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {MARKET_CATALOG.filter(i => ['utility', 'sniffing', 'exploit'].includes(i.category)).map(item => (
+                                            <div key={item.id} className="bg-black/40 border border-green-500/20 p-5 flex justify-between items-center hover:border-green-500/50 transition-all group relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/5 transition-colors pointer-events-none"></div>
+                                                <div className="relative z-10">
+                                                    <div className="flex items-center gap-3 mb-1">
+                                                        <div className="text-white font-black text-lg group-hover:text-green-400 transition-colors uppercase tracking-tighter">{item.name}</div>
+                                                        <div className={`text-[9px] px-2 py-0.5 rounded border font-bold ${item.category === 'exploit' ? 'border-red-500/50 text-red-500 bg-red-900/10' : item.category === 'sniffing' ? 'border-blue-500/50 text-blue-500 bg-blue-900/10' : 'border-green-500/50 text-green-500 bg-green-900/10'}`}>
+                                                            {item.category.toUpperCase()}
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-xs text-green-700 max-w-md italic mb-3">"{item.description}"</div>
+                                                    <div className="flex gap-4">
+                                                        {'cpuReq' in item && item.cpuReq && (
+                                                            <div className="text-[10px] font-bold">
+                                                                <span className="text-green-900">CPU_LOAD:</span> <span className="text-green-500">{item.cpuReq}%</span>
+                                                            </div>
+                                                        )}
+                                                        {'ramReq' in item && item.ramReq && (
+                                                            <div className="text-[10px] font-bold">
+                                                                <span className="text-green-900">MEM_REQ:</span> <span className="text-green-500">{item.ramReq}MB</span>
+                                                            </div>
+                                                        )}
+                                                        {'storageSize' in item && item.storageSize && (
+                                                            <div className="text-[10px] font-bold">
+                                                                <span className="text-green-900">DISK_USE:</span> <span className="text-green-500">{item.storageSize}MB</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                                <button
+                                                    onClick={() => handlePurchase(item.id)}
+                                                    disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-green-900/30 text-green-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'}`}
+                                                >
+                                                    {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => handlePurchase(item.id)}
-                                                disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
-                                                className={`px-4 py-2 font-bold text-xs uppercase tracking-widest transition-all border ${playerState.installedSoftware.includes(item.id) ? 'bg-gray-800/50 border-gray-700 text-gray-600 cursor-not-allowed' : 'bg-green-900/10 border-green-500/50 text-green-500 hover:bg-green-500 hover:text-black'}`}
-                                            >
-                                                {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
-                                            </button>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 
                             {marketTab === 'hardware' && (
-                                <div className="space-y-8">
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">System Component Upgrades</div>
+                                <div className="space-y-10">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Hardware Evolution</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                    </div>
+
                                     {(['cpu', 'ram', 'storage', 'cooling', 'network'] as const).map(hwKey => {
                                         const current = playerState.hardware[hwKey];
                                         const nextUpgrade = MARKET_CATALOG.find(i =>
                                             i.category === 'hardware' &&
                                             (i as any).hardwareKey === hwKey &&
                                             (i as any).stats?.level === current.level + 1
-                                        );
+                                        ) as any;
 
                                         return (
-                                            <div key={hwKey} className="border border-gray-800 bg-gray-900/10 overflow-hidden">
-                                                {/* Current Spec Header */}
-                                                <div className="bg-black p-2 px-4 flex justify-between items-center border-b border-gray-800">
-                                                    <span className="text-[10px] text-gray-500 uppercase font-bold">{hwKey} status</span>
-                                                    <span className="text-[10px] text-green-700 font-mono">LEVEL {current.level} INSTALLED</span>
-                                                </div>
+                                            <div key={hwKey} className="relative">
+                                                {/* Category Label */}
+                                                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-green-500/20"></div>
 
-                                                <div className="p-4 flex justify-between items-center">
-                                                    <div className="flex-grow">
-                                                        <div className="flex items-center gap-4 mb-2">
-                                                            <div className="text-white font-bold opacity-50 line-through text-sm">{current.id.replace('_', ' ').toUpperCase()}</div>
-                                                            <div className="text-green-500 text-xl">▶</div>
-                                                            {nextUpgrade ? (
-                                                                <div className="text-white font-bold text-lg">{nextUpgrade.name}</div>
-                                                            ) : (
-                                                                <div className="text-yellow-500 font-bold text-lg uppercase tracking-widest">Maximum Level Reached</div>
-                                                            )}
+                                                <div className="grid grid-cols-1 gap-2">
+                                                    {/* Current Spec - Fancy Card */}
+                                                    <div className="bg-black border border-green-500/10 p-4 flex justify-between items-center opacity-80">
+                                                        <div>
+                                                            <div className="text-[9px] text-green-800 uppercase font-black tracking-widest mb-1">Current {hwKey} configuration</div>
+                                                            <div className="text-white font-black uppercase tracking-tighter">
+                                                                {MARKET_CATALOG.find(i => i.id === current.id)?.name || current.id.replace(/_/g, ' ')}
+                                                            </div>
+                                                            <div className="text-[10px] text-green-500 font-mono mt-1">
+                                                                {hwKey === 'cpu' && 'clockSpeed' in current && (
+                                                                    <span>{current.clockSpeed >= 1 ? `${current.clockSpeed}GHz` : `${Math.round(current.clockSpeed * 1000)}MHz`} | {current.cores} Core(s)</span>
+                                                                )}
+                                                                {hwKey === 'ram' && 'capacity' in current && (
+                                                                    <span>{current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}</span>
+                                                                )}
+                                                                {hwKey === 'storage' && 'capacity' in current && (
+                                                                    <span>{current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}</span>
+                                                                )}
+                                                                {hwKey === 'cooling' && 'heatDissipation' in current && (
+                                                                    <span>x{current.heatDissipation.toFixed(1)} Dissipation</span>
+                                                                )}
+                                                                {hwKey === 'network' && 'bandwidth' in current && (
+                                                                    <span>{current.bandwidth >= 1 ? `${current.bandwidth}MB/s` : `${Math.round(current.bandwidth * 1000)}KB/s`}</span>
+                                                                )}
+                                                            </div>
                                                         </div>
-                                                        {nextUpgrade && (
-                                                            <div className="text-xs text-gray-500 max-w-md italic">"{nextUpgrade.description}"</div>
-                                                        )}
+                                                        <div className="text-right">
+                                                            <div className="text-[10px] text-green-700 font-bold uppercase">Status: Operational</div>
+                                                            <div className="text-xs text-green-500 font-mono">LVL_0{current.level}</div>
+                                                        </div>
                                                     </div>
 
-                                                    {nextUpgrade && (
-                                                        <button
-                                                            onClick={() => handlePurchase(nextUpgrade.id)}
-                                                            disabled={playerState.credits < nextUpgrade.cost}
-                                                            className="px-6 py-3 bg-green-900/10 border border-green-500 text-green-500 font-bold text-sm uppercase tracking-widest hover:bg-green-500 hover:text-black transition-all shadow-[0_0_15px_rgba(34,197,94,0.1)]"
-                                                        >
-                                                            UPGRADE: {nextUpgrade.cost}c
-                                                        </button>
-                                                    )}
+                                                    {/* Transition Arrow */}
+                                                    <div className="flex justify-center -my-2 relative z-10">
+                                                        <div className="bg-black px-4 text-green-500 animate-bounce">▼</div>
+                                                    </div>
+
+                                                    {/* Next Upgrade - Fancy Card */}
+                                                    <div className={`bg-green-900/5 border-2 p-6 flex justify-between items-center transition-all ${nextUpgrade ? 'border-green-500/40 hover:border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.05)]' : 'border-yellow-600/20 opacity-50'}`}>
+                                                        <div className="flex-grow">
+                                                            {nextUpgrade ? (
+                                                                <>
+                                                                    <div className="flex items-center gap-3 mb-2">
+                                                                        <div className="text-white font-black text-xl uppercase tracking-tighter">{nextUpgrade.name}</div>
+                                                                        <div className="text-[10px] bg-green-500 text-black px-2 py-0.5 font-black rounded uppercase">Next Gen</div>
+                                                                    </div>
+                                                                    <div className="text-sm text-green-700 italic max-w-xl">"{nextUpgrade.description}"</div>
+
+                                                                    {/* Spec Comparison */}
+                                                                    {/* Spec Comparison */}
+                                                                    <div className="mt-4 flex gap-6">
+                                                                        {hwKey === 'cpu' && 'clockSpeed' in current && nextUpgrade.stats && (
+                                                                            <div className="text-[10px] font-bold flex flex-col">
+                                                                                <span className="text-green-900 uppercase">Clock Speed</span>
+                                                                                <span className="text-green-400">
+                                                                                    {current.clockSpeed >= 1 ? `${current.clockSpeed}GHz` : `${Math.round(current.clockSpeed * 1000)}MHz`}
+                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className={nextUpgrade.stats.clockSpeed > current.clockSpeed ? 'text-yellow-400' : 'text-red-500'}>
+                                                                                        {nextUpgrade.stats.clockSpeed >= 1 ? `${nextUpgrade.stats.clockSpeed}GHz` : `${Math.round(nextUpgrade.stats.clockSpeed * 1000)}MHz`}
+                                                                                        {nextUpgrade.stats.clockSpeed < current.clockSpeed && ' [DOWNGRADE]'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                        {hwKey === 'ram' && 'capacity' in current && nextUpgrade.stats && (
+                                                                            <div className="text-[10px] font-bold flex flex-col">
+                                                                                <span className="text-green-900 uppercase">Capacity</span>
+                                                                                <span className="text-green-400">
+                                                                                    {current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}
+                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className={nextUpgrade.stats.capacity > current.capacity ? 'text-yellow-400' : 'text-red-500'}>
+                                                                                        {nextUpgrade.stats.capacity >= 1 ? `${nextUpgrade.stats.capacity}GB` : `${Math.round(nextUpgrade.stats.capacity * 1024)}MB`}
+                                                                                        {nextUpgrade.stats.capacity < current.capacity && ' [DOWNGRADE]'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                        {hwKey === 'storage' && 'capacity' in current && nextUpgrade.stats && (
+                                                                            <div className="text-[10px] font-bold flex flex-col">
+                                                                                <span className="text-green-900 uppercase">Storage</span>
+                                                                                <span className="text-green-400">
+                                                                                    {current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}
+                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className={nextUpgrade.stats.capacity > current.capacity ? 'text-yellow-400' : 'text-red-500'}>
+                                                                                        {nextUpgrade.stats.capacity >= 1 ? `${nextUpgrade.stats.capacity}GB` : `${Math.round(nextUpgrade.stats.capacity * 1024)}MB`}
+                                                                                        {nextUpgrade.stats.capacity < current.capacity && ' [DOWNGRADE]'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                        {hwKey === 'cooling' && 'heatDissipation' in current && nextUpgrade.stats && (
+                                                                            <div className="text-[10px] font-bold flex flex-col">
+                                                                                <span className="text-green-900 uppercase">Dissipation</span>
+                                                                                <span className="text-green-400">x{current.heatDissipation.toFixed(1)} <span className="text-green-600 mx-1">▶</span> x{nextUpgrade.stats.heatDissipation.toFixed(1)}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {hwKey === 'network' && 'bandwidth' in current && nextUpgrade.stats && (
+                                                                            <div className="text-[10px] font-bold flex flex-col">
+                                                                                <span className="text-green-900 uppercase">Bandwidth</span>
+                                                                                <span className="text-green-400">
+                                                                                    {current.bandwidth >= 1 ? `${current.bandwidth}MB/s` : `${Math.round(current.bandwidth * 1000)}KB/s`}
+                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className={nextUpgrade.stats.bandwidth > current.bandwidth ? 'text-yellow-400' : 'text-red-500'}>
+                                                                                        {nextUpgrade.stats.bandwidth >= 1 ? `${nextUpgrade.stats.bandwidth}MB/s` : `${Math.round(nextUpgrade.stats.bandwidth * 1000)}KB/s`}
+                                                                                        {nextUpgrade.stats.bandwidth < current.bandwidth && ' [DOWNGRADE]'}
+                                                                                    </span>
+                                                                                </span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </>
+                                                            ) : (
+                                                                <div className="text-center py-4">
+                                                                    <div className="text-yellow-500 font-black text-xl uppercase tracking-[0.3em]">Maximum Level Reached</div>
+                                                                    <div className="text-[10px] text-yellow-800 uppercase mt-1">No further upgrades available for this component</div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+
+                                                        {nextUpgrade && (
+                                                            <button
+                                                                onClick={() => handlePurchase(nextUpgrade.id)}
+                                                                disabled={playerState.credits < nextUpgrade.cost}
+                                                                className={`px-8 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < nextUpgrade.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]'}`}
+                                                            >
+                                                                {playerState.credits < nextUpgrade.cost ? 'INSUFFICIENT_CR' : `UPGRADE: ${nextUpgrade.cost}c`}
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -527,23 +679,31 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                             )}
 
                             {marketTab === 'consumables' && (
-                                <div className="space-y-4">
-                                    <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] mb-4 border-b border-gray-800 pb-1">Disposable Field Tools</div>
-                                    {MARKET_CATALOG.filter(i => i.category === 'consumable').map(item => (
-                                        <div key={item.id} className="bg-gray-900/20 border border-gray-800 p-4 flex justify-between items-center hover:border-green-900/50 transition-colors group">
-                                            <div>
-                                                <div className="text-white font-bold group-hover:text-green-400 transition-colors">{item.name}</div>
-                                                <div className="text-xs text-gray-500 max-w-md mt-1">{item.description}</div>
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Disposable Field Assets</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {MARKET_CATALOG.filter(i => i.category === 'consumable').map(item => (
+                                            <div key={item.id} className="bg-black/40 border border-green-500/20 p-5 flex justify-between items-center hover:border-green-500/50 transition-all group relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/5 transition-colors pointer-events-none"></div>
+                                                <div className="relative z-10">
+                                                    <div className="text-white font-black text-lg group-hover:text-green-400 transition-colors uppercase tracking-tighter mb-1">{item.name}</div>
+                                                    <div className="text-xs text-green-700 max-w-md italic">"{item.description}"</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handlePurchase(item.id)}
+                                                    disabled={playerState.credits < item.cost}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < item.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'}`}
+                                                >
+                                                    {item.cost}c
+                                                </button>
                                             </div>
-                                            <button
-                                                onClick={() => handlePurchase(item.id)}
-                                                disabled={playerState.credits < item.cost}
-                                                className="px-4 py-2 bg-green-900/10 border border-green-500/50 text-green-500 font-bold text-xs uppercase tracking-widest hover:bg-green-500 hover:text-black transition-all"
-                                            >
-                                                {item.cost}c
-                                            </button>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
                                 </div>
                             )}
                         </div>
