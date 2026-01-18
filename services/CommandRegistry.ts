@@ -5,7 +5,7 @@ export interface CommandContext {
     playerState: PlayerState;
     isMissionActive: boolean;
     currentPath: string[];
-    currentUser: 'user' | 'root';
+    currentUser: string;
     hostname: string;
 }
 

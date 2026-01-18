@@ -442,8 +442,8 @@ class PuzzleGenerator {
         };
     }
 
-    private placeClues(node: NetworkNode, puzzle: { hint: string, components: { file: string, content: string }[] }): void {
-        const home = ((node.vfs.children['home'] as Directory).children['user'] as Directory);
+    private placeClues(node: NetworkNode, puzzle: { hint: string, components: { file: string, content: string }[] }, username: string = 'user'): void {
+        const home = ((node.vfs.children['home'] as Directory).children[username] as Directory);
 
         // Create Documents/network_intel if needed
         if (!home.children['Documents']) {
@@ -574,6 +574,7 @@ class PuzzleGenerator {
         const scenario = config && config.scenarioIndex !== undefined ? scenarios[config.scenarioIndex] : this.getRandom(scenarios);
         const nodes: NetworkNode[] = [];
         const nodeData: { puzzle: any, users: string[] }[] = [];
+        const entryUsers: string[] = [];
 
         // Generate 3-5 nodes
         const numNodes = config?.numNodes || (3 + Math.floor(Math.random() * 3));
@@ -588,9 +589,10 @@ class PuzzleGenerator {
         localGen.node.currentUser = 'user';
         nodes.push(localGen.node);
         nodeData.push({ puzzle: localGen.puzzle, users: localGen.users });
+        entryUsers.push('user');
 
         // Place Localhost clues on Localhost (needed for sudo)
-        this.placeClues(localGen.node, localGen.puzzle);
+        this.placeClues(localGen.node, localGen.puzzle, 'user');
 
         // 2. Generate Remote Nodes with unique hostnames and IPs
         const usedHostnames = new Set<string>(['localhost']);
@@ -629,16 +631,17 @@ class PuzzleGenerator {
             const nextData = nodeData[i + 1];
 
             // A. Place Next Node's Password Clues on Current Node
-            this.placeClues(currentNode, nextData.puzzle);
+            this.placeClues(currentNode, nextData.puzzle, entryUsers[i]);
 
             // B. Pick a specific user from the Next Node to hack
             const targetUser = this.getRandom(nextData.users) || 'user';
+            entryUsers.push(targetUser);
 
             // C. Generate Auth Logs on Current Node pointing to Next Node
             this.generateAuthLog(currentNode, { ip: nextNode.ip, username: targetUser });
 
             // D. Generate Bash History on Current Node
-            const userHome = ((currentNode.vfs.children.home as Directory).children['user'] as Directory);
+            const userHome = ((currentNode.vfs.children.home as Directory).children[entryUsers[i]] as Directory);
             const clues: string[] = [
                 `ssh ${targetUser}@${nextNode.ip}`,
                 `# Connecting to ${nextNode.hostname} as ${targetUser}`
@@ -648,7 +651,7 @@ class PuzzleGenerator {
 
         // For the last node, we still need bash history, but no next node clues
         const lastNode = nodes[nodes.length - 1];
-        const lastUserHome = ((lastNode.vfs.children.home as Directory).children['user'] as Directory);
+        const lastUserHome = ((lastNode.vfs.children.home as Directory).children[entryUsers[nodes.length - 1]] as Directory);
         this.generateBashHistory(lastUserHome, []); // No specific clues for "next"
 
         // 4. Add IPs to /etc/hosts of localhost (unchanged)
@@ -709,7 +712,9 @@ class PuzzleGenerator {
 
         // Place the target file if it's a file found mission
         if (winCondition.type === 'file_found') {
-            const home = ((targetNode.vfs.children['home'] as Directory).children['user'] as Directory);
+            const targetUser = entryUsers[nodes.length - 1] || 'user';
+            const home = ((targetNode.vfs.children['home'] as Directory).children[targetUser] as Directory);
+
             if (!home.children['Documents']) {
                 home.children['Documents'] = { type: 'directory', name: 'Documents', children: {}, size: 0 };
             }
@@ -728,10 +733,18 @@ class PuzzleGenerator {
         const userHome = ((nodes[0].vfs.children.home as Directory).children['user'] as Directory);
         let objectiveText = "";
         switch (winCondition.type) {
-            case 'file_found': objectiveText = `Download '${targetFileName}' from ${targetNode.hostname} (${targetNode.ip}).`; break;
-            case 'root_access': objectiveText = `Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).`; break;
-            case 'process_killed': objectiveText = `Terminate the process '${winCondition.processName}' on ${targetNode.hostname}.`; break;
-            case 'file_modified': objectiveText = `Deface the server ${targetNode.hostname} by modifying /var/www/html/index.html.`; break;
+            case 'file_found':
+                objectiveText = `Download '${targetFileName}' from ${targetNode.hostname} (${targetNode.ip}).\n   ACTION: Use command 'download ${targetFileName}' once located.`;
+                break;
+            case 'root_access':
+                objectiveText = `Gain ROOT ACCESS on ${targetNode.hostname} (${targetNode.ip}).\n   ACTION: Use command 'sudo' after finding the root password.`;
+                break;
+            case 'process_killed':
+                objectiveText = `Terminate the process '${winCondition.processName}' on ${targetNode.hostname}.\n   ACTION: Use command 'kill [PID]'.`;
+                break;
+            case 'file_modified':
+                objectiveText = `Deface the server ${targetNode.hostname} by modifying /var/www/html/index.html.\n   ACTION: Overwrite the file with the text 'HACKED BY RETRO-TERM'.`;
+                break;
         }
 
         // Tier 1 guidance vs Higher Tier ambiguity

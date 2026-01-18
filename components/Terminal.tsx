@@ -24,15 +24,15 @@ export interface TerminalProps {
     isMissionActive: boolean;
     activeProcesses: { id: string; name: string; ram: number }[];
     setActiveProcesses: React.Dispatch<React.SetStateAction<{ id: string; name: string; ram: number }[]>>;
-    onNodeChange: (index: number) => void;
+    onNodeChange: (index: number, targetUser?: string) => void;
     onWin: () => void;
     onMissionAccept: (mission: any) => void;
     onMissionAbort: () => void;
     onPlayerStateChange: React.Dispatch<React.SetStateAction<PlayerState>>;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
-    currentUser: 'user' | 'root';
-    setCurrentUser: (user: 'user' | 'root') => void;
+    currentUser: string;
+    setCurrentUser: (user: string) => void;
     onVFSChange?: (newVFS: VFSNode) => void;
     onGameStateChange?: (newState: GameState) => void;
     onTransitionPreview?: (type: 'entering' | 'aborting') => void;
@@ -51,7 +51,7 @@ const getPathDisplay = (currentPath: string[]) => {
 
 const InputLine: React.FC<{
     currentPath: string[];
-    currentUser: 'user' | 'root';
+    currentUser: string;
     hostname: string;
     onSubmit: (command: string) => void;
     onTab: (value: string, setValue: (v: string) => void) => void;
@@ -266,7 +266,7 @@ export const Terminal: React.FC<TerminalProps> = ({
         if (!pathStr) return currentPath;
         let effectivePathStr = pathStr;
         if (pathStr.startsWith('~')) {
-            effectivePathStr = pathStr.replace('~', '/home/user');
+            effectivePathStr = pathStr.replace('~', `/home/${currentUser}`);
         }
         const parts = effectivePathStr.split('/').filter(p => p);
         let newPath: string[] = effectivePathStr.startsWith('/') ? [] : [...currentPath];
@@ -1610,7 +1610,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     setIsTransitioning(true);
                     setTimeout(() => {
                         setIsTransitioning(false);
-                        onNodeChange(sshTargetIndex);
+                        onNodeChange(sshTargetIndex, _isRoot ? 'root' : userStr);
                         setHistory([]);
                     }, 1000);
                 };

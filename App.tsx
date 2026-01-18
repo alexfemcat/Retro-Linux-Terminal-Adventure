@@ -29,7 +29,7 @@ const App: React.FC = () => {
     const [isMissionActive, setIsMissionActive] = useState<boolean>(false);
 
     const [currentPath, setCurrentPath] = useState<string[]>(['home', 'user']);
-    const [currentUser, setCurrentUser] = useState<'user' | 'root'>('user');
+    const [currentUser, setCurrentUser] = useState<string>('user');
 
     const [showDebug, setShowDebug] = useState<boolean>(false);
     const [activeProcesses, setActiveProcesses] = useState<{ id: string; name: string; ram: number }[]>([]);
@@ -312,7 +312,7 @@ const App: React.FC = () => {
             {showSettings && playerState && (
                 <Settings
                     playerState={playerState}
-                    onPlayerStateChange={setPlayerState}
+                    onPlayerStateChange={setPlayerState as React.Dispatch<React.SetStateAction<PlayerState>>}
                     onClose={() => setShowSettings(false)}
                 />
             )}
@@ -376,7 +376,7 @@ const App: React.FC = () => {
                                 }}
                                 onMissionAccept={handleMissionAccept}
                                 onMissionAbort={handleMissionAbort}
-                                onPlayerStateChange={setPlayerState}
+                                onPlayerStateChange={setPlayerState as React.Dispatch<React.SetStateAction<PlayerState>>}
                                 currentPath={currentPath}
                                 setCurrentPath={setCurrentPath}
                                 currentUser={currentUser}
@@ -391,12 +391,13 @@ const App: React.FC = () => {
                                         setGameState({ ...gameState, nodes: newNodes });
                                     }
                                 }}
-                                onNodeChange={(index) => {
+                                onNodeChange={(index, targetUser) => {
                                     // Handle Node Switch
                                     setGameState({ ...gameState, activeNodeIndex: index });
                                     // Reset path for new node logic could go here
-                                    setCurrentPath(['home', 'user']);
-                                    setCurrentUser('user');
+                                    const newUser = targetUser || 'user';
+                                    setCurrentUser(newUser);
+                                    setCurrentPath(['home', newUser]);
                                 }}
                                 onReboot={handleReboot}
                                 worldEvent={worldEvent}

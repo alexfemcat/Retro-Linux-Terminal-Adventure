@@ -2,7 +2,7 @@ export interface File {
   type: 'file';
   name: string;
   content: string;
-  permissions?: 'user' | 'root';
+  permissions?: string;
   size: number; // in KB
 }
 
@@ -10,7 +10,7 @@ export interface Directory {
   type: 'directory';
   name: string;
   children: { [name: string]: File | Directory };
-  permissions?: 'user' | 'root';
+  permissions?: string;
   size: number; // in KB
 }
 
@@ -79,7 +79,7 @@ export interface NetworkNode {
 
   isDiscovered: boolean;
   rootPassword?: string;
-  currentUser: 'user' | 'root';
+  currentUser: string;
 }
 
 export type WinCondition =
