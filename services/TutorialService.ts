@@ -32,7 +32,9 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     {
         id: 'nano_editor',
         message: "[THE ARCHITECT]: Sometimes you need to record information or create scripts. The 'nano' command opens a text editor.\n\nCreate a new file named 'notes.txt' by typing 'nano notes.txt'. Inside, type anything, then press Ctrl+O to save and Ctrl+X to exit.",
-        check: (cmd, args) => cmd === 'nano' && args[0] === 'notes.txt'
+        check: (cmd, args) => {
+            return cmd === 'nano' && args[0] === 'notes.txt';
+        }
     },
     {
         id: 'go_back',
@@ -41,7 +43,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'scan_network',
-        message: "[THE ARCHITECT]: Basic navigation confirmed. Phase 2: Network Reconnaissance.\nWe have detected a target device on the local training subnet.\nTo find open doors, we use 'nmap-lite' (Network Mapper Lite).\n\nScan the IP '192.168.1.55'. Type 'nmap-lite 192.168.1.55'.",
+        message: "[THE ARCHITECT]: Basic navigation confirmed. Phase 2: Network Reconnaissance.\nWe have detected a target device on the local training subnet.\nTo find open doors, we use 'nmap-lite' (Network Mapper Lite).\n\nScan the IP '192.168.1.55'. Type 'nmap-lite 192.168.1.55'. Wait for the command to compelete.",
         check: (cmd, args) => cmd === 'nmap-lite' && args[0] === '192.168.1.55'
     },
     {
@@ -66,22 +68,22 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'disconnect',
-        message: "[THE ARCHITECT]: Transfer Complete. Never linger on a compromised node.\nDisconnect and return to your own terminal.\n\nType 'exit'.",
+        message: "[THE ARCHITECT]: Wait for the download to complete. Lets disconnect before anyone finds out what we were up to.\nDisconnect and return to your own terminal.\n\nType 'exit'.",
         check: (cmd) => cmd === 'exit'
     },
     {
         id: 'check_inv',
-        message: "[THE ARCHITECT]: Welcome back. Let's verify the asset.\nThe 'inv' command inspects your local storage capacity and loot.\n\nType 'inv'.",
+        message: "[THE ARCHITECT]: Welcome back. In a regular mission you would now sell the data you extracted.\nThe 'inv' command inspects your local storage capacity and loot.\n\nType 'inv'.",
         check: (cmd, args) => cmd === 'inv' || (cmd === 'ls' && args && args[0] === 'loot')
     },
     {
         id: 'check_market',
-        message: "[THE ARCHITECT]: Successful operations yield Credits. You use these to upgrade your rig or buy software tools.\nOpen the exchange.\n\nType 'market'.",
-        check: (cmd) => cmd === 'market'
+        message: "[THE ARCHITECT]: Successful operations yield Credits. You use these to upgrade your rig or buy software tools.\nOpen the exchange.\n\nType 'browser' to see different kinds of services available to you.",
+        check: (cmd) => cmd === 'browser'
     },
     {
         id: 'complete_tutorial',
-        message: "[THE ARCHITECT]: Training Module Complete. You have proven yourself capable.\n\nUse 'help' to access the full command database.\nUse the 'browser' to find work on the Dark Web and start your career.\n\nType 'exit' to close the simulation.",
+        message: "[THE ARCHITECT]: Training Module Complete. You have proven yourself capable.\n\nUse 'help' to access the full command database.\nUse the 'browser' to find work on the Dark Web and start your career.\n\nExit the browser by clicking the red close button on the top left, then type 'exit' to close the simulation.",
         check: (cmd) => cmd === 'exit'
     }
 ];

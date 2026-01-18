@@ -28,7 +28,7 @@ export interface TerminalProps {
     onWin: () => void;
     onMissionAccept: (mission: any) => void;
     onMissionAbort: () => void;
-    onPlayerStateChange: (newState: PlayerState) => void;
+    onPlayerStateChange: React.Dispatch<React.SetStateAction<PlayerState>>;
     currentPath: string[];
     setCurrentPath: (path: string[]) => void;
     currentUser: 'user' | 'root';
@@ -181,6 +181,18 @@ export const Terminal: React.FC<TerminalProps> = ({
     const [history, setHistory] = useState<React.ReactNode[]>([]);
     const [commandHistory, setCommandHistory] = useState<string[]>([]);
     const [aliases, setAliases] = useState<Record<string, string>>({});
+
+    // Refs for async access to latest state
+    const playerStateRef = useRef(playerState);
+    const gameStateRef = useRef(gameState);
+
+    useEffect(() => {
+        playerStateRef.current = playerState;
+    }, [playerState]);
+
+    useEffect(() => {
+        gameStateRef.current = gameState;
+    }, [gameState]);
 
     // Generalized Input State
     const [inputMode, setInputMode] = useState<'command' | 'password' | 'nano'>('command');
@@ -444,37 +456,48 @@ export const Terminal: React.FC<TerminalProps> = ({
 
         // Tutorial Check Logic
         if (isTutorialActive && currentTutorialStep) {
-            if (currentTutorialStep.check(cmd, args, gameState, playerState)) {
-                // Execute Step Completion Logic
-                if (currentTutorialStep.onComplete) {
-                    currentTutorialStep.onComplete(gameState, playerState);
-                }
-
-                // Step Completed
-                const nextIndex = tutorialStepIndex + 1;
-                const nextStep = nextIndex < TUTORIAL_STEPS.length ? TUTORIAL_STEPS[nextIndex] : null;
-
-                // Update State
-                // Update State
-                const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
-
-                if (!nextStep) {
-                    // Tutorial Finished
-                    updatedState.activeMissionId = null;
-                    updatedState.tutorialStep = undefined;
-
-                    // Save and Reboot to restore normal game state
-                    writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
-                    onPlayerStateChange(updatedState);
-
-                    if (onReboot) {
-                        setTimeout(() => onReboot(updatedState), 1500);
+            // Special case for nano_editor: the check only triggers the opening of nano.
+            // The actual step completion is handled in the onExit of NanoEditor in Terminal.tsx.
+            if (currentTutorialStep.id !== 'nano_editor') {
+                if (currentTutorialStep.check(cmd, args, gameState, playerState)) {
+                    // Execute Step Completion Logic
+                    if (currentTutorialStep.onComplete) {
+                        currentTutorialStep.onComplete(gameState, playerState);
                     }
-                    return; // Stop processing command to prevent weird state mismatch
-                }
 
-                onPlayerStateChange(updatedState);
-                writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                    // Step Completed
+                    const nextIndex = tutorialStepIndex + 1;
+                    const nextStep = nextIndex < TUTORIAL_STEPS.length ? TUTORIAL_STEPS[nextIndex] : null;
+
+                    // Update State
+                    const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
+
+                    if (!nextStep) {
+                        // Tutorial Finished
+                        updatedState.activeMissionId = null;
+                        updatedState.tutorialStep = undefined;
+
+                        // Save and Reboot to restore normal game state
+                        writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                        onPlayerStateChange(updatedState);
+
+                        if (onReboot) {
+                            setTimeout(() => onReboot(updatedState), 1500);
+                        }
+                        return; // Stop processing command to prevent weird state mismatch
+                    }
+
+                    onPlayerStateChange(updatedState);
+                    writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                }
+            } else {
+                // We are on the nano_editor step.
+                // We ONLY want to allow the 'nano notes.txt' command to proceed to open the editor.
+                // We do NOT want to increment the tutorial step here.
+                if (!currentTutorialStep.check(cmd, args, gameState, playerState)) {
+                    // If they type something else, we might want to block it or just let it fail normally.
+                    // For now, let it fail normally but don't progress.
+                }
             }
         }
 
@@ -627,9 +650,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 );
                 break;
             case 'browser':
-                if (isTutorialActive) {
-                    output = <div className="text-red-500">Error: Browser access is disabled during training simulation.</div>;
-                } else if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
                     output = <div className="text-red-500">Error: Browser can only be accessed from secure Homebase terminals. Disconnect first.</div>;
                 } else if (onOpenBrowser) {
                     onOpenBrowser(args[0]);
@@ -748,13 +769,25 @@ export const Terminal: React.FC<TerminalProps> = ({
                             if (activeNode.id === 'localhost' || activeNode.id === 'local') {
                                 const isLoot = rmPath[0] === 'home' && rmPath[1] === 'user' && rmPath[2] === 'loot';
                                 if (isLoot) {
-                                    const updatedInventory = playerState.inventory.filter(item => item.name !== fileName);
-                                    onPlayerStateChange({ ...playerState, inventory: updatedInventory });
+                                    onPlayerStateChange(prev => ({
+                                        ...prev,
+                                        inventory: prev.inventory.filter(item => item.name !== fileName)
+                                    }));
                                 }
                             }
 
-                            if (onVFSChange) {
-                                onVFSChange(vfs);
+                            // Safe VFS Update
+                            if (onGameStateChange) {
+                                const currentGameState = gameStateRef.current;
+                                const targetNodeIndex = currentGameState.nodes.findIndex(n => n.id === activeNode.id);
+                                if (targetNodeIndex !== -1) {
+                                    const newNodes = [...currentGameState.nodes];
+                                    newNodes[targetNodeIndex] = {
+                                        ...newNodes[targetNodeIndex],
+                                        vfs: vfs // vfs is the mutated object
+                                    };
+                                    onGameStateChange({ ...currentGameState, nodes: newNodes });
+                                }
                             }
                         }
                     }
@@ -1012,9 +1045,13 @@ export const Terminal: React.FC<TerminalProps> = ({
                             setTimeout(() => {
                                 setIsDiskActive(false);
 
+                                const currentPlayerState = playerStateRef.current;
+                                const currentGameState = gameStateRef.current;
+                                const currentActiveNode = currentGameState.nodes[currentGameState.activeNodeIndex];
+
                                 // Re-check storage capacity right before finishing to prevent race conditions or state changes
-                                const finalUsageKB = HardwareService.calculateStorageUsage(playerState, null);
-                                const finalCapacityKB = playerState.hardware.storage.capacity * 1024 * 1024;
+                                const finalUsageKB = HardwareService.calculateStorageUsage(currentPlayerState, null);
+                                const finalCapacityKB = currentPlayerState.hardware.storage.capacity * 1024 * 1024;
 
                                 if (finalUsageKB + fileSizeKB > finalCapacityKB) {
                                     setHistory(prev => [...prev, (
@@ -1032,24 +1069,28 @@ export const Terminal: React.FC<TerminalProps> = ({
                                     </div>
                                 )]);
 
-                                // Add to mission inventory
-                                const updatedPlayerState = {
-                                    ...playerState,
-                                    missionInventory: [...(playerState.missionInventory || []), fNode]
-                                };
-                                onPlayerStateChange(updatedPlayerState);
+                                // Add to mission inventory using functional update to ensure we don't overwrite other state changes (like tutorial steps)
+                                onPlayerStateChange(prev => {
+                                    const updated = {
+                                        ...prev,
+                                        missionInventory: [...(prev.missionInventory || []), fNode]
+                                    };
 
-                                // Auto-save (respect dev mode)
-                                const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
-                                writeSave(slotId, updatedPlayerState);
+                                    // Auto-save (respect dev mode)
+                                    const slotId = prev.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+                                    writeSave(slotId, updated);
+
+                                    return updated;
+                                });
 
                                 // End process
                                 setActiveProcesses(prev => prev.filter(p => p.id !== pid.toString()));
 
                                 // Check Win Condition: File Found (theft)
-                                if (gameState.winCondition.type === 'file_found' &&
-                                    activeNode.id === gameState.winCondition.nodeId &&
-                                    fNode.name === gameState.winCondition.path[gameState.winCondition.path.length - 1]) {
+                                // Use currentGameState to check win condition against the CURRENT state of the world
+                                if (currentGameState.winCondition.type === 'file_found' &&
+                                    currentActiveNode.id === currentGameState.winCondition.nodeId &&
+                                    fNode.name === currentGameState.winCondition.path[currentGameState.winCondition.path.length - 1]) {
                                     onWin();
                                 }
                             }, delay);
@@ -1163,7 +1204,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                 if (nmapTarget) {
                     const pid = Math.floor(Math.random() * 9000) + 1000;
-                    const cost = cmd === 'nmap' ? PROCESS_COSTS['nmap'] : { cpuUsage: 0.05, ramUsage: 0.016 };
+                    const cost = PROCESS_COSTS[cmd as keyof typeof PROCESS_COSTS] || { cpuUsage: 0.05, ramUsage: 0.016 };
 
                     // Start process
                     setActiveProcesses(prev => [...prev, { id: pid.toString(), name: cmd, ram: cost.ramUsage }]);
@@ -1174,12 +1215,15 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const delay = HardwareService.calculateProcessDelay(cmd === 'nmap' ? 1500 : 800, playerState, currentRamUsage);
 
                     setTimeout(() => {
-                        const portLines = nmapTarget.ports.map(p =>
+                        const currentGameState = gameStateRef.current;
+                        const currentTarget = currentGameState.nodes.find(n => n.id === nmapTarget.id) || nmapTarget;
+
+                        const portLines = currentTarget.ports.map(p =>
                             `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${cmd === 'nmap' && args.includes('-sV') ? p.version : ''}`
                         );
                         const result = (
                             <div className="whitespace-pre-wrap text-blue-300">
-                                {`${cmd === 'nmap' ? 'Nmap' : 'Nmap-Lite'} scan report for ${nmapTarget.hostname} (${nmapIp})`}
+                                {`${cmd === 'nmap' ? 'Nmap' : 'Nmap-Lite'} scan report for ${currentTarget.hostname} (${nmapIp})`}
                                 <br />Host is up (0.0003s latency).
                                 <br />PORT     STATE SERVICE      ${cmd === 'nmap' ? 'VERSION' : ''}
                                 <br />{portLines.join('\n')}
@@ -1211,18 +1255,21 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const delay = HardwareService.calculateProcessDelay(2500, playerState, currentRamUsage);
 
                     setTimeout(() => {
-                        const portLines = nmapProTarget.ports.map(p =>
+                        const currentGameState = gameStateRef.current;
+                        const currentTarget = currentGameState.nodes.find(n => n.id === nmapProTarget.id) || nmapProTarget;
+
+                        const portLines = currentTarget.ports.map(p =>
                             `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${p.version}`
                         );
 
-                        const vulnerabilities = nmapProTarget.vulnerabilities.map(v =>
+                        const vulnerabilities = currentTarget.vulnerabilities.map(v =>
                             `[!] VULNERABILITY FOUND: ${v.type.toUpperCase()} - ${v.hint} (${v.entryPoint}) - TIER ${v.level}`
                         );
 
                         const result = (
                             <div className="whitespace-pre-wrap text-blue-300">
-                                {`Nmap-Pro scan report for ${nmapProTarget.hostname} (${nmapProIp})`}
-                                <br />Host is up (0.0001s latency). OS: {nmapProTarget.osVersion}
+                                {`Nmap-Pro scan report for ${currentTarget.hostname} (${nmapProIp})`}
+                                <br />Host is up (0.0001s latency). OS: {currentTarget.osVersion}
                                 <br />PORT     STATE SERVICE      VERSION
                                 <br />{portLines.join('\n')}
                                 <br /><br />
@@ -1316,10 +1363,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 content: btoa(sqlTarget.rootPassword || 'none'),
                                 size: 0.01
                             };
-                            onPlayerStateChange({
-                                ...playerState,
-                                inventory: [...playerState.inventory, hashFile]
-                            });
+                            onPlayerStateChange(prev => ({
+                                ...prev,
+                                inventory: [...prev.inventory, hashFile]
+                            }));
 
                         }, 1500);
                         return;
@@ -1387,7 +1434,8 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 )]);
 
                                 setTimeout(() => {
-                                    const targetIdx = gameState.nodes.findIndex(n => n.id === msfTarget.id);
+                                    const currentGameState = gameStateRef.current;
+                                    const targetIdx = currentGameState.nodes.findIndex(n => n.id === msfTarget.id);
                                     onNodeChange(targetIdx);
                                     setHistory([]);
                                 }, 2000);
@@ -1452,7 +1500,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             </div>
                         )]);
                         // Heat spike!
-                        onPlayerStateChange({ ...playerState, systemHeat: playerState.systemHeat + 45 });
+                        onPlayerStateChange(prev => ({ ...prev, systemHeat: prev.systemHeat + 45 }));
                     }, 2000);
                     return;
                 } else {
@@ -1551,7 +1599,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                 const attemptLogin = (_isRoot: boolean) => {
                     // Tutorial Logic: SSH success is a step completion
-                    if (isTutorialActive && tutorialStepIndex === 5) {
+                    if (isTutorialActive && currentTutorialStep?.id === 'ssh_connect') {
                         const nextIndex = tutorialStepIndex + 1;
                         const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
                         onPlayerStateChange(updatedState);
@@ -2107,12 +2155,12 @@ export const Terminal: React.FC<TerminalProps> = ({
                                     }
                                 };
 
-                                onPlayerStateChange({
-                                    ...playerState,
-                                    credits: playerState.credits + (willPay ? payout : 0),
-                                    reputation: playerState.reputation + (willPay ? GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_PAID : GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_REFUSED),
-                                    emails: [ransomEmail, ...playerState.emails]
-                                });
+                                onPlayerStateChange(prev => ({
+                                    ...prev,
+                                    credits: prev.credits + (willPay ? payout : 0),
+                                    reputation: prev.reputation + (willPay ? GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_PAID : GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_REFUSED),
+                                    emails: [ransomEmail, ...prev.emails]
+                                }));
                             }, 5000 + Math.random() * 5000);
 
                             delete parentNode.children[fName];
@@ -2121,7 +2169,20 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 name: `${fName}.encrypted`,
                                 content: "[ENCRYPTED DATA - RANSOM REQUIRED]"
                             };
-                            if (onVFSChange) onVFSChange(vfs);
+
+                            // Safe VFS Update
+                            if (onGameStateChange) {
+                                const currentGameState = gameStateRef.current;
+                                const targetNodeIndex = currentGameState.nodes.findIndex(n => n.id === activeNode.id);
+                                if (targetNodeIndex !== -1) {
+                                    const newNodes = [...currentGameState.nodes];
+                                    newNodes[targetNodeIndex] = {
+                                        ...newNodes[targetNodeIndex],
+                                        vfs: vfs // vfs is the mutated object
+                                    };
+                                    onGameStateChange({ ...currentGameState, nodes: newNodes });
+                                }
+                            }
                         }
 
                     } else {
@@ -2444,6 +2505,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                     onExit={() => {
                         setInputMode('command');
                         setNanoFile(null);
+
+                        // Tutorial Logic: If we were in the nano step, and we just exited (which requires saving first in tutorial mode)
+                        if (isTutorialActive && currentTutorialStep?.id === 'nano_editor') {
+                            const nextIndex = tutorialStepIndex + 1;
+                            const updatedState: PlayerState = { ...playerState, tutorialStep: nextIndex };
+                            onPlayerStateChange(updatedState);
+                            writeSave(playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1'), updatedState);
+                        }
                     }}
                 />
             )}

@@ -38,10 +38,10 @@ export const NanoEditor: React.FC<NanoEditorProps> = ({ filename, initialContent
             return;
         }
 
-        if (e.ctrlKey && e.key === 'o') {
+        if (e.ctrlKey && e.key.toLowerCase() === 'o') {
             e.preventDefault();
             setIsSaving(true);
-        } else if (e.ctrlKey && e.key === 'x') {
+        } else if (e.ctrlKey && e.key.toLowerCase() === 'x') {
             e.preventDefault();
             if (isTutorialMode && !hasSaved) {
                 // In tutorial, must save before exiting

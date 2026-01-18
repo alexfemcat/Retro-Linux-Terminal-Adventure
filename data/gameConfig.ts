@@ -68,6 +68,7 @@ export const GAME_CONFIG = {
     },
     PROCESS_COSTS: {
         'nmap': { cpuUsage: 0.15, ramUsage: 0.032 }, // 32MB
+        'nmap-lite': { cpuUsage: 0.05, ramUsage: 0.010 }, // 10MB
         'nmap-pro': { cpuUsage: 0.25, ramUsage: 0.128 }, // 128MB
         'hydra': { cpuUsage: 0.4, ramUsage: 0.256 }, // 256MB
         'download': { cpuUsage: 0.05, ramUsage: 0.008 }, // 8MB

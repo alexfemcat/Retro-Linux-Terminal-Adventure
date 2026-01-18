@@ -32,6 +32,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
     const [isPageLoading, setIsPageLoading] = useState(false);
     const [marketTab, setMarketTab] = useState<'software' | 'hardware' | 'consumables' | 'security'>('software');
     const [selectedCommandInfo, setSelectedCommandInfo] = useState<string | null>(null);
+    const isTutorial = playerState.activeMissionId === 'tutorial';
 
     const navigate = (newUrl: string, isBack: boolean = false) => {
         if (newUrl === url) return;
@@ -156,9 +157,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                             onMissionAccept(mission);
                                             onClose();
                                         }}
-                                        className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-1 text-sm font-bold uppercase tracking-widest"
+                                        disabled={isTutorial}
+                                        className={`${isTutorial ? 'bg-gray-700 text-gray-400 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-500 text-white'} px-4 py-1 text-sm font-bold uppercase tracking-widest`}
                                     >
-                                        Accept Contract
+                                        {isTutorial ? 'Unavailable' : 'Accept Contract'}
                                     </button>
                                 </div>
                             </div>
@@ -240,9 +242,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                             alert("PGP-Crypt not found. Purchase it from Macro-Electronics.");
                                         }
                                     }}
-                                    className={`px-8 py-2 font-bold uppercase tracking-widest transition-all ${playerState.installedSoftware.includes('pgp-tool') ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+                                    disabled={isTutorial}
+                                    className={`px-8 py-2 font-bold uppercase tracking-widest transition-all ${isTutorial ? 'bg-gray-800 text-gray-500 cursor-not-allowed' : playerState.installedSoftware.includes('pgp-tool') ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
                                 >
-                                    Decipher Message
+                                    {isTutorial ? 'Unavailable' : 'Decipher Message'}
                                 </button>
                             </div>
                         ) : (
@@ -261,9 +264,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                             onClose();
                                         }
                                     }}
-                                    className="bg-green-600 hover:bg-green-500 text-white px-6 py-2 font-bold uppercase"
+                                    disabled={isTutorial}
+                                    className={`${isTutorial ? 'bg-gray-700 text-gray-500 cursor-not-allowed' : 'bg-green-600 hover:bg-green-500 text-white'} px-6 py-2 font-bold uppercase`}
                                 >
-                                    Accept Direct Offer
+                                    {isTutorial ? 'Unavailable' : 'Accept Direct Offer'}
                                 </button>
                             </div>
                         )}
@@ -409,7 +413,9 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                 .map(item => (
                                     <button
                                         key={item.name}
+                                        disabled={isTutorial}
                                         onClick={() => {
+                                            if (isTutorial) return;
                                             const payout = Math.floor(5000 + Math.random() * 10000);
                                             const roll = Math.random() * 100;
                                             let updatedState = { ...playerState };
@@ -457,10 +463,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                 // but the email system will handle the notification.
                                             }
                                         }}
-                                        className="bg-purple-900/20 border border-purple-500 p-4 hover:bg-purple-500 hover:text-white transition-all flex justify-between items-center group"
+                                        className={`bg-purple-900/20 border border-purple-500 p-4 transition-all flex justify-between items-center group ${isTutorial ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-500 hover:text-white'}`}
                                     >
                                         <span className="font-bold uppercase tracking-tighter">{item.name}</span>
-                                        <span className="text-xs opacity-0 group-hover:opacity-100 font-mono">[ UPLOAD & EXTORT ]</span>
+                                        <span className={`text-xs font-mono ${isTutorial ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>{isTutorial ? '[ UNAVAILABLE ]' : '[ UPLOAD & EXTORT ]'}</span>
                                     </button>
                                 ))
                         )}
@@ -495,8 +501,9 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                             {(['software', 'hardware', 'security', 'consumables'] as const).map(tab => (
                                 <button
                                     key={tab}
-                                    onClick={() => setMarketTab(tab)}
-                                    className={`p-6 text-left text-sm font-black uppercase tracking-[0.2em] transition-all border-b border-blue-400/10 relative group ${marketTab === tab ? 'bg-blue-400/20 text-blue-200' : 'text-blue-700 hover:bg-blue-400/10 hover:text-blue-400'}`}
+                                    onClick={() => !isTutorial && setMarketTab(tab)}
+                                    disabled={isTutorial}
+                                    className={`p-6 text-left text-sm font-black uppercase tracking-[0.2em] transition-all border-b border-blue-400/10 relative group ${marketTab === tab ? 'bg-blue-400/20 text-blue-200' : isTutorial ? 'text-gray-600 cursor-not-allowed' : 'text-blue-700 hover:bg-blue-400/10 hover:text-blue-400'}`}
                                 >
                                     {marketTab === tab && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>}
                                     <span className="flex items-center gap-3">
@@ -572,10 +579,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                     </button>
                                                     <button
                                                         onClick={() => handlePurchase(item.id)}
-                                                        disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
-                                                        className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : 'border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black shadow-[0_0_15px_rgba(96,165,250,0.3)]'}`}
+                                                        disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id) || isTutorial}
+                                                        className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : isTutorial ? 'border-gray-600 text-gray-600 cursor-not-allowed' : 'border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black shadow-[0_0_15px_rgba(96,165,250,0.3)]'}`}
                                                     >
-                                                        {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                                        {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : isTutorial ? 'LOCKED' : `${item.cost}c`}
                                                     </button>
                                                 </div>
                                             </div>
@@ -726,10 +733,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                         {nextUpgrade && (
                                                             <button
                                                                 onClick={() => handlePurchase(nextUpgrade.id)}
-                                                                disabled={playerState.credits < nextUpgrade.cost}
-                                                                className={`px-8 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < nextUpgrade.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]'}`}
+                                                                disabled={playerState.credits < nextUpgrade.cost || isTutorial}
+                                                                className={`px-8 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < nextUpgrade.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : isTutorial ? 'border-gray-600 text-gray-600 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]'}`}
                                                             >
-                                                                {playerState.credits < nextUpgrade.cost ? 'INSUFFICIENT_CR' : `UPGRADE: ${nextUpgrade.cost}c`}
+                                                                {playerState.credits < nextUpgrade.cost ? 'INSUFFICIENT_CR' : isTutorial ? 'LOCKED' : `UPGRADE: ${nextUpgrade.cost}c`}
                                                             </button>
                                                         )}
                                                     </div>
@@ -758,10 +765,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                 </div>
                                                 <button
                                                     onClick={() => handlePurchase(item.id)}
-                                                    disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
-                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
+                                                    disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id) || isTutorial}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : isTutorial ? 'border-gray-600 text-gray-600 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
                                                 >
-                                                    {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                                    {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : isTutorial ? 'LOCKED' : `${item.cost}c`}
                                                 </button>
                                             </div>
                                         ))}
@@ -787,10 +794,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                 </div>
                                                 <button
                                                     onClick={() => handlePurchase(item.id)}
-                                                    disabled={playerState.credits < item.cost}
-                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < item.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
+                                                    disabled={playerState.credits < item.cost || isTutorial}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < item.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : isTutorial ? 'border-gray-600 text-gray-600 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
                                                 >
-                                                    {item.cost}c
+                                                    {isTutorial ? 'LOCKED' : `${item.cost}c`}
                                                 </button>
                                             </div>
                                         ))}
@@ -837,8 +844,9 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            className="bg-transparent border-none outline-none text-green-500 w-full text-sm"
-                            onKeyDown={(e) => e.key === 'Enter' && navigate(url)}
+                            className={`bg-transparent border-none outline-none w-full text-sm ${isTutorial ? 'text-gray-500 cursor-not-allowed' : 'text-green-500'}`}
+                            onKeyDown={(e) => e.key === 'Enter' && !isTutorial && navigate(url)}
+                            disabled={isTutorial}
                         />
                         <button
                             onClick={() => {
