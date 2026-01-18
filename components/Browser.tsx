@@ -4,6 +4,7 @@ import { blackmailTemplates, leakNewsTemplates } from '../data/gameData';
 import { MARKET_CATALOG } from '../data/marketData';
 import { buyItem } from '../services/MarketSystem';
 import { writeSave } from '../services/PersistenceService';
+import { COMMAND_REGISTRY } from '../services/CommandRegistry';
 
 interface BrowserProps {
     playerState: PlayerState;
@@ -29,6 +30,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
     const [history, setHistory] = useState<string[]>([initialUrl]);
     const [isPageLoading, setIsPageLoading] = useState(false);
     const [marketTab, setMarketTab] = useState<'software' | 'hardware' | 'consumables'>('software');
+    const [selectedCommandInfo, setSelectedCommandInfo] = useState<string | null>(null);
 
     const navigate = (newUrl: string, isBack: boolean = false) => {
         if (newUrl === url) return;
@@ -95,7 +97,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                         />
                         <BrowserIcon
                             icon="🤫"
-                            label="Tor Blackmail Service"
+                            label="Onion Blackmail Service"
                             sublabel="Anonymous Extortion"
                             onClick={() => navigate('tor://blackmail-service')}
                         />
@@ -125,8 +127,29 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                 </div>
                                 <h3 className="text-lg text-white mb-2">{mission.title}</h3>
                                 <p className="text-sm text-gray-400 mb-4">{mission.description.split('\n')[0]}</p>
+
+                                <div className="flex gap-4 mb-4">
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-purple-700 uppercase font-bold">Risk Level</span>
+                                        <div className="flex gap-1 mt-1">
+                                            {[...Array(5)].map((_, i) => (
+                                                <div
+                                                    key={i}
+                                                    className={`w-3 h-1.5 ${i < mission.difficulty ? 'bg-purple-500 shadow-[0_0_5px_rgba(168,85,247,0.5)]' : 'bg-purple-900/30'}`}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[9px] text-purple-700 uppercase font-bold">Objective Type</span>
+                                        <span className={`text-[10px] font-mono mt-1 uppercase tracking-tighter ${mission.targetNetworkConfig.winConditionType ? 'text-purple-300' : 'text-red-500 animate-pulse'}`}>
+                                            {mission.targetNetworkConfig.winConditionType ? mission.targetNetworkConfig.winConditionType.replace(/_/g, ' ') : '[ERR: MISSING_OBJ_DATA]'}
+                                        </span>
+                                    </div>
+                                </div>
+
                                 <div className="flex justify-between items-center">
-                                    <span className="text-green-500 font-mono">{mission.reward}c</span>
+                                    <span className="text-green-500 font-mono font-bold">{mission.reward}c</span>
                                     <button
                                         onClick={() => {
                                             onMissionAccept(mission);
@@ -417,15 +440,15 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
 
         if (url === 'web://macro-electronics') {
             return (
-                <div className="h-full flex flex-col bg-[#050505] text-green-500 font-mono">
+                <div className={`h-full flex flex-col bg-[#0f172a] text-blue-400 font-mono ${selectedCommandInfo ? 'pointer-events-none' : ''}`}>
                     {/* Fancy Header */}
-                    <div className="p-6 border-b-2 border-green-500/30 flex justify-between items-center bg-black relative overflow-hidden">
-                        <div className="absolute inset-0 bg-green-500/5 animate-pulse pointer-events-none"></div>
+                    <div className="p-6 border-b-2 border-blue-400/30 flex justify-between items-center bg-[#1e293b] relative overflow-hidden">
+                        <div className="absolute inset-0 bg-blue-400/10 animate-pulse pointer-events-none"></div>
                         <div>
-                            <h2 className="text-3xl font-black text-green-400 tracking-tighter uppercase italic flex items-center gap-3">
-                                <span className="text-green-600">{'>>'}</span> Macro-Electronics <span className="text-xs bg-green-900/50 px-2 py-1 rounded text-green-500 border border-green-500/30">v4.0.8-STABLE</span>
+                            <h2 className="text-3xl font-black text-blue-400 tracking-tighter uppercase italic flex items-center gap-3">
+                                <span className="text-blue-600">{'>>'}</span> Macro-Electronics <span className="text-xs bg-blue-900/50 px-2 py-1 rounded text-blue-500 border border-blue-500/30">v4.0.8-STABLE</span>
                             </h2>
-                            <div className="text-[10px] text-green-800 uppercase tracking-[0.3em] mt-1">Premium Hardware & Software Solutions</div>
+                            <div className="text-[10px] text-blue-800 uppercase tracking-[0.3em] mt-1">Premium Hardware & Software Solutions</div>
                         </div>
                         <div className="text-right flex flex-col items-end justify-center">
                             <div className="text-yellow-500 font-black text-2xl tracking-tighter bg-yellow-900/10 px-4 py-1 border-2 border-yellow-600/50 shadow-[0_0_15px_rgba(202,138,4,0.2)] leading-none flex items-center h-12">
@@ -437,14 +460,14 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
 
                     <div className="flex flex-grow overflow-hidden">
                         {/* Sidebar Tabs - Fancy Style */}
-                        <div className="w-56 border-r-2 border-green-500/20 bg-black flex flex-col">
+                        <div className="w-56 border-r-2 border-blue-400/20 bg-[#0f172a] flex flex-col">
                             {(['software', 'hardware', 'consumables'] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setMarketTab(tab)}
-                                    className={`p-6 text-left text-sm font-black uppercase tracking-[0.2em] transition-all border-b border-green-500/10 relative group ${marketTab === tab ? 'bg-green-500/10 text-green-400' : 'text-green-900 hover:bg-green-500/5 hover:text-green-600'}`}
+                                    className={`p-6 text-left text-sm font-black uppercase tracking-[0.2em] transition-all border-b border-blue-400/10 relative group ${marketTab === tab ? 'bg-blue-400/20 text-blue-200' : 'text-blue-700 hover:bg-blue-400/10 hover:text-blue-400'}`}
                                 >
-                                    {marketTab === tab && <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500 shadow-[0_0_10px_#22c55e]"></div>}
+                                    {marketTab === tab && <div className="absolute left-0 top-0 bottom-0 w-1 bg-blue-400 shadow-[0_0_10px_#60a5fa]"></div>}
                                     <span className="flex items-center gap-3">
                                         <span className={`text-xl ${marketTab === tab ? 'opacity-100' : 'opacity-30'}`}>
                                             {tab === 'software' && '⧉'}
@@ -457,64 +480,72 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                 </button>
                             ))}
 
-                            <div className="mt-auto p-6 border-t border-green-500/10">
-                                <div className="bg-green-900/10 border border-green-500/20 p-3 rounded">
-                                    <div className="text-[9px] text-green-700 uppercase font-bold mb-2">System Integrity</div>
-                                    <div className="w-full h-1 bg-green-950 rounded-full overflow-hidden">
-                                        <div className="h-full bg-green-500 w-full animate-pulse"></div>
+                            <div className="mt-auto p-6 border-t border-blue-500/10">
+                                <div className="bg-blue-900/10 border border-blue-500/20 p-3 rounded">
+                                    <div className="text-[9px] text-blue-700 uppercase font-bold mb-2">System Integrity</div>
+                                    <div className="w-full h-1 bg-blue-950 rounded-full overflow-hidden">
+                                        <div className="h-full bg-blue-500 w-full animate-pulse"></div>
                                     </div>
-                                    <div className="text-[8px] text-green-900 mt-2 font-mono">SECURE_LINK: ACTIVE</div>
+                                    <div className="text-[8px] text-blue-900 mt-2 font-mono">SECURE_LINK: ACTIVE</div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Main Content Area */}
-                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-green-900/5 to-transparent">
+                        <div className="flex-grow overflow-y-auto p-8 custom-scrollbar bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-blue-800/10 to-transparent">
                             {marketTab === 'software' && (
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
-                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Software Repository</div>
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+                                        <div className="text-xs text-blue-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Software Repository</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-4">
                                         {MARKET_CATALOG.filter(i => ['utility', 'sniffing', 'exploit'].includes(i.category)).map(item => (
-                                            <div key={item.id} className="bg-black/40 border border-green-500/20 p-5 flex justify-between items-center hover:border-green-500/50 transition-all group relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/5 transition-colors pointer-events-none"></div>
+                                            <div key={item.id} className="bg-[#1e293b]/40 border border-blue-400/20 p-5 flex justify-between items-center hover:border-blue-300/50 transition-all group relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-blue-300/5 group-hover:bg-blue-300/10 transition-colors pointer-events-none"></div>
                                                 <div className="relative z-10">
                                                     <div className="flex items-center gap-3 mb-1">
-                                                        <div className="text-white font-black text-lg group-hover:text-green-400 transition-colors uppercase tracking-tighter">{item.name}</div>
-                                                        <div className={`text-[9px] px-2 py-0.5 rounded border font-bold ${item.category === 'exploit' ? 'border-red-500/50 text-red-500 bg-red-900/10' : item.category === 'sniffing' ? 'border-blue-500/50 text-blue-500 bg-blue-900/10' : 'border-green-500/50 text-green-500 bg-green-900/10'}`}>
+                                                        <div className="text-white font-black text-lg group-hover:text-blue-300 transition-colors uppercase tracking-tighter">{item.name}</div>
+                                                        <div className={`text-[9px] px-2 py-0.5 rounded border font-bold ${item.category === 'exploit' ? 'border-red-500/50 text-red-400 bg-red-900/20' : item.category === 'sniffing' ? 'border-cyan-500/50 text-cyan-400 bg-cyan-900/20' : 'border-blue-500/50 text-blue-400 bg-blue-900/20'}`}>
                                                             {item.category.toUpperCase()}
                                                         </div>
                                                     </div>
-                                                    <div className="text-xs text-green-700 max-w-md italic mb-3">"{item.description}"</div>
+                                                    <div className="text-xs text-blue-300/70 max-w-md italic mb-3">"{item.description}"</div>
                                                     <div className="flex gap-4">
                                                         {'cpuReq' in item && item.cpuReq && (
                                                             <div className="text-[10px] font-bold">
-                                                                <span className="text-green-900">CPU_LOAD:</span> <span className="text-green-500">{item.cpuReq}%</span>
+                                                                <span className="text-blue-700">CPU_LOAD:</span> <span className="text-blue-400">{item.cpuReq}%</span>
                                                             </div>
                                                         )}
                                                         {'ramReq' in item && item.ramReq && (
                                                             <div className="text-[10px] font-bold">
-                                                                <span className="text-green-900">MEM_REQ:</span> <span className="text-green-500">{item.ramReq}MB</span>
+                                                                <span className="text-blue-700">MEM_REQ:</span> <span className="text-blue-400">{item.ramReq}MB</span>
                                                             </div>
                                                         )}
                                                         {'storageSize' in item && item.storageSize && (
                                                             <div className="text-[10px] font-bold">
-                                                                <span className="text-green-900">DISK_USE:</span> <span className="text-green-500">{item.storageSize}MB</span>
+                                                                <span className="text-blue-700">DISK_USE:</span> <span className="text-blue-400">{item.storageSize}MB</span>
                                                             </div>
                                                         )}
                                                     </div>
                                                 </div>
-                                                <button
-                                                    onClick={() => handlePurchase(item.id)}
-                                                    disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
-                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-green-900/30 text-green-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'}`}
-                                                >
-                                                    {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
-                                                </button>
+                                                <div className="flex flex-col gap-2">
+                                                    <button
+                                                        onClick={() => setSelectedCommandInfo(item.id)}
+                                                        className="relative z-10 px-4 py-1 font-black text-[10px] uppercase tracking-[0.1em] transition-all border border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-black"
+                                                    >
+                                                        [ DOCUMENTATION ]
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handlePurchase(item.id)}
+                                                        disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
+                                                        className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : 'border-blue-400 text-blue-400 hover:bg-blue-400 hover:text-black shadow-[0_0_15px_rgba(96,165,250,0.3)]'}`}
+                                                    >
+                                                        {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                                    </button>
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
@@ -524,9 +555,9 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                             {marketTab === 'hardware' && (
                                 <div className="space-y-10">
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
-                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Hardware Evolution</div>
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+                                        <div className="text-xs text-blue-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Hardware Evolution</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
                                     </div>
 
                                     {(['cpu', 'ram', 'storage', 'cooling', 'network'] as const).map(hwKey => {
@@ -540,17 +571,17 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                         return (
                                             <div key={hwKey} className="relative">
                                                 {/* Category Label */}
-                                                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-green-500/20"></div>
+                                                <div className="absolute -left-4 top-0 bottom-0 w-1 bg-blue-500/20"></div>
 
                                                 <div className="grid grid-cols-1 gap-2">
                                                     {/* Current Spec - Fancy Card */}
-                                                    <div className="bg-black border border-green-500/10 p-4 flex justify-between items-center opacity-80">
+                                                    <div className="bg-black border border-blue-500/10 p-4 flex justify-between items-center opacity-80">
                                                         <div>
-                                                            <div className="text-[9px] text-green-800 uppercase font-black tracking-widest mb-1">Current {hwKey} configuration</div>
+                                                            <div className="text-[9px] text-blue-800 uppercase font-black tracking-widest mb-1">Current {hwKey} configuration</div>
                                                             <div className="text-white font-black uppercase tracking-tighter">
                                                                 {MARKET_CATALOG.find(i => i.id === current.id)?.name || current.id.replace(/_/g, ' ')}
                                                             </div>
-                                                            <div className="text-[10px] text-green-500 font-mono mt-1">
+                                                            <div className="text-[10px] text-blue-500 font-mono mt-1">
                                                                 {hwKey === 'cpu' && 'clockSpeed' in current && (
                                                                     <span>{current.clockSpeed >= 1 ? `${current.clockSpeed}GHz` : `${Math.round(current.clockSpeed * 1000)}MHz`} | {current.cores} Core(s)</span>
                                                                 )}
@@ -569,36 +600,35 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                             </div>
                                                         </div>
                                                         <div className="text-right">
-                                                            <div className="text-[10px] text-green-700 font-bold uppercase">Status: Operational</div>
-                                                            <div className="text-xs text-green-500 font-mono">LVL_0{current.level}</div>
+                                                            <div className="text-[10px] text-blue-700 font-bold uppercase">Status: Operational</div>
+                                                            <div className="text-xs text-blue-500 font-mono">LVL_0{current.level}</div>
                                                         </div>
                                                     </div>
 
                                                     {/* Transition Arrow */}
                                                     <div className="flex justify-center -my-2 relative z-10">
-                                                        <div className="bg-black px-4 text-green-500 animate-bounce">▼</div>
+                                                        <div className="bg-black px-4 text-blue-500 animate-bounce">▼</div>
                                                     </div>
 
                                                     {/* Next Upgrade - Fancy Card */}
-                                                    <div className={`bg-green-900/5 border-2 p-6 flex justify-between items-center transition-all ${nextUpgrade ? 'border-green-500/40 hover:border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.05)]' : 'border-yellow-600/20 opacity-50'}`}>
+                                                    <div className={`bg-blue-900/5 border-2 p-6 flex justify-between items-center transition-all ${nextUpgrade ? 'border-blue-500/40 hover:border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.05)]' : 'border-yellow-600/20 opacity-50'}`}>
                                                         <div className="flex-grow">
                                                             {nextUpgrade ? (
                                                                 <>
                                                                     <div className="flex items-center gap-3 mb-2">
                                                                         <div className="text-white font-black text-xl uppercase tracking-tighter">{nextUpgrade.name}</div>
-                                                                        <div className="text-[10px] bg-green-500 text-black px-2 py-0.5 font-black rounded uppercase">Next Gen</div>
+                                                                        <div className="text-[10px] bg-blue-500 text-black px-2 py-0.5 font-black rounded uppercase">Next Gen</div>
                                                                     </div>
-                                                                    <div className="text-sm text-green-700 italic max-w-xl">"{nextUpgrade.description}"</div>
+                                                                    <div className="text-sm text-blue-700 italic max-w-xl">"{nextUpgrade.description}"</div>
 
-                                                                    {/* Spec Comparison */}
                                                                     {/* Spec Comparison */}
                                                                     <div className="mt-4 flex gap-6">
                                                                         {hwKey === 'cpu' && 'clockSpeed' in current && nextUpgrade.stats && (
                                                                             <div className="text-[10px] font-bold flex flex-col">
-                                                                                <span className="text-green-900 uppercase">Clock Speed</span>
-                                                                                <span className="text-green-400">
+                                                                                <span className="text-blue-900 uppercase">Clock Speed</span>
+                                                                                <span className="text-blue-400">
                                                                                     {current.clockSpeed >= 1 ? `${current.clockSpeed}GHz` : `${Math.round(current.clockSpeed * 1000)}MHz`}
-                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className="text-blue-600 mx-1">▶</span>
                                                                                     <span className={nextUpgrade.stats.clockSpeed > current.clockSpeed ? 'text-yellow-400' : 'text-red-500'}>
                                                                                         {nextUpgrade.stats.clockSpeed >= 1 ? `${nextUpgrade.stats.clockSpeed}GHz` : `${Math.round(nextUpgrade.stats.clockSpeed * 1000)}MHz`}
                                                                                         {nextUpgrade.stats.clockSpeed < current.clockSpeed && ' [DOWNGRADE]'}
@@ -608,10 +638,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                                         )}
                                                                         {hwKey === 'ram' && 'capacity' in current && nextUpgrade.stats && (
                                                                             <div className="text-[10px] font-bold flex flex-col">
-                                                                                <span className="text-green-900 uppercase">Capacity</span>
-                                                                                <span className="text-green-400">
+                                                                                <span className="text-blue-900 uppercase">Capacity</span>
+                                                                                <span className="text-blue-400">
                                                                                     {current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}
-                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className="text-blue-600 mx-1">▶</span>
                                                                                     <span className={nextUpgrade.stats.capacity > current.capacity ? 'text-yellow-400' : 'text-red-500'}>
                                                                                         {nextUpgrade.stats.capacity >= 1 ? `${nextUpgrade.stats.capacity}GB` : `${Math.round(nextUpgrade.stats.capacity * 1024)}MB`}
                                                                                         {nextUpgrade.stats.capacity < current.capacity && ' [DOWNGRADE]'}
@@ -621,10 +651,10 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                                         )}
                                                                         {hwKey === 'storage' && 'capacity' in current && nextUpgrade.stats && (
                                                                             <div className="text-[10px] font-bold flex flex-col">
-                                                                                <span className="text-green-900 uppercase">Storage</span>
-                                                                                <span className="text-green-400">
+                                                                                <span className="text-blue-900 uppercase">Storage</span>
+                                                                                <span className="text-blue-400">
                                                                                     {current.capacity >= 1 ? `${current.capacity}GB` : `${Math.round(current.capacity * 1024)}MB`}
-                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className="text-blue-600 mx-1">▶</span>
                                                                                     <span className={nextUpgrade.stats.capacity > current.capacity ? 'text-yellow-400' : 'text-red-500'}>
                                                                                         {nextUpgrade.stats.capacity >= 1 ? `${nextUpgrade.stats.capacity}GB` : `${Math.round(nextUpgrade.stats.capacity * 1024)}MB`}
                                                                                         {nextUpgrade.stats.capacity < current.capacity && ' [DOWNGRADE]'}
@@ -634,16 +664,16 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                                         )}
                                                                         {hwKey === 'cooling' && 'heatDissipation' in current && nextUpgrade.stats && (
                                                                             <div className="text-[10px] font-bold flex flex-col">
-                                                                                <span className="text-green-900 uppercase">Dissipation</span>
-                                                                                <span className="text-green-400">x{current.heatDissipation.toFixed(1)} <span className="text-green-600 mx-1">▶</span> x{nextUpgrade.stats.heatDissipation.toFixed(1)}</span>
+                                                                                <span className="text-blue-900 uppercase">Dissipation</span>
+                                                                                <span className="text-blue-400">x{current.heatDissipation.toFixed(1)} <span className="text-blue-600 mx-1">▶</span> x{nextUpgrade.stats.heatDissipation.toFixed(1)}</span>
                                                                             </div>
                                                                         )}
                                                                         {hwKey === 'network' && 'bandwidth' in current && nextUpgrade.stats && (
                                                                             <div className="text-[10px] font-bold flex flex-col">
-                                                                                <span className="text-green-900 uppercase">Bandwidth</span>
-                                                                                <span className="text-green-400">
+                                                                                <span className="text-blue-900 uppercase">Bandwidth</span>
+                                                                                <span className="text-blue-400">
                                                                                     {current.bandwidth >= 1 ? `${current.bandwidth}MB/s` : `${Math.round(current.bandwidth * 1000)}KB/s`}
-                                                                                    <span className="text-green-600 mx-1">▶</span>
+                                                                                    <span className="text-blue-600 mx-1">▶</span>
                                                                                     <span className={nextUpgrade.stats.bandwidth > current.bandwidth ? 'text-yellow-400' : 'text-red-500'}>
                                                                                         {nextUpgrade.stats.bandwidth >= 1 ? `${nextUpgrade.stats.bandwidth}MB/s` : `${Math.round(nextUpgrade.stats.bandwidth * 1000)}KB/s`}
                                                                                         {nextUpgrade.stats.bandwidth < current.bandwidth && ' [DOWNGRADE]'}
@@ -665,7 +695,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                             <button
                                                                 onClick={() => handlePurchase(nextUpgrade.id)}
                                                                 disabled={playerState.credits < nextUpgrade.cost}
-                                                                className={`px-8 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < nextUpgrade.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_20px_rgba(34,197,94,0.3)]'}`}
+                                                                className={`px-8 py-4 font-black text-sm uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < nextUpgrade.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_20px_rgba(59,130,246,0.3)]'}`}
                                                             >
                                                                 {playerState.credits < nextUpgrade.cost ? 'INSUFFICIENT_CR' : `UPGRADE: ${nextUpgrade.cost}c`}
                                                             </button>
@@ -681,23 +711,23 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                             {marketTab === 'consumables' && (
                                 <div className="space-y-6">
                                     <div className="flex items-center gap-4 mb-8">
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
-                                        <div className="text-xs text-green-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Disposable Field Assets</div>
-                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-green-500/30 to-transparent"></div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+                                        <div className="text-xs text-blue-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Disposable Field Assets</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
                                     </div>
 
                                     <div className="grid grid-cols-1 gap-4">
                                         {MARKET_CATALOG.filter(i => i.category === 'consumable').map(item => (
-                                            <div key={item.id} className="bg-black/40 border border-green-500/20 p-5 flex justify-between items-center hover:border-green-500/50 transition-all group relative overflow-hidden">
-                                                <div className="absolute inset-0 bg-green-500/0 group-hover:bg-green-500/5 transition-colors pointer-events-none"></div>
+                                            <div key={item.id} className="bg-blue-950/20 border border-blue-500/20 p-5 flex justify-between items-center hover:border-blue-400/50 transition-all group relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-blue-400/0 group-hover:bg-blue-400/5 transition-colors pointer-events-none"></div>
                                                 <div className="relative z-10">
-                                                    <div className="text-white font-black text-lg group-hover:text-green-400 transition-colors uppercase tracking-tighter mb-1">{item.name}</div>
-                                                    <div className="text-xs text-green-700 max-w-md italic">"{item.description}"</div>
+                                                    <div className="text-white font-black text-lg group-hover:text-blue-300 transition-colors uppercase tracking-tighter mb-1">{item.name}</div>
+                                                    <div className="text-xs text-blue-300/70 max-w-md italic">"{item.description}"</div>
                                                 </div>
                                                 <button
                                                     onClick={() => handlePurchase(item.id)}
                                                     disabled={playerState.credits < item.cost}
-                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < item.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-green-500 text-green-500 hover:bg-green-500 hover:text-black shadow-[0_0_15px_rgba(34,197,94,0.2)]'}`}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.credits < item.cost ? 'border-red-900/30 text-red-900 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
                                                 >
                                                     {item.cost}c
                                                 </button>
@@ -776,6 +806,125 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                     ) : (
                         <div className="h-full animate-[fadeIn_0.3s_ease-out]">
                             {renderContent()}
+                        </div>
+                    )}
+
+                    {/* Command Info Modal */}
+                    {selectedCommandInfo && (
+                        <div className="absolute inset-0 z-[60] flex items-center justify-center bg-black/90 backdrop-blur-sm p-12 animate-[fadeIn_0.2s_ease-out]">
+                            <div className="w-full max-w-2xl max-h-[90%] bg-black border-2 border-blue-500 shadow-[0_0_30px_rgba(59,130,246,0.2)] overflow-hidden flex flex-col">
+                                <div className="bg-blue-900/30 p-4 border-b-2 border-blue-500 flex justify-between items-center shrink-0">
+                                    <h3 className="text-xl font-black text-blue-400 uppercase tracking-tighter italic">
+                                        Command Documentation: {selectedCommandInfo}
+                                    </h3>
+                                    <button
+                                        onClick={() => setSelectedCommandInfo(null)}
+                                        className="text-blue-500 hover:text-white text-2xl font-bold"
+                                    >
+                                        [X]
+                                    </button>
+                                </div>
+                                <div className="p-8 overflow-y-auto custom-scrollbar">
+                                    {(() => {
+                                        const cmdId = selectedCommandInfo.startsWith('ransom_t') ? 'ransomware' : selectedCommandInfo;
+                                        const cmd = COMMAND_REGISTRY[cmdId];
+                                        const marketItem = MARKET_CATALOG.find(i => i.id === selectedCommandInfo) as any;
+                                        if (!cmd) return <div className="text-red-500">Documentation not found for this binary.</div>;
+
+                                        const currentRAM = playerState.hardware.ram.capacity * 1024; // GB to MB
+                                        const currentStorage = playerState.hardware.storage.capacity * 1024; // GB to MB
+
+                                        return (
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-1">Description</div>
+                                                    <div className="text-blue-100 text-lg leading-relaxed italic">"{cmd.description}"</div>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-8">
+                                                    <div>
+                                                        <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-1">Usage Syntax</div>
+                                                        <div className="bg-blue-900/10 border border-blue-500/30 p-3 font-mono text-blue-400">
+                                                            {cmd.usage}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-1">Binary Type</div>
+                                                        <div className="text-blue-400 font-bold uppercase">
+                                                            {cmd.isDefaultCommand ? 'System Core' : 'External Utility'}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                {marketItem && (
+                                                    <div className="border-t border-blue-900/50 pt-6">
+                                                        <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-4">Hardware Compatibility Analysis</div>
+                                                        <div className="space-y-3">
+                                                            <div className="flex justify-between items-center bg-blue-900/5 p-2 border border-blue-900/20">
+                                                                <div className="text-xs text-blue-400 uppercase font-bold">CPU Load Requirement</div>
+                                                                <div className="text-right">
+                                                                    <div className="text-[10px] text-blue-800 uppercase">Required: {marketItem.cpuReq}% | Current: {playerState.hardware.cpu.cores} Core(s)</div>
+                                                                    <div className={`text-xs font-mono ${marketItem.cpuReq <= 100 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                        {marketItem.cpuReq <= 100 ? '[ COMPATIBLE ]' : '[ OVERLOAD RISK ]'}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center bg-blue-900/5 p-2 border border-blue-900/20">
+                                                                <div className="text-xs text-blue-400 uppercase font-bold">Memory Footprint</div>
+                                                                <div className="text-right">
+                                                                    <div className="text-[10px] text-blue-800 uppercase">Required: {marketItem.ramReq}MB | Current: {currentRAM}MB</div>
+                                                                    <div className={`text-xs font-mono ${currentRAM >= marketItem.ramReq ? 'text-green-500' : 'text-red-500'}`}>
+                                                                        {currentRAM >= marketItem.ramReq ? '[ SUFFICIENT ]' : '[ INSUFFICIENT ]'}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex justify-between items-center bg-blue-900/5 p-2 border border-blue-900/20">
+                                                                <div className="text-xs text-blue-400 uppercase font-bold">Storage Allocation</div>
+                                                                <div className="text-right">
+                                                                    <div className="text-[10px] text-blue-800 uppercase">Required: {marketItem.storageSize}MB | Current: {currentStorage}MB</div>
+                                                                    <div className={`text-xs font-mono ${currentStorage >= marketItem.storageSize ? 'text-green-500' : 'text-red-500'}`}>
+                                                                        {currentStorage >= marketItem.storageSize ? '[ AVAILABLE ]' : '[ NO SPACE ]'}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                <div className="border-t border-blue-900/50 pt-6">
+                                                    <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-4">Technical Specifications</div>
+                                                    <div className="grid grid-cols-3 gap-4">
+                                                        <div className="bg-blue-900/5 p-3 border border-blue-900/20">
+                                                            <div className="text-[9px] text-blue-800 uppercase mb-1">Execution</div>
+                                                            <div className="text-xs text-blue-300">{cmd.isLocalOnly ? 'Local Only' : cmd.isRemoteOnly ? 'Remote Only' : 'Universal'}</div>
+                                                        </div>
+                                                        <div className="bg-blue-900/5 p-3 border border-blue-900/20">
+                                                            <div className="text-[9px] text-blue-800 uppercase mb-1">Privilege</div>
+                                                            <div className="text-xs text-blue-300">User Level</div>
+                                                        </div>
+                                                        <div className="bg-blue-900/5 p-3 border border-blue-900/20">
+                                                            <div className="text-[9px] text-blue-800 uppercase mb-1">Registry ID</div>
+                                                            <div className="text-xs text-blue-300">{cmd.id}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="mt-8 p-4 bg-blue-500/5 border border-blue-500/20 italic text-xs text-blue-700 leading-relaxed">
+                                                    NOTICE: This documentation is provided by Macro-Electronics. Unauthorized distribution of binary specifications is a violation of the Digital Sovereignty Act of 2024.
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+                                <div className="bg-black p-4 border-t border-blue-900/50 flex justify-end">
+                                    <button
+                                        onClick={() => setSelectedCommandInfo(null)}
+                                        className="px-8 py-2 bg-blue-600 text-white font-black uppercase text-xs hover:bg-blue-500 transition-colors"
+                                    >
+                                        Close Documentation
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>

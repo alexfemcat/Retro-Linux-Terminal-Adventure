@@ -1,52 +1,19 @@
 import { PlayerState } from '../types';
 import { MARKET_CATALOG } from '../data/marketData';
+import { GAME_CONFIG } from '../data/gameConfig';
 
 /**
  * Global Hardware Simulation Configuration
  * Easily tweak these values to balance the game.
  */
-export const HARDWARE_CONFIG = {
-    MB_PER_GB: 1024,
-
-    // CPU Calculations
-    BASE_OVERCLOCK_BOOST: 1.3,
-    THROTTLE_TEMP_THRESHOLD: 80,
-    CRITICAL_TEMP_THRESHOLD: 95,
-    THROTTLE_PENALTY: 0.5,
-
-    // RAM / Swap Calculations
-    SWAP_DELAY_PENALTY: 5.0, // 5x slower when thrashing
-    DOWNLOAD_BASE_RAM: 0.002, // Base GB used by download process (2MB)
-    DOWNLOAD_SIZE_FACTOR: 0.05, // 5% of file size (in GB) added to RAM usage
-
-    // Thermal Calculations
-    PASSIVE_HEAT_GAIN: 0.2, // Heat per active process
-    OVERCLOCK_HEAT_BASE: 2.5,
-    DISSIPATION_FACTOR: 0.75,
-
-    // Hardware Degradation
-    DEGRADATION_CHANCE: 0.05, // 5% chance per second at critical temp
-    DEGRADATION_STAT_REDUCTION: 0.8, // 20% reduction in stats
-};
+export const HARDWARE_CONFIG = GAME_CONFIG.SIMULATION;
 
 export interface ProcessMetrics {
     cpuUsage: number; // Percentage of 1 core (0-1.0)
     ramUsage: number; // GB
 }
 
-export const PROCESS_COSTS: Record<string, ProcessMetrics> = {
-    'nmap': { cpuUsage: 0.15, ramUsage: 0.032 }, // 32MB
-    'nmap-pro': { cpuUsage: 0.25, ramUsage: 0.128 }, // 128MB
-    'hydra': { cpuUsage: 0.4, ramUsage: 0.256 }, // 256MB
-    'download': { cpuUsage: 0.05, ramUsage: 0.008 }, // 8MB
-    'scp': { cpuUsage: 0.05, ramUsage: 0.008 }, // 8MB
-    'sqlmap': { cpuUsage: 0.35, ramUsage: 0.512 }, // 512MB
-    'msfconsole': { cpuUsage: 0.5, ramUsage: 1.0 }, // 1GB
-    'msf-exploit': { cpuUsage: 0.6, ramUsage: 1.5 }, // 1.5GB
-    'john': { cpuUsage: 0.9, ramUsage: 2.0 }, // 2GB
-    'neuro-crack': { cpuUsage: 0.95, ramUsage: 4.0 }, // 4GB
-    'ping': { cpuUsage: 0.01, ramUsage: 0.004 }, // 4MB
-};
+export const PROCESS_COSTS: Record<string, ProcessMetrics> = GAME_CONFIG.PROCESS_COSTS;
 
 export class HardwareService {
     /**

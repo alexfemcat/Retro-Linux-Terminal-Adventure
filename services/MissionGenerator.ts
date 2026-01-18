@@ -1,5 +1,6 @@
 import { Mission, MissionConfig, GameState } from '../types';
 import { scenarios, sensitiveFilenames, holidayEvents } from '../data/gameData';
+import { GAME_CONFIG } from '../data/gameConfig';
 
 class MissionGenerator {
     private getRandom<T>(arr: T[]): T {
@@ -19,16 +20,13 @@ class MissionGenerator {
         const scenario = scenarios[scenarioIndex];
 
         // Difficulty scales with reputation
-        // rep 0-100 -> difficulty 1
-        // rep 100-500 -> difficulty 2
-        // rep 500-1500 -> difficulty 3
-        // rep 1500-4000 -> difficulty 4
-        // rep 4000+ -> difficulty 5
         let baseDifficulty: 1 | 2 | 3 | 4 | 5 = 1;
-        if (reputation > 4000) baseDifficulty = 5;
-        else if (reputation > 1500) baseDifficulty = 4;
-        else if (reputation > 500) baseDifficulty = 3;
-        else if (reputation > 100) baseDifficulty = 2;
+        const tiers = GAME_CONFIG.MISSIONS.TIERS;
+
+        if (reputation >= tiers[5].minRep) baseDifficulty = 5;
+        else if (reputation >= tiers[4].minRep) baseDifficulty = 4;
+        else if (reputation >= tiers[3].minRep) baseDifficulty = 3;
+        else if (reputation >= tiers[2].minRep) baseDifficulty = 2;
 
         // Randomize difficulty slightly around base
         const rand = Math.random();
@@ -36,21 +34,8 @@ class MissionGenerator {
         if (rand > 0.8 && difficulty < 5) difficulty++;
         if (rand < 0.2 && difficulty > 1) difficulty--;
 
-        // Reward scaling (Grindier):
-        // Diff 1: ~200-250c
-        // Diff 2: ~600-800c
-        // Diff 3: ~2500-3500c
-        // Diff 4: ~10000-14000c
-        // Diff 5: ~45000-60000c
-        const rewardRanges: Record<number, { min: number, max: number }> = {
-            1: { min: 200, max: 250 },
-            2: { min: 600, max: 800 },
-            3: { min: 2500, max: 3500 },
-            4: { min: 10000, max: 14000 },
-            5: { min: 45000, max: 60000 }
-        };
-
-        const range = rewardRanges[difficulty];
+        // Reward scaling
+        const range = GAME_CONFIG.MISSIONS.TIERS[difficulty as keyof typeof GAME_CONFIG.MISSIONS.TIERS].rewardRange;
         let reward = Math.floor(range.min + Math.random() * (range.max - range.min));
 
         // Apply Holiday Modifiers
@@ -95,11 +80,16 @@ class MissionGenerator {
         else if (difficulty === 2) numNodes = 2 + Math.floor(Math.random() * 2); // 2 or 3
         else numNodes = 2 + Math.floor(Math.random() * 4); // 2 to 5
 
+        const winConditions: Array<'file_found' | 'root_access' | 'process_killed' | 'file_modified'> = ['file_found', 'root_access'];
+        if (difficulty >= 3) winConditions.push('process_killed', 'file_modified');
+        const winConditionType = this.getRandom(winConditions);
+
         const config: MissionConfig = {
             scenarioIndex,
             numNodes,
             targetFileName,
-            difficultyMultiplier: difficulty
+            difficultyMultiplier: difficulty,
+            winConditionType
         };
 
         return {

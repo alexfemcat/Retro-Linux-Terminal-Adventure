@@ -1,4 +1,5 @@
 import { DatabaseSchema, PlayerState, SaveSlot } from '../types';
+import { GAME_CONFIG } from '../data/gameConfig';
 
 const LOCAL_STORAGE_KEY = 'retro-terminal-adventure-db';
 const CURRENT_VERSION = '2.0';
@@ -146,11 +147,32 @@ export function createInitialPlayerState(): PlayerState {
         ],
         browserHistory: [],
         hardware: {
-            cpu: { id: 'cpu_v1', level: 1, clockSpeed: 0.016, cores: 1 },
-            ram: { id: 'ram_v1', level: 1, capacity: 0.004 },
-            network: { id: 'net_v1', level: 1, bandwidth: 0.014 },
-            storage: { id: 'hd_v1', level: 1, capacity: 0.04 },
-            cooling: { id: 'cool_v1', level: 1, heatDissipation: 1.0 }
+            cpu: {
+                id: GAME_CONFIG.HARDWARE.CPU.v1.id,
+                level: GAME_CONFIG.HARDWARE.CPU.v1.level,
+                clockSpeed: GAME_CONFIG.HARDWARE.CPU.v1.clockSpeed,
+                cores: GAME_CONFIG.HARDWARE.CPU.v1.cores
+            },
+            ram: {
+                id: GAME_CONFIG.HARDWARE.RAM.v1.id,
+                level: GAME_CONFIG.HARDWARE.RAM.v1.level,
+                capacity: GAME_CONFIG.HARDWARE.RAM.v1.capacity
+            },
+            network: {
+                id: GAME_CONFIG.HARDWARE.NETWORK.v1.id,
+                level: GAME_CONFIG.HARDWARE.NETWORK.v1.level,
+                bandwidth: GAME_CONFIG.HARDWARE.NETWORK.v1.bandwidth
+            },
+            storage: {
+                id: GAME_CONFIG.HARDWARE.STORAGE.v1.id,
+                level: GAME_CONFIG.HARDWARE.STORAGE.v1.level,
+                capacity: GAME_CONFIG.HARDWARE.STORAGE.v1.capacity
+            },
+            cooling: {
+                id: GAME_CONFIG.HARDWARE.COOLING.v1.id,
+                level: GAME_CONFIG.HARDWARE.COOLING.v1.level,
+                heatDissipation: GAME_CONFIG.HARDWARE.COOLING.v1.heatDissipation
+            }
         },
         activeMissionId: null,
         availableMissions: [],

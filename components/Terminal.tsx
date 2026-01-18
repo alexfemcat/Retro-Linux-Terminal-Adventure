@@ -5,6 +5,7 @@ import { DEV_COMMAND_REGISTRY } from '../services/DevCommandRegistry';
 import { MARKET_CATALOG } from '../data/marketData';
 import { victimPersonas } from '../data/gameData';
 import { writeSave, readSave, createInitialPlayerState } from '../services/PersistenceService';
+import { GAME_CONFIG } from '../data/gameConfig';
 import { HardwareService, PROCESS_COSTS, HARDWARE_CONFIG } from '../services/HardwareService';
 import { PerformanceStats } from '../hooks/usePerformance';
 import { TaskManager } from './TaskManager';
@@ -1921,7 +1922,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
                 const updatedInv = playerState.inventory.filter(i => i.name !== sellFileName);
                 const updatedCredits = playerState.credits + finalValue;
-                const updatedRep = playerState.reputation + (isSensitive ? 50 : 10);
+                const updatedRep = playerState.reputation + (isSensitive ? GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.SELL_SENSITIVE : GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.SELL_NORMAL);
 
                 onPlayerStateChange({
                     ...playerState,
@@ -2030,7 +2031,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                                 onPlayerStateChange({
                                     ...playerState,
                                     credits: playerState.credits + (willPay ? payout : 0),
-                                    reputation: playerState.reputation + (willPay ? 100 : 20),
+                                    reputation: playerState.reputation + (willPay ? GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_PAID : GAME_CONFIG.MISSIONS.REPUTATION_REWARDS.RANSOM_REFUSED),
                                     emails: [ransomEmail, ...playerState.emails]
                                 });
                             }, 5000 + Math.random() * 5000);
