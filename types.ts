@@ -18,10 +18,11 @@ export interface CommandDefinition {
   id: string;
   description: string;
   usage: string;
-  isDefaultCommand: boolean; // help, ls, cd, etc.
+  isDefaultCommand?: boolean; // help, ls, cd, etc.
   isLocalOnly: boolean; // market, jobs
   isRemoteOnly?: boolean; // abort
   requiredSoftware?: string; // id from marketData
+  isAlwaysAvailable?: boolean; // Available even if software not installed (for dev/debug)
 }
 
 export type VFSNode = File | Directory;

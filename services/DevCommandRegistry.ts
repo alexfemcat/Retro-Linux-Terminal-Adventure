@@ -1,4 +1,4 @@
-import { CommandDefinition } from './CommandRegistry';
+import { CommandDefinition } from '../types';
 
 export const DEV_COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'devhelp': { id: 'devhelp', description: 'Lists developer sandbox utilities.', usage: 'devhelp', isAlwaysAvailable: false, isLocalOnly: false },

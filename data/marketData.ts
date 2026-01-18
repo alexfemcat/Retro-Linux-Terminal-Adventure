@@ -44,12 +44,12 @@ export const MARKET_CATALOG: MarketItem[] = [
     { id: 'cpu_v10', name: 'Quantum-X Processor', category: 'hardware', description: 'Sub-atomic processing. Bypasses classical limits.', cost: 1200000, hardwareKey: 'cpu', stats: { level: 10, clockSpeed: 5.0, cores: 32 } },
 
     // --- HARDWARE: RAM ---
-    { id: 'ram_v1', name: '4MB SIMM', category: 'hardware', description: 'Standard memory for early 90s systems.', cost: 0, hardwareKey: 'ram', stats: { level: 1, capacity: 0.004 } },
-    { id: 'ram_v2', name: '16MB EDO RAM', category: 'hardware', description: 'A little extra buffer for multitasking.', cost: 600, hardwareKey: 'ram', stats: { level: 2, capacity: 0.016 } },
-    { id: 'ram_v3', name: '64MB SDRAM', category: 'hardware', description: 'Standard desktop memory for the late 90s.', cost: 1800, hardwareKey: 'ram', stats: { level: 3, capacity: 0.064 } },
-    { id: 'ram_v4', name: '256MB DDR', category: 'hardware', description: 'The sweet spot for early 2000s hacking.', cost: 5000, hardwareKey: 'ram', stats: { level: 4, capacity: 0.256 } },
-    { id: 'ram_v5', name: '1GB DDR2', category: 'hardware', description: 'High-speed memory for modern operatives.', cost: 12000, hardwareKey: 'ram', stats: { level: 5, capacity: 1.0 } },
-    { id: 'ram_v6', name: '4GB DDR3', category: 'hardware', description: 'Heavy multitasking and large file support.', cost: 30000, hardwareKey: 'ram', stats: { level: 6, capacity: 4.0 } },
+    { id: 'ram_v1', name: '16MB SIMM', category: 'hardware', description: 'Standard memory for early 90s systems.', cost: 0, hardwareKey: 'ram', stats: { level: 1, capacity: 0.016 } },
+    { id: 'ram_v2', name: '64MB EDO RAM', category: 'hardware', description: 'A little extra buffer for multitasking.', cost: 600, hardwareKey: 'ram', stats: { level: 2, capacity: 0.064 } },
+    { id: 'ram_v3', name: '256MB SDRAM', category: 'hardware', description: 'Standard desktop memory for the late 90s.', cost: 1800, hardwareKey: 'ram', stats: { level: 3, capacity: 0.256 } },
+    { id: 'ram_v4', name: '1GB DDR', category: 'hardware', description: 'The sweet spot for early 2000s hacking.', cost: 5000, hardwareKey: 'ram', stats: { level: 4, capacity: 1.0 } },
+    { id: 'ram_v5', name: '4GB DDR2', category: 'hardware', description: 'High-speed memory for modern operatives.', cost: 12000, hardwareKey: 'ram', stats: { level: 5, capacity: 4.0 } },
+    { id: 'ram_v6', name: '8GB DDR3', category: 'hardware', description: 'Heavy multitasking and large file support.', cost: 30000, hardwareKey: 'ram', stats: { level: 6, capacity: 8.0 } },
     { id: 'ram_v7', name: '16GB DDR4', category: 'hardware', description: 'Enterprise workstation memory.', cost: 75000, hardwareKey: 'ram', stats: { level: 7, capacity: 16.0 } },
     { id: 'ram_v8', name: '32GB DDR4 High-Freq', category: 'hardware', description: 'No more swap files. Pure speed.', cost: 160000, hardwareKey: 'ram', stats: { level: 8, capacity: 32.0 } },
     { id: 'ram_v9', name: '64GB DDR5', category: 'hardware', description: 'Massive data buffer for AI operations.', cost: 400000, hardwareKey: 'ram', stats: { level: 9, capacity: 64.0 } },

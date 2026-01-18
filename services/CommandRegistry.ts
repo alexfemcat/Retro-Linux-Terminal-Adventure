@@ -1,4 +1,4 @@
-import { PlayerState } from '../types';
+import { PlayerState, CommandDefinition } from '../types';
 import { DEV_COMMAND_REGISTRY } from './DevCommandRegistry';
 
 export interface CommandContext {
@@ -7,16 +7,6 @@ export interface CommandContext {
     currentPath: string[];
     currentUser: 'user' | 'root';
     hostname: string;
-}
-
-export interface CommandDefinition {
-    id: string;
-    description: string;
-    usage: string;
-    isDefaultCommand: boolean; // help, ls, cd, etc.
-    isLocalOnly: boolean; // market, jobs
-    isRemoteOnly?: boolean; // abort
-    requiredSoftware?: string; // id from marketData
 }
 
 export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
@@ -56,8 +46,8 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     // Hacking Tools (Gated)
     'ping': { id: 'ping', description: 'Check host availability.', usage: 'ping [ip]', isDefaultCommand: false, isLocalOnly: false },
     'ip': { id: 'ip', description: 'Show network interfaces.', usage: 'ip a', isDefaultCommand: false, isLocalOnly: false },
-    'nmap-lite': { id: 'nmap-lite', description: 'Basic port scanner (Open/Closed only).', usage: 'nmap-lite [ip]', isDefaultCommand: false, isLocalOnly: false },
-    'nmap': { id: 'nmap', description: 'Scan for open ports/services.', usage: 'nmap [ip] [-sV]', isDefaultCommand: true, isLocalOnly: false },
+    'nmap-lite': { id: 'nmap-lite', description: 'Basic port scanner (Open/Closed only).', usage: 'nmap-lite [ip]', isDefaultCommand: true, isLocalOnly: false },
+    'nmap': { id: 'nmap', description: 'Scan for open ports/services.', usage: 'nmap [ip] [-sV]', isDefaultCommand: false, isLocalOnly: false },
     'nmap-pro': { id: 'nmap-pro', description: 'Advanced OS fingerprinting and version detection.', usage: 'nmap-pro [ip]', isDefaultCommand: false, isLocalOnly: false },
     'brute-force.sh': { id: 'brute-force.sh', description: 'Basic noisy brute-force script.', usage: 'brute-force.sh [user]@[ip]', isDefaultCommand: false, isLocalOnly: false },
     'hydra': { id: 'hydra', description: 'Brute force tool.', usage: 'hydra [user]@[ip] [-P wordlist]', isDefaultCommand: false, isLocalOnly: false },

@@ -16,8 +16,8 @@ export const HARDWARE_CONFIG = {
 
     // RAM / Swap Calculations
     SWAP_DELAY_PENALTY: 5.0, // 5x slower when thrashing
-    DOWNLOAD_BASE_RAM: 0.5, // Base GB used by download process
-    DOWNLOAD_SIZE_FACTOR: 0.2, // 20% of file size (in GB) added to RAM usage
+    DOWNLOAD_BASE_RAM: 0.002, // Base GB used by download process (2MB)
+    DOWNLOAD_SIZE_FACTOR: 0.05, // 5% of file size (in GB) added to RAM usage
 
     // Thermal Calculations
     PASSIVE_HEAT_GAIN: 0.2, // Heat per active process
@@ -35,17 +35,17 @@ export interface ProcessMetrics {
 }
 
 export const PROCESS_COSTS: Record<string, ProcessMetrics> = {
-    'nmap': { cpuUsage: 0.15, ramUsage: 1.0 },
-    'nmap-pro': { cpuUsage: 0.25, ramUsage: 1.5 },
-    'hydra': { cpuUsage: 0.4, ramUsage: 2.0 },
-    'download': { cpuUsage: 0.05, ramUsage: 0.5 },
-    'scp': { cpuUsage: 0.05, ramUsage: 0.5 },
-    'sqlmap': { cpuUsage: 0.35, ramUsage: 2.5 },
-    'msfconsole': { cpuUsage: 0.5, ramUsage: 4.0 },
-    'msf-exploit': { cpuUsage: 0.6, ramUsage: 4.5 },
-    'john': { cpuUsage: 0.9, ramUsage: 6.0 },
-    'neuro-crack': { cpuUsage: 0.95, ramUsage: 8.0 },
-    'ping': { cpuUsage: 0.01, ramUsage: 0.1 },
+    'nmap': { cpuUsage: 0.15, ramUsage: 0.032 }, // 32MB
+    'nmap-pro': { cpuUsage: 0.25, ramUsage: 0.128 }, // 128MB
+    'hydra': { cpuUsage: 0.4, ramUsage: 0.256 }, // 256MB
+    'download': { cpuUsage: 0.05, ramUsage: 0.008 }, // 8MB
+    'scp': { cpuUsage: 0.05, ramUsage: 0.008 }, // 8MB
+    'sqlmap': { cpuUsage: 0.35, ramUsage: 0.512 }, // 512MB
+    'msfconsole': { cpuUsage: 0.5, ramUsage: 1.0 }, // 1GB
+    'msf-exploit': { cpuUsage: 0.6, ramUsage: 1.5 }, // 1.5GB
+    'john': { cpuUsage: 0.9, ramUsage: 2.0 }, // 2GB
+    'neuro-crack': { cpuUsage: 0.95, ramUsage: 4.0 }, // 4GB
+    'ping': { cpuUsage: 0.01, ramUsage: 0.004 }, // 4MB
 };
 
 export class HardwareService {
