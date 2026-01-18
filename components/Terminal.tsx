@@ -2161,6 +2161,47 @@ export const Terminal: React.FC<TerminalProps> = ({
                 }
                 break;
             }
+            case 'nano': {
+                const nanoFileName = args[0];
+                if (!nanoFileName) {
+                    output = "usage: nano [file]";
+                    break;
+                }
+                let nanoPath = resolvePath(nanoFileName);
+                let nNode = nanoPath ? getNodeByPath(nanoPath) : null;
+
+                if (!nanoPath) {
+                    // If path doesn't exist, it might be a new file in an existing directory
+                    const pathParts = nanoFileName.split('/');
+                    const fileName = pathParts.pop() || '';
+                    const dirPath = pathParts.length > 0 ? pathParts.join('/') : '.';
+                    const resolvedDir = resolvePath(dirPath);
+
+                    if (resolvedDir) {
+                        nanoPath = [...resolvedDir, fileName];
+                    } else {
+                        output = `nano: ${nanoFileName}: No such file or directory`;
+                        break;
+                    }
+                }
+
+                if (nNode && nNode.type === 'directory') {
+                    output = `nano: ${nanoFileName}: Is a directory`;
+                    break;
+                }
+                if (nNode && nNode.permissions === 'root' && currentUser !== 'root') {
+                    output = `nano: ${nanoFileName}: Permission denied`;
+                    break;
+                }
+
+                setInputMode('nano');
+                setNanoFile({
+                    name: nanoFileName,
+                    content: nNode?.type === 'file' ? nNode.content : '',
+                    path: nanoPath
+                });
+                return;
+            }
             default:
                 output = `command not found: ${cmd}`;
         }
@@ -2318,22 +2359,36 @@ export const Terminal: React.FC<TerminalProps> = ({
                 <NanoEditor
                     filename={nanoFile.name}
                     initialContent={nanoFile.content}
-                    onSave={(newContent) => {
-                        const parentPath = nanoFile.path.slice(0, -1);
-                        const fName = nanoFile.path[nanoFile.path.length - 1];
+                    onSave={(newFilename, newContent) => {
+                        // If filename changed, we need to resolve the new path
+                        let targetPath = nanoFile.path;
+                        let targetFilename = nanoFile.name;
+
+                        if (newFilename !== nanoFile.name) {
+                            const parts = newFilename.split('/');
+                            const fName = parts.pop() || '';
+                            const dirPath = parts.length > 0 ? parts.join('/') : '.';
+                            const resolvedDir = resolvePath(dirPath);
+                            if (resolvedDir) {
+                                targetPath = [...resolvedDir, fName];
+                                targetFilename = fName;
+                            }
+                        }
+
+                        const parentPath = targetPath.slice(0, -1);
                         const parentNode = getNodeByPath(parentPath) as Directory;
 
                         if (parentNode) {
-                            parentNode.children[fName] = {
+                            parentNode.children[targetFilename] = {
                                 type: 'file',
-                                name: fName,
+                                name: targetFilename,
                                 content: newContent,
                                 size: (newContent.length / 1024) || 0.01
                             };
 
                             if (onVFSChange) onVFSChange(vfs);
-                            setNanoFile({ ...nanoFile, content: newContent });
-                            setHistory(prev => [...prev, <div className="text-green-500">[nano] Saved {fName}</div>]);
+                            setNanoFile({ name: targetFilename, content: newContent, path: targetPath });
+                            setHistory(prev => [...prev, <div className="text-green-500">[nano] Saved {targetFilename}</div>]);
                         }
                     }}
                     onExit={() => {

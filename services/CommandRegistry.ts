@@ -114,6 +114,11 @@ export function checkCommandAvailability(command: string, context: CommandContex
         return { available: true };
     }
 
+    // 5. Check if it's a default command (redundant but safe)
+    if (def.isDefaultCommand) {
+        return { available: true };
+    }
+
     // Special Case: voltage requires overclock binary
     if (command === 'voltage' && context.playerState.installedSoftware.includes('overclock')) {
         return { available: true };

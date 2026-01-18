@@ -15,6 +15,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         check: (cmd) => cmd === 'ls'
     },
     {
+        id: 'man_page',
+        message: "[THE ARCHITECT]: Good. Knowledge is power. The 'man' command (Manual) provides detailed documentation for any system utility.\nIf you are ever confused about a tool, 'man' is your best friend.\n\nLearn more about the 'ls' command by typing 'man ls'.",
+        check: (cmd, args) => cmd === 'man' && args[0] === 'ls'
+    },
+    {
         id: 'read_file',
         message: "[THE ARCHITECT]: Good. I detect a text file 'welcome.txt'.\nThe 'cat' command (Concatenate) reads and displays file contents.\n\nRead the file by typing 'cat welcome.txt'.",
         check: (cmd, args) => cmd === 'cat' && args[0] === 'welcome.txt'
@@ -23,6 +28,11 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
         id: 'change_dir',
         message: "[THE ARCHITECT]: Excellent. The file system is a tree of directories. We need to move deeper.\nUse the 'cd' command (Change Directory) to enter the 'bin' folder.\n\nType 'cd bin'.",
         check: (cmd, args) => cmd === 'cd' && args[0] === 'bin'
+    },
+    {
+        id: 'nano_editor',
+        message: "[THE ARCHITECT]: Sometimes you need to record information or create scripts. The 'nano' command opens a text editor.\n\nCreate a new file named 'notes.txt' by typing 'nano notes.txt'. Inside, type anything, then press Ctrl+O to save and Ctrl+X to exit.",
+        check: (cmd, args) => cmd === 'nano' && args[0] === 'notes.txt'
     },
     {
         id: 'go_back',

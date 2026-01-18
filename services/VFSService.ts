@@ -11,7 +11,7 @@ function getFileSize(name: string, content: string): number {
         return 500 * 1024 + Math.random() * 1000 * 1024; // 500MB - 1.5GB in KB
     }
 
-    const smallBinaries = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs', 'sudo', 'connect', 'scan'];
+    const smallBinaries = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs', 'sudo', 'connect', 'scan', 'man', 'nano'];
     if (smallBinaries.includes(name) || ext === 'sh') {
         return 50 + Math.random() * 450; // 50KB - 500KB
     }
