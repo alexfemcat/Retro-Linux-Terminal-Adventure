@@ -5,6 +5,7 @@ import { MARKET_CATALOG } from '../data/marketData';
 import { buyItem } from '../services/MarketSystem';
 import { writeSave } from '../services/PersistenceService';
 import { COMMAND_REGISTRY } from '../services/CommandRegistry';
+import { MAN_PAGES } from '../data/manPages';
 
 interface BrowserProps {
     playerState: PlayerState;
@@ -829,6 +830,8 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                         const cmdId = selectedCommandInfo.startsWith('ransom_t') ? 'ransomware' : selectedCommandInfo;
                                         const cmd = COMMAND_REGISTRY[cmdId];
                                         const marketItem = MARKET_CATALOG.find(i => i.id === selectedCommandInfo) as any;
+                                        const manPage = MAN_PAGES[cmdId];
+
                                         if (!cmd) return <div className="text-red-500">Documentation not found for this binary.</div>;
 
                                         const currentRAM = playerState.hardware.ram.capacity * 1024; // GB to MB
@@ -848,6 +851,16 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                                             {cmd.usage}
                                                         </div>
                                                     </div>
+                                                    {manPage && manPage.examples.length > 0 && (
+                                                        <div className="col-span-2">
+                                                            <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-1">Usage Examples</div>
+                                                            <div className="bg-blue-900/10 border border-blue-500/30 p-3 font-mono text-cyan-400 space-y-1">
+                                                                {manPage.examples.map((ex, i) => (
+                                                                    <div key={i}>{ex}</div>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div>
                                                         <div className="text-blue-900 text-[10px] font-black uppercase tracking-widest mb-1">Binary Type</div>
                                                         <div className="text-blue-400 font-bold uppercase">

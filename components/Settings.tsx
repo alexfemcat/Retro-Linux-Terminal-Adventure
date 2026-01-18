@@ -1,5 +1,6 @@
 import React from 'react';
 import { PlayerState } from '../types';
+import { writeSave } from '../services/PersistenceService';
 
 interface SettingsProps {
     playerState: PlayerState;
@@ -25,11 +26,12 @@ export const Settings: React.FC<SettingsProps> = ({ playerState, onPlayerStateCh
     };
 
     return (
-        <div className="fixed inset-0 bg-black z-50 flex items-center justify-center font-vt323 text-[#33ff00]">
-            <div className="w-[960px] h-[720px] flex flex-col items-center justify-center text-2xl md:text-3xl text-center space-y-4 crt-screen p-8 bg-black rounded-[20px] border-4 border-[#33ff00]/30 shadow-[0_0_30px_#33ff0055]">
-                <h1 className="text-[#33ff00] text-6xl mb-2 tracking-[0.2em] font-bold drop-shadow-[0_0_10px_rgba(51,255,0,0.5)]">SETTINGS</h1>
+        <div className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center font-vt323 text-[#33ff00] backdrop-blur-sm">
+            <div className="w-[960px] h-[720px] flex flex-col items-center justify-center text-2xl md:text-3xl text-center space-y-4 crt-screen p-8 bg-black rounded-[20px] border-4 border-[#33ff00]/30 shadow-[0_0_50px_rgba(51,255,0,0.2)] relative overflow-hidden">
+                <div className="absolute inset-0 scanlines opacity-20 pointer-events-none"></div>
+                <h1 className="text-[#33ff00] text-6xl mb-8 tracking-[0.2em] font-bold drop-shadow-[0_0_15px_rgba(51,255,0,0.8)] uppercase italic">System Configuration</h1>
 
-                <div className="grid grid-cols-2 gap-4 text-left">
+                <div className="grid grid-cols-2 gap-12 text-left w-full max-w-3xl">
                     <div>
                         <h2 className="text-2xl font-bold mb-2">CRT Effects</h2>
                         <label className="flex items-center">
@@ -60,10 +62,14 @@ export const Settings: React.FC<SettingsProps> = ({ playerState, onPlayerStateCh
                 </div>
 
                 <button
-                    onClick={onClose}
-                    className="mt-8 px-6 py-2 border-2 border-[#33ff00] hover:bg-[#33ff00] hover:text-black transition-colors duration-300 text-xl font-bold uppercase tracking-wider"
+                    onClick={() => {
+                        const slotId = playerState.isDevMode ? 'dev_save_slot' : (localStorage.getItem('active-save-slot') || 'slot_1');
+                        writeSave(slotId, playerState);
+                        onClose();
+                    }}
+                    className="mt-12 px-12 py-4 border-2 border-[#33ff00] hover:bg-[#33ff00] hover:text-black transition-all duration-300 text-2xl font-bold uppercase tracking-[0.3em] shadow-[0_0_20px_rgba(51,255,0,0.3)] hover:shadow-[0_0_40px_rgba(51,255,0,0.6)]"
                 >
-                    Close
+                    [ Apply & Exit ]
                 </button>
             </div>
         </div>

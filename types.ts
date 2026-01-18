@@ -222,6 +222,7 @@ export interface PlayerState {
   isDevMode?: boolean;
   theme?: string;
   themes?: string[];
+  sentUnlockEmails?: string[];
   settings?: {
     scanlines?: boolean;
     flicker?: boolean;

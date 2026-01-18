@@ -13,6 +13,8 @@ import { KernelPanic } from './KernelPanic';
 import { TutorialService, TUTORIAL_STEPS } from '../services/TutorialService';
 import { TutorialOverlay } from './TutorialOverlay';
 import { syncBinDirectory } from '../services/VFSService';
+import { MAN_PAGES } from '../data/manPages';
+import { NanoEditor } from './NanoEditor';
 
 export interface TerminalProps {
     gameState: GameState;
@@ -181,8 +183,9 @@ export const Terminal: React.FC<TerminalProps> = ({
     const [aliases, setAliases] = useState<Record<string, string>>({});
 
     // Generalized Input State
-    const [inputMode, setInputMode] = useState<'command' | 'password'>('command');
+    const [inputMode, setInputMode] = useState<'command' | 'password' | 'nano'>('command');
     const [passwordCallback, setPasswordCallback] = useState<((pwd: string) => void) | null>(null);
+    const [nanoFile, setNanoFile] = useState<{ name: string; content: string; path: string[] } | null>(null);
 
     const [isLockedOut] = useState<boolean>(false);
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
@@ -500,6 +503,55 @@ export const Terminal: React.FC<TerminalProps> = ({
                     // Force refresh history
                     setHistory([<div className="text-cyan-400 font-bold">LOADING TRAINING SIMULATION...</div>]);
                     return;
+                }
+                break;
+            case 'man':
+                const manCmd = args[0];
+                if (!manCmd) {
+                    output = <div className="text-yellow-500">What manual page do you want?</div>;
+                    break;
+                }
+                const page = MAN_PAGES[manCmd];
+                if (page) {
+                    output = (
+                        <div className="bg-black/80 p-6 border-2 border-gray-700 font-mono text-sm max-w-4xl">
+                            <div className="flex justify-between border-b border-gray-700 pb-2 mb-4">
+                                <span className="font-bold">{page.name.toUpperCase()}(1)</span>
+                                <span className="text-gray-500">User Commands</span>
+                                <span className="font-bold">{page.name.toUpperCase()}(1)</span>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-yellow-500 font-bold mb-1">NAME</div>
+                                <div className="pl-8">{page.name} - {page.summary}</div>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-yellow-500 font-bold mb-1">SYNOPSIS</div>
+                                <div className="pl-8 font-bold">{page.synopsis}</div>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-yellow-500 font-bold mb-1">DESCRIPTION</div>
+                                <div className="pl-8 leading-relaxed">{page.description}</div>
+                            </div>
+
+                            <div className="mb-4">
+                                <div className="text-yellow-500 font-bold mb-1">EXAMPLES</div>
+                                <div className="pl-8 space-y-1">
+                                    {page.examples.map((ex, i) => (
+                                        <div key={i} className="text-cyan-400">{ex}</div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="mt-8 text-center text-gray-600 text-xs border-t border-gray-800 pt-2">
+                                Press any key to continue (or just type next command)
+                            </div>
+                        </div>
+                    );
+                } else {
+                    output = <div className="text-red-500">No manual entry for {manCmd}</div>;
                 }
                 break;
             case 'help':
@@ -2262,7 +2314,35 @@ export const Terminal: React.FC<TerminalProps> = ({
             {isTutorialActive && currentTutorialStep && (
                 <TutorialOverlay message={currentTutorialStep.message} />
             )}
-            {!isLockedOut && (
+            {inputMode === 'nano' && nanoFile && (
+                <NanoEditor
+                    filename={nanoFile.name}
+                    initialContent={nanoFile.content}
+                    onSave={(newContent) => {
+                        const parentPath = nanoFile.path.slice(0, -1);
+                        const fName = nanoFile.path[nanoFile.path.length - 1];
+                        const parentNode = getNodeByPath(parentPath) as Directory;
+
+                        if (parentNode) {
+                            parentNode.children[fName] = {
+                                type: 'file',
+                                name: fName,
+                                content: newContent,
+                                size: (newContent.length / 1024) || 0.01
+                            };
+
+                            if (onVFSChange) onVFSChange(vfs);
+                            setNanoFile({ ...nanoFile, content: newContent });
+                            setHistory(prev => [...prev, <div className="text-green-500">[nano] Saved {fName}</div>]);
+                        }
+                    }}
+                    onExit={() => {
+                        setInputMode('command');
+                        setNanoFile(null);
+                    }}
+                />
+            )}
+            {!isLockedOut && inputMode !== 'nano' && (
                 <InputLine
                     currentPath={currentPath}
                     currentUser={currentUser}

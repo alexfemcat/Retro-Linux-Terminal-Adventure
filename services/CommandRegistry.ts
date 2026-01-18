@@ -25,6 +25,8 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
     'sell': { id: 'sell', description: 'Sell a file from your inventory.', usage: 'sell [file]', isDefaultCommand: true, isLocalOnly: true },
     'tar': { id: 'tar', description: 'Archive files/directories.', usage: 'tar -cvf [archive.tar] [target]', isDefaultCommand: true, isLocalOnly: false },
     'zip': { id: 'zip', description: 'Compress files/directories.', usage: 'zip [archive.zip] [target]', isDefaultCommand: true, isLocalOnly: false },
+    'man': { id: 'man', description: 'Display manual pages for commands.', usage: 'man [command]', isDefaultCommand: true, isLocalOnly: false },
+    'nano': { id: 'nano', description: 'Simple text editor.', usage: 'nano [file]', isDefaultCommand: true, isLocalOnly: false },
     'ransomware': { id: 'ransomware', description: 'Generic entry for ransomware binaries.', usage: 'encrypt [file] [ransomware_id]', isDefaultCommand: false, isLocalOnly: false },
 
     'alias': { id: 'alias', description: 'Create a command alias.', usage: 'alias [name]="[command]"', isDefaultCommand: true, isLocalOnly: false },
