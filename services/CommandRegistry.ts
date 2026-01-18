@@ -43,7 +43,7 @@ export const COMMAND_REGISTRY: Record<string, CommandDefinition> = {
 
     // Mission Control
     'tutorial': { id: 'tutorial', description: 'Start the training simulation.', usage: 'tutorial', isDefaultCommand: true, isLocalOnly: true },
-    'jobs': { id: 'jobs', description: 'Browse/Accept missions.', usage: 'jobs [accept <id>|refresh]', isDefaultCommand: true, isLocalOnly: true },
+    'jobs': { id: 'jobs', description: 'DEPRECATED: Use browser for jobs.', usage: 'jobs', isDefaultCommand: true, isLocalOnly: true },
     'browser': { id: 'browser', description: 'Open the Retro Browser.', usage: 'browser [url]', isDefaultCommand: true, isLocalOnly: true },
     'mail': { id: 'mail', description: 'Open the Email Client.', usage: 'mail', isDefaultCommand: true, isLocalOnly: true },
     'overclock': { id: 'overclock', description: 'Toggle CPU overclocking.', usage: 'overclock [on|off]', isDefaultCommand: false, isLocalOnly: false },

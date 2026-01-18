@@ -544,48 +544,12 @@ export const Terminal: React.FC<TerminalProps> = ({
                 );
                 break;
             case 'jobs':
-                if (args[0] === 'accept') {
-                    const index = parseInt(args[1]) - 1;
-                    const mission = playerState.availableMissions[index];
-                    if (mission) {
-                        output = `Mission '${mission.title}' accepted. Initiating connection...`;
-                        setTimeout(() => onMissionAccept(mission), 1000);
-                    } else {
-                        output = <div className="text-red-500">Error: Invalid mission ID. Use 'jobs' to see available contracts.</div>;
-                    }
-                } else if (args[0] === 'refresh' || args[0] === 'generate') {
-                    const count = parseInt(args[1]) || 6;
-                    const { missionGenerator } = await import('../services/MissionGenerator');
-                    const newMissions = missionGenerator.generateMissions(playerState.reputation, count);
-                    onPlayerStateChange({ ...playerState, availableMissions: newMissions });
-                    output = <div className="text-green-400">Successfully rolled {newMissions.length} new contracts. Check 'jobs' list.</div>;
-                } else {
-                    output = (
-                        <div className="text-yellow-400">
-                            <div className="font-bold border-b border-yellow-400/30 mb-2 pb-1">AVAILABLE CONTRACTS</div>
-                            <div className="grid grid-cols-[40px_1fr_60px_80px] gap-x-4">
-                                <div className="opacity-70">#</div>
-                                <div className="opacity-70">TITLE</div>
-                                <div className="opacity-70">DIFF</div>
-                                <div className="opacity-70">REWARD</div>
-                                {playerState.availableMissions.map((m, idx) => (
-                                    <React.Fragment key={m.id}>
-                                        <div className="text-gray-500">[{idx + 1}]</div>
-                                        <div className="font-bold text-white">{m.title}</div>
-                                        <div className="text-amber-500">{'★'.repeat(m.difficulty)}</div>
-                                        <div className="text-green-500">{m.reward}c</div>
-                                        <div className="col-start-2 col-span-3 text-xs text-gray-500 mb-2">
-                                            {m.description.split('\n')[0]}
-                                        </div>
-                                    </React.Fragment>
-                                ))}
-                            </div>
-                            <div className="mt-4 text-xs text-gray-500 italic border-t border-yellow-400/20 pt-2">
-                                Usage: jobs accept [number] | jobs refresh
-                            </div>
-                        </div>
-                    );
-                }
+                output = (
+                    <div className="text-red-500">
+                        [DEPRECATED] The 'jobs' command has been decommissioned.
+                        <br />Please use the <span className="text-white font-bold">browser</span> to access the Dark Web job boards.
+                    </div>
+                );
                 break;
             case 'browser':
                 if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {

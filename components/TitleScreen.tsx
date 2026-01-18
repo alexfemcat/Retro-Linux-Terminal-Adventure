@@ -161,7 +161,7 @@ const TitleScreen: React.FC<TitleScreenProps> = ({ onGameLoad }) => {
             <div className="z-20 flex flex-col items-center max-w-2xl w-full px-8">
                 <div className="mb-12 text-center">
                     <h1 className="text-[#33ff00] text-6xl mb-2 tracking-[0.2em] font-bold drop-shadow-[0_0_10px_rgba(51,255,0,0.5)]">RETRO-TERM</h1>
-                    <div className="text-amber-500 text-sm tracking-[0.5em] uppercase opacity-70">Persistent Simulation RPG v2.0</div>
+                    <div className="text-amber-500 text-sm tracking-[0.5em] uppercase opacity-70">OMNICORP SECURE-OS // LICENSED TO: [REDACTED]</div>
                 </div>
 
                 <div className="w-full space-y-4 mb-12">

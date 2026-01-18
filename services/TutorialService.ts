@@ -71,7 +71,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'complete_tutorial',
-        message: "[THE ARCHITECT]: Training Module Complete. You have proven yourself capable.\n\nUse 'help' to access the full command database.\nUse 'jobs' to find work and start your career.\n\nType 'exit' to close the simulation.",
+        message: "[THE ARCHITECT]: Training Module Complete. You have proven yourself capable.\n\nUse 'help' to access the full command database.\nUse the 'browser' to find work on the Dark Web and start your career.\n\nType 'exit' to close the simulation.",
         check: (cmd) => cmd === 'exit'
     }
 ];
@@ -86,14 +86,14 @@ export class TutorialService {
             osVersion: 'RetroOS 2.0 (Training Mode)',
             themeColor: 'text-green-400',
             vfs: {
-                type: 'directory', name: '', children: {
+                type: 'directory', name: '', size: 0, children: {
                     home: {
-                        type: 'directory', name: 'home', children: {
+                        type: 'directory', name: 'home', size: 0, children: {
                             user: {
-                                type: 'directory', name: 'user', children: {
+                                type: 'directory', name: 'user', size: 0, children: {
                                     'welcome.txt': { type: 'file', name: 'welcome.txt', content: "Welcome to the training program.\nFollow The Architect's instructions carefully.", size: 0.1 },
-                                    bin: { type: 'directory', name: 'bin', children: {} },
-                                    loot: { type: 'directory', name: 'loot', children: {} }
+                                    bin: { type: 'directory', name: 'bin', size: 0, children: {} },
+                                    loot: { type: 'directory', name: 'loot', size: 0, children: {} }
                                 }
                             }
                         }
@@ -115,13 +115,13 @@ export class TutorialService {
             osVersion: 'Training OS',
             themeColor: 'text-amber-400',
             vfs: {
-                type: 'directory', name: '', children: {
+                type: 'directory', name: '', size: 0, children: {
                     home: {
-                        type: 'directory', name: 'home', children: {
+                        type: 'directory', name: 'home', size: 0, children: {
                             user: {
-                                type: 'directory', name: 'user', children: {
+                                type: 'directory', name: 'user', size: 0, children: {
                                     Documents: {
-                                        type: 'directory', name: 'Documents', children: {
+                                        type: 'directory', name: 'Documents', size: 0, children: {
                                             'TRAINING_DATA.dat': { type: 'file', name: 'TRAINING_DATA.dat', content: '[SECRET TRAINING DATA]', size: 10 }
                                         }
                                     }
@@ -161,8 +161,10 @@ export class TutorialService {
                 distractionDirs: []
             },
             bootTime: Date.now(),
+            currentDate: new Date().toISOString().split('T')[0],
             traceProgress: 0,
-            isTraceActive: false
+            isTraceActive: false,
+            activeWorldEvents: []
         };
     }
 }
