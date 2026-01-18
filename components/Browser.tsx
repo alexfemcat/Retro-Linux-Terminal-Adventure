@@ -30,7 +30,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
     const [url, setUrl] = useState(initialUrl);
     const [history, setHistory] = useState<string[]>([initialUrl]);
     const [isPageLoading, setIsPageLoading] = useState(false);
-    const [marketTab, setMarketTab] = useState<'software' | 'hardware' | 'consumables'>('software');
+    const [marketTab, setMarketTab] = useState<'software' | 'hardware' | 'consumables' | 'security'>('software');
     const [selectedCommandInfo, setSelectedCommandInfo] = useState<string | null>(null);
 
     const navigate = (newUrl: string, isBack: boolean = false) => {
@@ -211,15 +211,45 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
             return (
                 <div className="p-6 h-full flex flex-col">
                     <button onClick={() => navigate('mail://homebase')} className="text-blue-400 mb-4 hover:underline">← Back to Inbox</button>
-                    <div className="bg-gray-900/40 border border-gray-800 p-6 flex-grow overflow-y-auto">
+                    <div className="bg-gray-900/40 border border-gray-800 p-6 flex-grow overflow-y-auto relative">
                         <div className="mb-6 border-b border-gray-800 pb-4">
                             <div className="text-sm text-gray-500">From: <span className="text-blue-400">{currentEmail.sender}</span></div>
                             <div className="text-sm text-gray-500">Subject: <span className="text-white font-bold">{currentEmail.subject}</span></div>
                             <div className="text-sm text-gray-500">Date: {currentEmail.timestamp}</div>
                         </div>
-                        <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
-                            {currentEmail.body}
-                        </div>
+
+                        {currentEmail.isEncrypted && !currentEmail.isDecrypted ? (
+                            <div className="flex flex-col items-center justify-center py-20 border-2 border-dashed border-blue-900/50 bg-blue-900/5">
+                                <div className="text-4xl mb-4">🔒</div>
+                                <div className="text-blue-400 font-bold mb-2 uppercase tracking-widest">Encrypted Message</div>
+                                <div className="text-xs text-blue-700 mb-6">Requires PGP-TOOL to decipher</div>
+                                <button
+                                    onClick={() => {
+                                        if (playerState.installedSoftware.includes('pgp-tool')) {
+                                            // Start decryption process
+                                            const newEmails = playerState.emails.map(e =>
+                                                e.id === currentEmail.id ? { ...e, isDecrypted: true } : e
+                                            );
+                                            onPlayerStateChange({ ...playerState, emails: newEmails });
+
+                                            // Trigger notification
+                                            import('../services/NotificationService').then(({ notificationService }) => {
+                                                notificationService.success(`Deciphering complete: ${currentEmail.subject}`);
+                                            });
+                                        } else {
+                                            alert("PGP-Crypt not found. Purchase it from Macro-Electronics.");
+                                        }
+                                    }}
+                                    className={`px-8 py-2 font-bold uppercase tracking-widest transition-all ${playerState.installedSoftware.includes('pgp-tool') ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-gray-800 text-gray-500 cursor-not-allowed'}`}
+                                >
+                                    Decipher Message
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="text-gray-300 whitespace-pre-wrap leading-relaxed">
+                                {currentEmail.body}
+                            </div>
+                        )}
                         {currentEmail.missionId && (
                             <div className="mt-8 p-4 border border-green-900 bg-green-900/10">
                                 <p className="text-sm text-green-400 mb-2">This email contains a direct contract offer.</p>
@@ -462,7 +492,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                     <div className="flex flex-grow overflow-hidden">
                         {/* Sidebar Tabs - Fancy Style */}
                         <div className="w-56 border-r-2 border-blue-400/20 bg-[#0f172a] flex flex-col">
-                            {(['software', 'hardware', 'consumables'] as const).map(tab => (
+                            {(['software', 'hardware', 'security', 'consumables'] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setMarketTab(tab)}
@@ -473,6 +503,7 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                         <span className={`text-xl ${marketTab === tab ? 'opacity-100' : 'opacity-30'}`}>
                                             {tab === 'software' && '⧉'}
                                             {tab === 'hardware' && '⬢'}
+                                            {tab === 'security' && '🛡️'}
                                             {tab === 'consumables' && '⌬'}
                                         </span>
                                         {tab}
@@ -706,6 +737,35 @@ export const Browser: React.FC<BrowserProps & { isMissionActive: boolean }> = ({
                                             </div>
                                         );
                                     })}
+                                </div>
+                            )}
+
+                            {marketTab === 'security' && (
+                                <div className="space-y-6">
+                                    <div className="flex items-center gap-4 mb-8">
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+                                        <div className="text-xs text-blue-500 font-black uppercase tracking-[0.4em] whitespace-nowrap">Security & Encryption</div>
+                                        <div className="h-[2px] flex-grow bg-gradient-to-r from-transparent via-blue-500/30 to-transparent"></div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-4">
+                                        {MARKET_CATALOG.filter(i => i.category === 'security').map(item => (
+                                            <div key={item.id} className="bg-blue-950/20 border border-blue-500/20 p-5 flex justify-between items-center hover:border-blue-400/50 transition-all group relative overflow-hidden">
+                                                <div className="absolute inset-0 bg-blue-400/0 group-hover:bg-blue-400/5 transition-colors pointer-events-none"></div>
+                                                <div className="relative z-10">
+                                                    <div className="text-white font-black text-lg group-hover:text-blue-300 transition-colors uppercase tracking-tighter mb-1">{item.name}</div>
+                                                    <div className="text-xs text-blue-300/70 max-w-md italic">"{item.description}"</div>
+                                                </div>
+                                                <button
+                                                    onClick={() => handlePurchase(item.id)}
+                                                    disabled={playerState.credits < item.cost || playerState.installedSoftware.includes(item.id)}
+                                                    className={`relative z-10 px-6 py-3 font-black text-xs uppercase tracking-[0.2em] transition-all border-2 ${playerState.installedSoftware.includes(item.id) ? 'border-blue-800/30 text-blue-800 cursor-not-allowed' : 'border-blue-500 text-blue-500 hover:bg-blue-500 hover:text-black shadow-[0_0_15px_rgba(59,130,246,0.2)]'}`}
+                                                >
+                                                    {playerState.installedSoftware.includes(item.id) ? 'INSTALLED' : `${item.cost}c`}
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
 

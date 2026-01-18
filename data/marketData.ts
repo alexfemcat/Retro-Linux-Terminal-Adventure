@@ -113,4 +113,7 @@ export const MARKET_CATALOG: MarketItem[] = [
     { id: 'ransom_t8', name: 'Conti-Elite Suite', category: 'exploit', tier: 8, description: 'Multi-threaded encryption, anti-VM checks. 75% Success | 2.2x Payout.', cost: 450000, cpuReq: 50, ramReq: 4096, storageSize: 1000 },
     { id: 'ransom_t9', name: 'LockBit 3.0 Platinum', category: 'exploit', tier: 9, description: 'Extremely fast, bypasses most EDR. 85% Success | 3.0x Payout.', cost: 1200000, cpuReq: 60, ramReq: 8192, storageSize: 2000 },
     { id: 'ransom_t10', name: 'State-Sponsored Zero-Day', category: 'exploit', tier: 10, description: 'The ultimate weapon. Untraceable. 90% Success | 5.0x Payout.', cost: 5000000, cpuReq: 10, ramReq: 512, storageSize: 50 },
+
+    // --- SECURITY TOOLS ---
+    { id: 'pgp-tool', name: 'PGP-Crypt Professional', category: 'security', tier: 2, description: 'Essential for deciphering high-level encrypted communications.', cost: 1200, cpuReq: 5, ramReq: 32, storageSize: 15 },
 ];

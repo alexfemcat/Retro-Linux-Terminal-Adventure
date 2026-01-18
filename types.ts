@@ -109,6 +109,16 @@ export interface ChatMessage {
   text: string;
 }
 
+export type NotificationType = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
+
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  timestamp: number;
+  duration?: number;
+}
+
 export interface Email {
   id: string;
   sender: string;
@@ -116,11 +126,15 @@ export interface Email {
   body: string;
   timestamp: string;
   status: 'unread' | 'read';
-  type: 'job' | 'ransom' | 'tip' | 'faction';
+  type: 'job' | 'ransom' | 'tip' | 'faction' | 'spam' | 'phishing';
   attachments?: VFSNode[];
   missionId?: string;
   factionId?: string;
   reputationModifier?: number;
+  isEncrypted?: boolean;
+  isDecrypted?: boolean;
+  expiryTimestamp?: number;
+  isPhishing?: boolean;
   ransomData?: {
     file: VFSNode;
     payout: number;
@@ -144,12 +158,12 @@ export interface HardwareSpecs {
   cooling: { id: string; level: number; heatDissipation: number };
 }
 
-export type MarketItemCategory = 'utility' | 'exploit' | 'sniffing' | 'hardware' | 'consumable';
+export type MarketItemCategory = 'utility' | 'exploit' | 'sniffing' | 'hardware' | 'consumable' | 'security';
 
 export interface SoftwareItem {
   id: string;
   name: string;
-  category: 'utility' | 'exploit' | 'sniffing';
+  category: 'utility' | 'exploit' | 'sniffing' | 'security';
   tier: number;
   cpuReq: number; // Percentage of 1 core (0-100)
   ramReq: number; // Memory in MB

@@ -13,6 +13,9 @@ import { usePerformance } from './hooks/usePerformance';
 import { NewsTicker } from './components/NewsTicker';
 import { Settings } from './components/Settings';
 import { Browser } from './components/Browser';
+import { ToastContainer } from './components/ToastNotification';
+import { useToasts } from './hooks/useToasts';
+import { notificationService } from './services/NotificationService';
 
 const App: React.FC = () => {
     const [gameState, setGameState] = useState<GameState | null>(null);
@@ -35,6 +38,12 @@ const App: React.FC = () => {
     const [worldEvent, setWorldEvent] = useState<any | null>(null);
     const [showSettings, setShowSettings] = useState<boolean>(false);
     const [browserUrl, setBrowserUrl] = useState<string | null>(null);
+
+    const { toasts, addToast, removeToast } = useToasts();
+
+    useEffect(() => {
+        notificationService.registerToastCallback(addToast);
+    }, [addToast]);
 
     const performance = usePerformance(playerState, gameState, activeProcesses);
 
@@ -169,9 +178,12 @@ const App: React.FC = () => {
                 // Check for Degradation
                 if (newHeat > 95 && HardwareService.shouldDegrade(newHeat)) {
                     const { updatedState, degradedComponent } = HardwareService.degradeHardware(prev);
-                    // We might want to alert the user here, but for now just update state
-                    console.warn(`CRITICAL HEAT: ${degradedComponent} DEGRADED!`);
+                    notificationService.critical(`HARDWARE FAILURE: ${degradedComponent} DEGRADED DUE TO OVERHEAT!`);
                     return { ...updatedState, systemHeat: newHeat };
+                }
+
+                if (newHeat > 80 && prev.systemHeat <= 80) {
+                    notificationService.warning("SYSTEM OVERHEAT WARNING: CPU throttling imminent.");
                 }
 
                 return { ...prev, systemHeat: newHeat };
@@ -264,6 +276,7 @@ const App: React.FC = () => {
 
     return (
         <div className="w-screen h-screen bg-[#111] flex items-center justify-center overflow-hidden relative">
+            <ToastContainer toasts={toasts} removeToast={removeToast} />
             <NewsTicker onEvent={(e) => {
                 setWorldEvent(e);
                 if (playerState) {
@@ -280,6 +293,7 @@ const App: React.FC = () => {
                         ...playerState,
                         emails: [newsEmail, ...playerState.emails]
                     });
+                    notificationService.info(`BREAKING NEWS: ${e.title}`);
                 }
                 if (gameState) {
                     setGameState({
@@ -305,6 +319,7 @@ const App: React.FC = () => {
             {browserUrl && playerState && (
                 <Browser
                     playerState={playerState}
+                    isMissionActive={isMissionActive}
                     onMissionAccept={handleMissionAccept}
                     onClose={() => setBrowserUrl(null)}
                     worldEvents={worldEvent ? [worldEvent] : []}

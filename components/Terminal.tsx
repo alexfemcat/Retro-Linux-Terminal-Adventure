@@ -358,6 +358,9 @@ export const Terminal: React.FC<TerminalProps> = ({
 
             if (newTrace >= 100) {
                 setHistory(prev => [...prev, <div className="text-red-600 font-bold blink">!!! SIGNAL TRACE DETECTED - EMERGENCY DISCONNECT !!!</div>]);
+                import('../services/NotificationService').then(({ notificationService }) => {
+                    notificationService.critical("SIGNAL TRACE COMPLETE: EMERGENCY DISCONNECT");
+                });
                 setTimeout(() => onMissionAbort(), 1500);
                 onGameStateChange({ ...gameState, traceProgress: 100, isTraceActive: true });
                 return;
@@ -366,12 +369,21 @@ export const Terminal: React.FC<TerminalProps> = ({
             // Trace Response Levels
             if (newTrace >= 75 && gameState.traceProgress < 75) {
                 setHistory(prev => [...prev, <div className="text-red-500 font-bold">WARNING: NODE ENCRYPTION ROTATING. PORTS CLOSING.</div>]);
+                import('../services/NotificationService').then(({ notificationService }) => {
+                    notificationService.critical("TRACE LEVEL CRITICAL: Target countermeasures active!");
+                });
             } else if (newTrace >= 50 && gameState.traceProgress < 50) {
                 setIsTransitioning(true);
                 setTimeout(() => setIsTransitioning(false), 500);
                 setHistory(prev => [...prev, <div className="text-yellow-500 font-bold">CAUTION: UNUSUAL NETWORK TRAFFIC DETECTED BY TARGET.</div>]);
+                import('../services/NotificationService').then(({ notificationService }) => {
+                    notificationService.warning("TRACE LEVEL HIGH: Target is suspicious.");
+                });
             } else if (newTrace >= 25 && gameState.traceProgress < 25) {
                 setHistory(prev => [...prev, <div className="text-blue-400 opacity-70">Heads up: Remote admin is running a routine check. Stay quiet.</div>]);
+                import('../services/NotificationService').then(({ notificationService }) => {
+                    notificationService.info("TRACE DETECTED: Stay quiet.");
+                });
             }
 
             if (noise > 0) {
@@ -2298,6 +2310,26 @@ export const Terminal: React.FC<TerminalProps> = ({
                     <span className={`flex items-center gap-2 ${playerState.systemHeat > 80 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
                         TEMP: {playerState.systemHeat.toFixed(1)}°C
                     </span>
+
+                    {/* Mail Indicator */}
+                    <button
+                        onClick={() => onOpenBrowser?.('mail://homebase')}
+                        className={`flex items-center gap-1 px-2 py-0.5 rounded transition-all ${playerState.emails.some(e => e.status === 'unread') ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                    >
+                        MAIL {playerState.emails.some(e => e.status === 'unread') && (
+                            <span className={`font-bold ${playerState.emails.some(e => e.status === 'unread' && (e.type === 'job' || e.expiryTimestamp)) ? 'animate-blink' : ''}`}>[!]</span>
+                        )}
+                    </button>
+
+                    {/* Decryption Progress */}
+                    {activeProcesses.some(p => p.name.startsWith('pgp-decrypt')) && (
+                        <div className="flex items-center gap-2 text-cyan-400">
+                            <span className="animate-pulse">DECRYPTING:</span>
+                            <div className="w-20 h-1.5 bg-gray-800 border border-cyan-900/50 rounded-full overflow-hidden">
+                                <div className="h-full bg-cyan-500 animate-progress-glow" style={{ width: '60%' }}></div>
+                            </div>
+                        </div>
+                    )}
                     <span className={`flex items-center gap-2 ${isDiskActive ? 'text-amber-500 animate-pulse' : 'text-gray-600'}`}>
                         <span className={`w-2 h-2 rounded-full ${isDiskActive ? 'bg-amber-500 shadow-[0_0_5px_#f59e0b]' : 'bg-gray-800'}`}></span>
                         DISK
