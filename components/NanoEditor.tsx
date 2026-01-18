@@ -5,11 +5,13 @@ interface NanoEditorProps {
     initialContent: string;
     onSave: (filename: string, content: string) => void;
     onExit: () => void;
+    isTutorialMode?: boolean;
 }
 
-export const NanoEditor: React.FC<NanoEditorProps> = ({ filename, initialContent, onSave, onExit }) => {
+export const NanoEditor: React.FC<NanoEditorProps> = ({ filename, initialContent, onSave, onExit, isTutorialMode }) => {
     const [content, setContent] = useState(initialContent);
     const [isSaving, setIsSaving] = useState(false);
+    const [hasSaved, setHasSaved] = useState(false);
     const [saveFilename, setSaveFilename] = useState(filename);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const saveInputRef = useRef<HTMLInputElement>(null);
@@ -28,6 +30,7 @@ export const NanoEditor: React.FC<NanoEditorProps> = ({ filename, initialContent
                 e.preventDefault();
                 onSave(saveFilename, content);
                 setIsSaving(false);
+                setHasSaved(true);
             } else if (e.key === 'Escape' || (e.ctrlKey && e.key === 'c')) {
                 e.preventDefault();
                 setIsSaving(false);
@@ -40,12 +43,19 @@ export const NanoEditor: React.FC<NanoEditorProps> = ({ filename, initialContent
             setIsSaving(true);
         } else if (e.ctrlKey && e.key === 'x') {
             e.preventDefault();
+            if (isTutorialMode && !hasSaved) {
+                // In tutorial, must save before exiting
+                return;
+            }
             onExit();
+        } else if (isTutorialMode && e.ctrlKey) {
+            // Prevent other ctrl actions in tutorial
+            e.preventDefault();
         }
     };
 
     return (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col font-mono text-sm crt-screen p-2" onKeyDown={handleKeyDown}>
+        <div className="fixed inset-0 z-[40] bg-black flex flex-col font-mono text-sm crt-screen p-2" onKeyDown={handleKeyDown}>
             {/* Top Bar */}
             <div className="bg-white text-black px-2 flex justify-between">
                 <span> GNU nano 6.2</span>

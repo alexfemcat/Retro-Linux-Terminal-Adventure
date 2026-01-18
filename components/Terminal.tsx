@@ -189,6 +189,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     const [isLockedOut] = useState<boolean>(false);
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+    const [isGlitching, setIsGlitching] = useState<boolean>(false);
 
     const [isDiskActive, setIsDiskActive] = useState<boolean>(false);
     const [showTaskManager, setShowTaskManager] = useState<boolean>(false);
@@ -301,6 +302,17 @@ export const Terminal: React.FC<TerminalProps> = ({
             }
         }
     }, [playerState.installedSoftware, activeNode.id]);
+
+    // RAM Thrashing Glitch Effect
+    useEffect(() => {
+        if (performance.isThrashing && !playerState.settings?.disableJitter) {
+            setIsGlitching(true);
+            const timer = setTimeout(() => {
+                setIsGlitching(false);
+            }, 1500); // Temporary glitch for 1.5s
+            return () => clearTimeout(timer);
+        }
+    }, [performance.isThrashing, playerState.settings?.disableJitter]);
 
     useEffect(() => {
         const bashrcPath = resolvePath('~/.bashrc');
@@ -490,8 +502,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const tutorialPlayerState = {
                         ...playerState,
                         activeMissionId: 'tutorial',
-                        tutorialStep: 0,
-                        installedSoftware: Array.from(new Set([...playerState.installedSoftware, 'nmap']))
+                        tutorialStep: 0
                     };
                     if (onGameStateChange) onGameStateChange(tutorialState);
                     onPlayerStateChange(tutorialPlayerState);
@@ -506,8 +517,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                     const tutorialPlayerState = {
                         ...playerState,
                         activeMissionId: 'tutorial',
-                        tutorialStep: 0,
-                        installedSoftware: Array.from(new Set([...playerState.installedSoftware, 'nmap']))
+                        tutorialStep: 0
                     };
 
                     if (onGameStateChange) onGameStateChange(tutorialState);
@@ -617,14 +627,18 @@ export const Terminal: React.FC<TerminalProps> = ({
                 );
                 break;
             case 'browser':
-                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                if (isTutorialActive) {
+                    output = <div className="text-red-500">Error: Browser access is disabled during training simulation.</div>;
+                } else if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
                     output = <div className="text-red-500">Error: Browser can only be accessed from secure Homebase terminals. Disconnect first.</div>;
                 } else if (onOpenBrowser) {
                     onOpenBrowser(args[0]);
                 }
                 break;
             case 'mail':
-                if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
+                if (isTutorialActive) {
+                    output = <div className="text-red-500">Error: Mail access is disabled during training simulation.</div>;
+                } else if (activeNode.id !== 'local' && activeNode.id !== 'localhost') {
                     output = <div className="text-red-500">Error: Mail can only be accessed from secure Homebase terminals. Disconnect first.</div>;
                 } else if (onOpenBrowser) {
                     onOpenBrowser('mail://homebase');
@@ -1141,34 +1155,35 @@ export const Terminal: React.FC<TerminalProps> = ({
                     output = "Usage: ip a";
                 }
                 break;
+            case 'nmap-lite':
             case 'nmap':
-                if (!args[0]) { output = "usage: nmap [ip]"; break; }
+                if (!args[0]) { output = `usage: ${cmd} [ip]`; break; }
                 const nmapIp = args[0];
                 const nmapTarget = gameState.nodes.find(n => n.ip === nmapIp);
 
                 if (nmapTarget) {
                     const pid = Math.floor(Math.random() * 9000) + 1000;
-                    const cost = PROCESS_COSTS['nmap'];
+                    const cost = cmd === 'nmap' ? PROCESS_COSTS['nmap'] : { cpuUsage: 0.05, ramUsage: 0.016 };
 
                     // Start process
-                    setActiveProcesses(prev => [...prev, { id: pid.toString(), name: 'nmap', ram: cost.ramUsage }]);
+                    setActiveProcesses(prev => [...prev, { id: pid.toString(), name: cmd, ram: cost.ramUsage }]);
 
-                    setHistory(prev => [...prev, <div key={`scan-${pid}`}>Starting Nmap 7.92 (PID: {pid}) at {new Date().toISOString()}...</div>]);
+                    setHistory(prev => [...prev, <div key={`scan-${pid}`}>Starting ${cmd === 'nmap' ? 'Nmap 7.92' : 'Nmap-Lite 1.0'} (PID: {pid}) at {new Date().toISOString()}...</div>]);
 
                     const currentRamUsage = activeProcesses.reduce((acc, p) => acc + p.ram, 0) + cost.ramUsage;
-                    const delay = HardwareService.calculateProcessDelay(1500, playerState, currentRamUsage);
+                    const delay = HardwareService.calculateProcessDelay(cmd === 'nmap' ? 1500 : 800, playerState, currentRamUsage);
 
                     setTimeout(() => {
                         const portLines = nmapTarget.ports.map(p =>
-                            `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${args.includes('-sV') ? p.version : ''}`
+                            `${p.port}/tcp ${p.isOpen ? 'open' : 'closed'}  ${p.service.padEnd(12)} ${cmd === 'nmap' && args.includes('-sV') ? p.version : ''}`
                         );
                         const result = (
                             <div className="whitespace-pre-wrap text-blue-300">
-                                {`Nmap scan report for ${nmapTarget.hostname} (${nmapIp})`}
+                                {`${cmd === 'nmap' ? 'Nmap' : 'Nmap-Lite'} scan report for ${nmapTarget.hostname} (${nmapIp})`}
                                 <br />Host is up (0.0003s latency).
-                                <br />PORT     STATE SERVICE      VERSION
+                                <br />PORT     STATE SERVICE      ${cmd === 'nmap' ? 'VERSION' : ''}
                                 <br />{portLines.join('\n')}
-                                <br /><br />Nmap done: 1 IP address (1 host up) scanned in {(delay / 1000).toFixed(2)} seconds
+                                <br /><br />{cmd === 'nmap' ? 'Nmap' : 'Nmap-Lite'} done: 1 IP address (1 host up) scanned in {(delay / 1000).toFixed(2)} seconds
                             </div>
                         );
                         setHistory(prev => [...prev, result]);
@@ -2275,7 +2290,7 @@ export const Terminal: React.FC<TerminalProps> = ({
 
     return (
         <div
-            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${playerState.theme || themeColor} ${isTransitioning || (performance.isThrashing && !playerState.settings?.disableJitter) ? 'glitch-text blur-sm brightness-150' : ''} ${playerState.settings?.scanlines ? 'scanlines' : ''} ${playerState.settings?.flicker ? 'crt-flicker' : ''} ${playerState.settings?.chromaticAberration ? 'chromatic-aberration' : ''}`}
+            className={`w-full h-full flex flex-col p-10 text-lg font-vt323 crt-screen relative active-node-theme ${playerState.theme || themeColor} ${(isTransitioning || isGlitching) ? 'glitch-text blur-sm brightness-150' : ''} ${playerState.settings?.scanlines ? 'scanlines' : ''} ${playerState.settings?.flicker ? 'crt-flicker' : ''} ${playerState.settings?.chromaticAberration ? 'chromatic-aberration' : ''}`}
             style={{
                 fontSize: playerState.settings?.fontSize || 16,
                 transform: `scale(${playerState.settings?.scale || 1})`,
@@ -2312,14 +2327,16 @@ export const Terminal: React.FC<TerminalProps> = ({
                     </span>
 
                     {/* Mail Indicator */}
-                    <button
-                        onClick={() => onOpenBrowser?.('mail://homebase')}
-                        className={`flex items-center gap-1 px-2 py-0.5 rounded transition-all ${playerState.emails.some(e => e.status === 'unread') ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
-                    >
-                        MAIL {playerState.emails.some(e => e.status === 'unread') && (
-                            <span className={`font-bold ${playerState.emails.some(e => e.status === 'unread' && (e.type === 'job' || e.expiryTimestamp)) ? 'animate-blink' : ''}`}>[!]</span>
-                        )}
-                    </button>
+                    {!isTutorialActive && !isMissionActive && (
+                        <button
+                            onClick={() => onOpenBrowser?.('mail://homebase')}
+                            className={`flex items-center gap-1 px-2 py-0.5 rounded transition-all ${playerState.emails.some(e => e.status === 'unread') ? 'text-yellow-400' : 'text-gray-600 hover:text-gray-400'}`}
+                        >
+                            MAIL {playerState.emails.some(e => e.status === 'unread') && (
+                                <span className={`font-bold ${playerState.emails.some(e => e.status === 'unread' && (e.type === 'job' || e.expiryTimestamp)) ? 'animate-blink' : ''}`}>[!]</span>
+                            )}
+                        </button>
+                    )}
 
                     {/* Decryption Progress */}
                     {activeProcesses.some(p => p.name.startsWith('pgp-decrypt')) && (
@@ -2391,6 +2408,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                 <NanoEditor
                     filename={nanoFile.name}
                     initialContent={nanoFile.content}
+                    isTutorialMode={isTutorialActive}
                     onSave={(newFilename, newContent) => {
                         // If filename changed, we need to resolve the new path
                         let targetPath = nanoFile.path;

@@ -132,13 +132,15 @@ export class HardwareService {
         playerState.installedSoftware.forEach(id => {
             const soft = MARKET_CATALOG.find(i => i.id === id);
             if (soft && (soft as any).storageSize) {
+                // Tutorial binaries are virtual and shouldn't count towards physical disk usage
+                if (playerState.activeMissionId === 'tutorial') return;
                 total += (soft as any).storageSize * 1024; // Convert MB to KB
             }
         });
 
         // 4. Default Commands (small but non-zero)
-        const defaultCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'market', 'jobs'];
-        total += defaultCommands.length * 100; // ~100KB per default command
+        const defaultCommands = ['help', 'ls', 'cd', 'cat', 'pwd', 'whoami', 'clear', 'exit', 'inv', 'rm', 'kill', 'echo', 'alias', 'sh', 'theme', 'settings', 'nmap-lite', 'market', 'jobs'];
+        total += defaultCommands.length * 0.1; // ~0.1KB per default command
 
         // Ensure we never return negative or NaN
         return Math.max(0, total || 0);

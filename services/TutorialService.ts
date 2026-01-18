@@ -41,8 +41,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     {
         id: 'scan_network',
-        message: "[THE ARCHITECT]: Basic navigation confirmed. Phase 2: Network Reconnaissance.\nWe have detected a target device on the local training subnet.\nTo find open doors, we use 'nmap' (Network Mapper).\n\nScan the IP '192.168.1.55'. Type 'nmap 192.168.1.55'.",
-        check: (cmd, args) => cmd === 'nmap' && args[0] === '192.168.1.55'
+        message: "[THE ARCHITECT]: Basic navigation confirmed. Phase 2: Network Reconnaissance.\nWe have detected a target device on the local training subnet.\nTo find open doors, we use 'nmap-lite' (Network Mapper Lite).\n\nScan the IP '192.168.1.55'. Type 'nmap-lite 192.168.1.55'.",
+        check: (cmd, args) => cmd === 'nmap-lite' && args[0] === '192.168.1.55'
     },
     {
         id: 'ssh_connect',
@@ -153,7 +153,7 @@ export class TutorialService {
         // Populate local bin with essential tools
         const userHome = ((localNode.vfs.children.home as Directory).children.user as Directory);
         const binDir = userHome.children.bin as Directory;
-        ['ls', 'cd', 'cat', 'nmap', 'ssh', 'download', 'exit', 'inv', 'market', 'help'].forEach(cmd => {
+        ['ls', 'cd', 'cat', 'nmap-lite', 'ssh', 'download', 'exit', 'inv', 'market', 'help'].forEach(cmd => {
             binDir.children[cmd] = { type: 'file', name: cmd, content: '[BINARY]', size: 1 };
         });
 
