@@ -131,7 +131,7 @@ export function createInitialPlayerState(): PlayerState {
         version: CURRENT_VERSION,
         credits: 0,
         reputation: 0,
-        installedSoftware: ['ls', 'cd', 'help', 'jobs', 'exit', 'nmap', 'browser', 'mail'],
+        installedSoftware: ['ls', 'cd', 'help', 'jobs', 'exit', 'nmap-lite', 'browser', 'mail'],
         inventory: [],
         emails: [
             {

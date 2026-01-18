@@ -3,11 +3,10 @@ import { MarketItem } from '../types';
 export const MARKET_CATALOG: MarketItem[] = [
     // --- SOFTWARE: Tier 1 ---
     { id: 'ping', name: 'ICMP Echo Utility (ping)', category: 'utility', tier: 1, description: 'Standard network connectivity tester. Essential for initial recon.', cost: 150, cpuReq: 1, ramReq: 4, storageSize: 10 },
-    { id: 'nmap-lite', name: 'Nmap-Lite v0.4', category: 'sniffing', tier: 1, description: 'Basic port scanner. Identifies open/closed states only. No service detection.', cost: 450, cpuReq: 5, ramReq: 16, storageSize: 30 },
     { id: 'brute-force.sh', name: 'Simple Brute-Force Script', category: 'exploit', tier: 1, description: 'A noisy, basic script for credential guessing. High detection risk.', cost: 800, cpuReq: 20, ramReq: 32, storageSize: 5 },
 
     // --- SOFTWARE: Tier 2 ---
-    { id: 'nmap', name: 'Nmap Professional v7.9', category: 'sniffing', tier: 2, description: 'Industry standard network scanner. Includes service and version detection.', cost: 1800, cpuReq: 10, ramReq: 64, storageSize: 90 },
+    { id: 'nmap', name: 'Nmap Professional v7.9', category: 'sniffing', tier: 2, description: 'Industry standard network scanner. Includes service and version detection.', cost: 1800, cpuReq: 10, ramReq: 64, storageSize: 60 },
     { id: 'hydra', name: 'THC-Hydra v9.2', category: 'exploit', tier: 2, description: 'Multi-threaded parallelized login cracker. Supports multiple protocols.', cost: 3500, cpuReq: 25, ramReq: 128, storageSize: 60 },
     { id: 'ssh-crack-v1', name: 'SSH-Harvester v1.0', category: 'exploit', tier: 2, description: 'Specialized SSH credential harvester. Optimized for low-latency connections.', cost: 4500, cpuReq: 15, ramReq: 96, storageSize: 40 },
     { id: 'overclock', name: 'Kernel Overdrive Module', category: 'utility', tier: 2, description: 'Unlocks CPU frequency controls and voltage scaling. Warning: Increases heat.', cost: 2500, cpuReq: 2, ramReq: 8, storageSize: 20 },

@@ -629,14 +629,14 @@ export const Terminal: React.FC<TerminalProps> = ({
                     <div className="text-cyan-400">
                         <div className="font-bold border-b border-cyan-400/30 mb-2 pb-1">MEMORY STATUS</div>
                         <div className="grid grid-cols-[100px_1fr] gap-x-4">
-                            <div>CAPACITY:</div><div>{capacity} GB</div>
-                            <div>USED:</div><div>{totalUsed.toFixed(1)} GB</div>
+                            <div>CAPACITY:</div><div>{capacity >= 1 ? `${capacity} GB` : `${Math.round(capacity * 1024)} MB`}</div>
+                            <div>USED:</div><div>{totalUsed >= 1 ? `${totalUsed.toFixed(1)} GB` : `${Math.round(totalUsed * 1024)} MB`}</div>
                             <div>STATUS:</div><div className={isThrashing ? 'text-red-500 blink' : 'text-green-500'}>{isThrashing ? 'THRASHING (SWAP ACTIVE)' : 'OPTIMAL'}</div>
                         </div>
                         {isThrashing && <div className="text-red-500 text-xs mt-2 italic animate-pulse">WARNING: Memory exceeded. System is using disk swap. All operations slowed by 500%.</div>}
                         <div className="mt-4 text-xs opacity-70">ACTIVE ALLOCATIONS:</div>
                         {activeProcesses.map((p, i) => (
-                            <div key={i} className="text-xs ml-4">- {p.name}: {p.ram} GB (PID: {p.id})</div>
+                            <div key={i} className="text-xs ml-4">- {p.name}: {p.ram >= 1 ? `${p.ram.toFixed(1)} GB` : `${Math.round(p.ram * 1024)} MB`} (PID: {p.id})</div>
                         ))}
                     </div>
                 );
@@ -925,7 +925,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             // 2. Check RAM Capacity (Phase 4)
 
                             if (fileSizeKB / 1024 > playerState.hardware.ram.capacity * 1024) {
-                                output = <div className="text-red-500">Error: File '{fNode.name}' ({(fileSizeKB / 1024).toFixed(1)}MB) is too large for your system's RAM ({playerState.hardware.ram.capacity}GB). Upgrade RAM to handle this buffer.</div>;
+                                output = <div className="text-red-500">Error: File '{fNode.name}' ({(fileSizeKB / 1024).toFixed(1)}MB) is too large for your system's RAM ({playerState.hardware.ram.capacity >= 1 ? `${playerState.hardware.ram.capacity}GB` : `${Math.round(playerState.hardware.ram.capacity * 1024)}MB`}). Upgrade RAM to handle this buffer.</div>;
                                 break;
                             }
 
@@ -1031,7 +1031,7 @@ export const Terminal: React.FC<TerminalProps> = ({
                             <div className="flex justify-between text-xs mb-1">
                                 <span>STORAGE USAGE</span>
                                 <span className={invPercent > 90 ? 'text-red-500' : 'text-cyan-400'}>
-                                    {(invStorageUsed / (1024 * 1024)).toFixed(2)} / {(invCapacity / (1024 * 1024)).toFixed(2)} GB
+                                    {invStorageUsed / (1024 * 1024) >= 1 ? `${(invStorageUsed / (1024 * 1024)).toFixed(2)} GB` : `${(invStorageUsed / 1024).toFixed(1)} MB`} / {invCapacity / (1024 * 1024) >= 1 ? `${(invCapacity / (1024 * 1024)).toFixed(2)} GB` : `${(invCapacity / 1024).toFixed(1)} MB`}
                                 </span>
                             </div>
                             <div className="w-full h-2 bg-gray-800 rounded-full overflow-hidden border border-cyan-900">
@@ -2245,10 +2245,10 @@ export const Terminal: React.FC<TerminalProps> = ({
                         DISK
                     </span>
                     <span className={`${performance.isThrashing ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>
-                        RAM: {performance.ramUsed.toFixed(1)}/{performance.ramCapacity}GB
+                        RAM: {performance.ramUsed >= 1 ? `${performance.ramUsed.toFixed(1)}GB` : `${Math.round(performance.ramUsed * 1024)}MB`}/{performance.ramCapacity >= 1 ? `${performance.ramCapacity}GB` : `${Math.round(performance.ramCapacity * 1024)}MB`}
                     </span>
                     <span className={`${(performance.storageUsed / performance.storageCapacity) > 0.9 ? 'text-red-500' : 'text-gray-400'}`}>
-                        DISK: {(performance.storageUsed / (1024 * 1024)).toFixed(2)}/{(performance.storageCapacity / (1024 * 1024)).toFixed(2)} GB
+                        DISK: {performance.storageUsed / (1024 * 1024) >= 1 ? `${(performance.storageUsed / (1024 * 1024)).toFixed(2)}GB` : `${(performance.storageUsed / 1024).toFixed(1)}MB`}/{performance.storageCapacity / (1024 * 1024) >= 1 ? `${(performance.storageCapacity / (1024 * 1024)).toFixed(2)}GB` : `${(performance.storageCapacity / 1024).toFixed(1)}MB`}
                     </span>
                     {isMissionActive && (
                         <span className="flex items-center gap-2">
